@@ -116,9 +116,5 @@ no big updates ,
 3. server for server webrtc
 4. voice and video filter explore
 5. react native app dev
-
 6. attendance system and shadow me trial again
 
-7. ml project little work
-
-8. pdf scanner to quiz making

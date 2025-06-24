@@ -1,4 +1,8 @@
 'use client';
+// usestream video client is somehting that i have to study and analyse for me to be able to put my own logic onto it
+// the very fact that i am typing this sitting in the airport 
+// my lovely airport in bengaluru is actually bringing me down to tears 
+// but i believe moving on with commenting and understanding the system is really important 
 
 import { useStreamVideoClient } from '@stream-io/video-react-sdk';
 import { useRouter } from 'next/navigation';

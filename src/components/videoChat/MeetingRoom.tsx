@@ -22,6 +22,19 @@ import {
 import Loader from './Loader';
 import EndCallButton from './EndCallButton';
 import { cn } from '@/lib/utils';
+// its really amamzing seeing that you actually dont need a grain of shitty backend to run your stuffs, 
+// we thats partly due to the fact that the maker hand used easy authentication , 
+// easy authentication would be meaning that i will be doing things really no jwt , 
+// using client auth is cool , 
+// but for my case i am using next auth , or even you can call it auth js
+// its amazing for how many things , free services are available in next js environment , 
+// that simply is great and obviously marvellous piece of shit , 
+// use calling state , 
+// calling layout , 
+// calling 
+/// yuck man , i just love this , 
+// so so many foreigners going in front of my eyes 
+// i just cant , but ya i became like india ++ after seeing this , anyone should feel the same thing too
 
 type CallLayoutType = 'grid' | 'speaker-left' | 'speaker-right';
 
@@ -51,6 +64,7 @@ const MeetingRoom = () => {
 
   return (
     <section className="relative h-screen w-full overflow-hidden pt-4 text-white">
+      
       <div className="relative flex size-full items-center justify-center">
         <div className=" flex size-full max-w-[1000px] items-center">
           <CallLayout />
