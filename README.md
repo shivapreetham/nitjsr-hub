@@ -1,4 +1,4 @@
-# 🚀 NIT-JSR Hub
+# 🚀 NIT-JSR Hub v 2
 
 **Digital companion platform for NIT Jamshedpur students**—attendance tracking, campus marketplace, real‑time chat, and more, all in one modular, extensible ecosystem.
 
