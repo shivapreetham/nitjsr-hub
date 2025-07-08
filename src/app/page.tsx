@@ -26,7 +26,7 @@ export default function Home() {
         {/* Hero Section */}
         <section className="text-center mb-16 space-y-8">
           <div className="relative inline-block">
-            <h1 className="text-5xl md:text-7xl font-bold text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/90 to-primary/80">
+            <h1 className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/90 to-primary/80">
               NIT JSR Hub
             </h1>
             <Sparkles className="absolute -right-8 -top-4 text-primary animate-bounce" />

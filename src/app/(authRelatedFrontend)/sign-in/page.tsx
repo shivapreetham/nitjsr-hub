@@ -140,6 +140,19 @@ export default function SignUpForm() {
             </Button>
           </form>
         </Form>
+        <div className="text-center text-sm text-muted-foreground mt-4 space-y-1">
+  <p>🧪 <span className="font-medium">Test Credentials</span> <br />
+    <span className="text-xs text-muted-foreground">
+      (Disclaimer: You might not have access to all features)
+    </span>
+  </p>
+  <p>
+    Email: <code className="bg-muted px-1 py-0.5 rounded text-foreground">2023ugcs117@nitjsr.ac.in</code>
+  </p>
+  <p>
+    Password: <code className="bg-muted px-1 py-0.5 rounded text-foreground">123456</code>
+  </p>
+</div>
 
         <div className="text-center space-y-4">
           <p className="text-muted-foreground">
