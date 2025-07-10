@@ -94,23 +94,28 @@ async function handleDefaultGroups(userId: string) {
 async function ensureGroupExists({ year, level, course, isAnonymous }: any) {
   const groupName = `${isAnonymous ? '##' : '#'}${year}${level}${course}`;
   
-  const existingGroup = await prisma.conversation.findFirst({
-    where: { name: groupName }
+  const existingConversation = await prisma.conversation.findFirst({
+    where: { name: groupName },
   });
-
-  if (existingGroup) {
-    return existingGroup;
+  
+  if (existingConversation) {
+    return await prisma.conversation.update({
+      where: { id: existingConversation.id },
+      data: {
+        isAnonymous,
+        userIds: [],
+      },
+    });
+  } else {
+    return await prisma.conversation.create({
+      data: {
+        name: groupName,
+        isGroup: true,
+        isAnonymous,
+        userIds: [],
+      },
+    });
   }
-
-  return await prisma.conversation.create({
-    data: {
-      name: groupName,
-      isGroup: true,
-      isAnonymous,
-      userIds: [],
-      messagesIds: []
-    }
-  });
 }
 
 export async function POST(request: Request) {

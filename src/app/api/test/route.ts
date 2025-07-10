@@ -1,109 +1,115 @@
-// // app/api/test/route.ts
-// import prisma from '@/lib/prismadb';
-// import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prismadb";
+import type { NextRequest } from "next/server";
 
-// export async function GET() {
-//   try {
-//     // Try a simple read-only operation first
-//     const existingUser = await prisma.user.findUnique({
-//       where: {
-//         email: "test@test.com"
-//       }
-//     });
+// Interface for conversation data to ensure type safety
+interface Conversation {
+  id: string;
+  name: string | null;
+  userIds: string[];
+}
 
-//     if (existingUser) {
-//       return NextResponse.json({
-//         success: true,
-//         message: "Connection test successful - user exists",
-//         user: existingUser
-//       });
-//     }
+export async function POST(req: NextRequest) {
+  // Restrict to POST requests
+  if (req.method !== "POST") {
+    return NextResponse.json({ message: "Method not allowed" }, { status: 405 });
+  }
 
-//     // If no existing user, try to create one
-//     const user = await prisma.user.create({
-//       data: {
-//         username: "test_user",
-//         email: "test@test.com",
-//         verifyCode: "123456",
-//         verifyCodeExpiry: new Date(),
-//         NITUsername: "test123",
-//         NITPassword: "test123",
-//         isVerified: false,
-//         isAcceptingAnonymousMessages: true,
-//         honorScore: 100,
-//         lastSeen: new Date(),
-//         activeStatus: false,
-//         conversationIds: [],
-//         seenMessageIds: [],
-//         createdAt: new Date(),
-//         updatedAt: new Date()
-//       }
-//     });
-
-//     return NextResponse.json({
-//       success: true,
-//       message: "User created successfully",
-//       user
-//     });
-
-//   } catch (error) {
-//     console.error('Prisma Error:', error);
-    
-//     // Fixed error response syntax
-//     return NextResponse.json(
-//       {
-//         success: false,
-//         message: error instanceof Error ? error.message : 'Unknown error'
-//       }, 
-//       { status: 500 }
-//     );
-//   }
-// }
-
-
-// app/api/test/online-status/route.ts
-import { NextResponse } from 'next/server';
-import prisma from '@/lib/prismadb';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/options';
-
-export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Fetch all conversations with relevant fields
+    const allConversations = await prisma.conversation.findMany({
+      select: {
+        id: true,
+        name: true,
+        userIds: true,
+      },
+    });
+
+    // Define index signature for nameToConversations
+    const nameToConversations: { [key: string]: Conversation[] } = {};
+
+    // Group conversations by name, filtering out null names
+    allConversations.reduce((acc, conv) => {
+      if (conv.name !== null) { // Null check for name
+        if (!acc[conv.name]) { // Line 31: acc[conv.name]
+          acc[conv.name] = [];
+        }
+        acc[conv.name].push(conv); // Line 32: acc[conv.name].push
+      }
+      return acc;
+    }, nameToConversations);
+
+    // Process each group of duplicates
+    for (const [name, conversations] of Object.entries(nameToConversations)) { // Line 34: Object.entries(nameToConversations)
+      if (name !== null && conversations.length > 1) {
+        // Choose the primary conversation (e.g., with most users)
+        const primaryConv = conversations.sort((a, b) => b.userIds.length - a.userIds.length)[0];
+        const duplicateConvs = conversations.filter((c) => c.id !== primaryConv.id);
+        const duplicateIds = duplicateConvs.map((c) => c.id);
+
+        // Update messages to point to the primary conversation
+        await prisma.message.updateMany({
+          where: {
+            conversationId: {
+              in: duplicateIds,
+            },
+          },
+          data: {
+            conversationId: primaryConv.id,
+          },
+        });
+
+        // Merge userIds from duplicates into the primary conversation
+        const allUserIds = new Set(duplicateConvs.flatMap((c) => c.userIds));
+        const primaryUserIds = new Set(primaryConv.userIds);
+        const usersToAdd = [...allUserIds].filter((userId) => !primaryUserIds.has(userId));
+        if (usersToAdd.length > 0) {
+          await prisma.conversation.update({
+            where: { id: primaryConv.id },
+            data: {
+              userIds: {
+                push: usersToAdd,
+              },
+            },
+          });
+        }
+
+        // Update users' conversationIds
+        for (const userId of allUserIds) {
+          const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { conversationIds: true },
+          });
+          if (user) {
+            const updatedConversationIds = user.conversationIds.map((id) =>
+              duplicateIds.includes(id) ? primaryConv.id : id
+            );
+            const uniqueIds = [...new Set(updatedConversationIds)];
+            await prisma.user.update({
+              where: { id: userId },
+              data: {
+                conversationIds: uniqueIds,
+              },
+            });
+          }
+        }
+
+        // Delete duplicate conversations
+        await prisma.conversation.deleteMany({
+          where: {
+            id: {
+              in: duplicateIds,
+            },
+          },
+        });
+
+        console.log(`Merged duplicates for group ${name} into conversation ${primaryConv.id}`);
+      }
     }
 
-    // Get current user's status
-    const currentUser = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: {
-        id: true,
-        email: true,
-        activeStatus: true,
-        lastSeen: true,
-      }
-    });
-
-    // Get all online users
-    const onlineUsers = await prisma.user.findMany({
-      where: { activeStatus: true },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        lastSeen: true,
-      }
-    });
-
-    return NextResponse.json({
-      currentUser,
-      onlineUsers,
-      totalOnline: onlineUsers.length,
-      serverTime: new Date().toISOString()
-    });
+    return NextResponse.json({ message: "Cleanup completed successfully" }, { status: 200 });
   } catch (error) {
-    console.error('Status test error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error("Error during cleanup:", error);
+    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
 }
