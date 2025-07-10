@@ -18,11 +18,9 @@ const MeetingPage = () => {
   const { call, isCallLoading } = useGetCallById(meetingId);
   const [isSetupComplete, setIsSetupComplete] = useState(false);
   
-  // Fetch user from context
   const { currentUser } = useCurrentUserContext();
   const isUserLoading = !currentUser;
 
-  // Bubble animation elements
   const bubbleVariants = {
     initial: { scale: 0, opacity: 0 },
     animate: { scale: 1, opacity: 0.1 },
@@ -54,7 +52,7 @@ const MeetingPage = () => {
   if (notAllowed) return <Alert title="You are not allowed to join this meeting" />;
 
   return (
-    <main className="h-screen w-full bg-gradient-to-br from-white to-blue-50 relative overflow-hidden">
+    <main className="h-screen w-full bg-gradient-to-br from-white to-blue-50 relative">
       {/* Animated background bubbles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(5)].map((_, i) => (
@@ -80,16 +78,19 @@ const MeetingPage = () => {
         ))}
       </div>
       
-      {/* Glass container for content */}
-      <div className="relative h-full w-full">
-        <StreamCall call={call}>
-          <StreamTheme>
-            {!isSetupComplete ? 
-              <MeetingSetup setIsSetupComplete={setIsSetupComplete} /> : 
-              <MeetingRoom />
-            }
-          </StreamTheme>
-        </StreamCall>
+      {/* Content container with scrolling */}
+      <div className="relative h-full w-full overflow-auto">
+        {/* Wrapper for better visibility */}
+        <div className="bg-white p-4 rounded-lg shadow mx-auto max-w-4xl mt-4">
+          <StreamCall call={call}>
+            <StreamTheme>
+              {!isSetupComplete ? 
+                <MeetingSetup setIsSetupComplete={setIsSetupComplete} /> : 
+                <MeetingRoom />
+              }
+            </StreamTheme>
+          </StreamCall>
+        </div>
       </div>
     </main>
   );
