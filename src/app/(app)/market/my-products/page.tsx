@@ -18,9 +18,8 @@ export default function MyProductsPage() {
   const { data: session, status } = useSession();
 
   useEffect(() => {
-    // Redirect if not authenticated
     if (status === "unauthenticated") {
-      router.push("/login");
+      router.push("/sign-in");
     }
 
     const fetchUserProducts = async () => {

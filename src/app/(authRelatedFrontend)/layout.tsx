@@ -1,8 +1,6 @@
-// import HomeBtn from "@/components/home&anonymous/HomeBtn"
-
 export const metadata = {
-  title: 'shatterbox',
-  description: 'so whom do you trust?!!!',
+  title: 'NIT JSR Hub',
+  description: 'Your goto website for NIT JSR',
 }
 
 export default function RootLayout({
@@ -12,7 +10,6 @@ export default function RootLayout({
 }) {
   return (
       <div>
-        {/* <HomeBtn /> */}
         {children}
       </div>
   )

@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { PRODUCT_CATEGORIES, PRODUCT_CONDITIONS, Product } from "@/types/products";
 import { Button } from "@/components/ui/button";
+import {formSchema} from "@/schemas/productFormSchema"
 import {
   Form,
   FormControl,
@@ -32,18 +33,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { MainImageUpload, AdditionalImagesUpload, PaymentQRUpload } from "@/components/market/imageUpload";
 
 // Create schema for editing product
-const formSchema = z.object({
-  title: z.string().min(3, { message: "Title must be at least 3 characters." }),
-  description: z.string().min(10, { message: "Description must be at least 10 characters." }),
-  price: z.coerce.number().positive({ message: "Price must be a positive number." }),
-  category: z.string().min(1, { message: "Please select a category." }),
-  condition: z.string().optional(),
-  hostel: z.string().optional(),
-  mainImage: z.string().min(1, { message: "Please upload a main image." }),
-  images: z.array(z.string()).default([]),
-  paymentQR: z.string().optional(),
-  status: z.enum(["AVAILABLE", "RESERVED", "SOLD"]),
-});
+interface Field {
+  onChange: (value: string[]) => void;
+  value: string[];
+}
 
 export default function EditProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
@@ -187,7 +180,7 @@ export default function EditProductPage() {
   }
 
   // Helper function to remove an image URL from a field's value.
-  const handleImageRemove = (field: any, urlToRemove: string) => {
+  const handleImageRemove = (field: Field, urlToRemove: string) => {
     field.onChange(field.value.filter((url: string) => url !== urlToRemove));
   };
 
