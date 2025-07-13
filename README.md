@@ -1,8 +1,10 @@
-# 🚀 NIT-JSR Hub v 2
+# 🚀 NIT-JSR Hub v 1
 
 **Digital companion platform for NIT Jamshedpur students**—attendance tracking, campus marketplace, real‑time chat, and more, all in one modular, extensible ecosystem.
 
 ---
+
+## the version 2 uses postgresql using supabase and drizzle
 
 ## 🎯 Key Features
 
@@ -28,11 +30,11 @@
 | Framework      | Next.js (App Router)                          |
 | Language       | TypeScript                                    |
 | UI Components  | Shadcn/ui, Radix, Tailwind CSS, Framer Motion |
-| Database       | PostgreSQL (Supabase) + Drizzle ORM           |
-| Real‑Time      | Socket.IO (hosted on Fly.io) + Redis          |
-| Authentication | Supabase Auth                                 |
+| Database       | Mongodb        | Prisma ORM
+| Real‑Time      | Pusher         |
+| Authentication | Next Auth                                 |
 | Storage        | Supabase Storage                              |
-| Deployment     | Vercel (Frontend/API), Fly.io (Sockets)       |
+| Deployment     | Vercel (Frontend/API), Render (for servers)      |
 
 ---
 
@@ -45,10 +47,6 @@
   ├─ marketplace   # Marketplace module (Products CRUD)
   ├─ anonymous     # Anonymous messaging module
   └─ videoChat     # Group/Personal WebRTC rooms
-/lib
-  ├─ db           # Drizzle schema & queries
-  ├─ socket       # Socket.IO server client setup
-  └─ cache        # Redis client wrapper
 /components      # Shared UI components
 /schemas         # Zod schemas & validations
 /types           # Shared TypeScript types
@@ -64,7 +62,6 @@
 * Node.js >= 18
 * PNPM or npm
 * Supabase account (free tier)
-* Fly.io account (free tier)
 
 ### 2. Clone & Install
 
@@ -82,18 +79,9 @@ Create a `.env.local` at project root:
 NEXT_PUBLIC_SUPABASE_URL=...  
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...  
 DATABASE_URL=...  
-SOCKET_IO_URL=...  
-REDIS_URL=...  
 ```
 
-### 4. Initialize & Generate Migrations
-
-```bash
-npx drizzle-kit generate:migration
-npx drizzle-kit migrate:dev
-```
-
-### 5. Run in Development
+### 4. Run in Development
 
 ```bash
 pnpm dev
@@ -129,14 +117,6 @@ pnpm run create:app <app-name>
 
 ---
 
-## 📈 Roadmap
-
-* [ ] On‑device emotion detection integration
-* [ ] Scheduled scraper via serverless cron
-* [ ] Analytics dashboard for usage metrics
-* [ ] Mobile app wrapper (React Native)
-
----
 
 ## 📄 License
 
