@@ -4,7 +4,7 @@
 
 ---
 
-## the version 2 uses postgresql using supabase and drizzle
+## the version 2 uses postgresql using supabase and drizzle, redis for caching , custom socket io server
 
 ## 🎯 Key Features
 
