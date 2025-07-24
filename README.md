@@ -116,8 +116,3 @@ pnpm run create:app <app-name>
 ```
 
 ---
-
-
-## 📄 License
-
-MIT © Your Name
