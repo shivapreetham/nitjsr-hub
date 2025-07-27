@@ -4,9 +4,8 @@ A comprehensive, full-stack application designed to integrate essential communit
 
 **[Live Demo](https://nit-jsr-hub-v1.vercel.app)** 🔗
 
-![Project Screenshot](<img width="1865" height="932" alt="image" src="https://github.com/user-attachments/assets/e5b1325c-7ec4-4ea6-9579-2754bf88303b" />
-)
-*(A screenshot or GIF of your application's dashboard would be perfect here!)*
+
+<img width="1865" height="932" alt="image" src="https://github.com/user-attachments/assets/c6030e99-36c9-4fa0-a99b-315ad5cc75fa" />
 
 ---
 
