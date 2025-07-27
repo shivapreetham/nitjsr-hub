@@ -41,7 +41,7 @@ NIT-JSR-Hub is divided into four primary modules, each packed with its own set o
 
 This project utilizes a modular, microservice-oriented architecture to separate concerns and ensure scalability. The main application is a **Next.js** monolith, while the attendance scraper runs as an independent **Express.js** microservice. A single **MongoDB** instance serves as the source of truth for all modules.
 
-<img width="488" height="558" alt="System Architecture Diagram" src="https://github.com/user-attachments/assets/56c686a4-cd86-416c-b1b0-b11142c69552" />
+<img width="741" height="818" alt="image" src="https://github.com/user-attachments/assets/ef1bf3c1-727d-4c54-8e46-0b990920a0f4" />
 
 ---
 
