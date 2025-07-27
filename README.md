@@ -1,9 +1,8 @@
-# NIT-JSR-Hub v1 - student platform for NIT JSR🚀
+# NIT-JSR-Hub v1 - The All-in-One Student Platform 🚀
 
-A comprehensive, full-stack application designed to integrate essential community and student tools into a single, seamless platform. This project features real-time chat, a peer-to-peer marketplace, integrated video conferencing, and a unique automated attendance tracking system.
+A comprehensive, full-stack application designed to integrate essential community and student tools into a single, seamless platform. This project features real-time chat, a peer-to-peer marketplace, integrated video conferencing, and a unique automated attendance tracking system, all built with a focus on typesafety using the T3 Stack.
 
 **[Live Demo](https://nit-jsr-hub-v1.vercel.app)** 🔗
-
 
 <img width="1865" height="932" alt="image" src="https://github.com/user-attachments/assets/c6030e99-36c9-4fa0-a99b-315ad5cc75fa" />
 
@@ -11,7 +10,7 @@ A comprehensive, full-stack application designed to integrate essential communit
 
 ## ## Key Features ✨
 
-NIT-JSR-hub is divided into four primary modules, each packed with its own set of features:
+NIT-JSR-Hub is divided into four primary modules, each packed with its own set of features:
 
 ### ### 💬 Real-Time Chat
 -   **Instant Messaging:** One-on-one and group conversations with real-time message delivery powered by **Pusher**.
@@ -30,7 +29,7 @@ NIT-JSR-hub is divided into four primary modules, each packed with its own set o
 -   **Schedule Meetings:** Plan and schedule future meetings with other users.
 -   **Recording & History:** Access a history of past meetings and view recordings, all managed by Stream's backend.
 
-### ###  attendance Attendance Tracker
+### ### 📅 Attendance Tracker
 -   **Automated Data Scraping:** An independent **Express.js microservice** uses **Playwright** to automatically log into a college portal and scrape attendance data.
 -   **Data Analytics:** The microservice processes the raw data to calculate daily/weekly attendance percentages and trends.
 -   **Visualizations:** The frontend displays attendance data in a calendar view, with analytics charts and a student leaderboard.
@@ -40,14 +39,22 @@ NIT-JSR-hub is divided into four primary modules, each packed with its own set o
 
 ## ## System Architecture 🏗️
 
-This project utilizes a modular, microservice-oriented architecture to separate concerns and ensure scalability.
+This project utilizes a modular, microservice-oriented architecture to separate concerns and ensure scalability. The main application is a **Next.js** monolith, while the attendance scraper runs as an independent **Express.js** microservice. A single **MongoDB** instance serves as the source of truth for all modules.
 
--   **Monorepo Frontend:** The main application is a **Next.js** app containing the UI and business logic for all four modules.
--   **Microservice Backend:** The attendance scraper is a completely separate **Express.js** server that runs independently.
--   **Shared Database:** A single **MongoDB** instance acts as the source of truth for all application data.
--   **Third-Party Services:** Leverages best-in-class services like Pusher, Stream, and Supabase Storage to handle specialized tasks efficiently.
+![System Architecture Diagram](https://app.eraser.io/workspace/Apx9i6oQtdCXhSVASqn2)
 
-**(A screenshot of the system architecture diagram we created would be perfect here!)**
+<img width="488" height="558" alt="image" src="https://github.com/user-attachments/assets/56c686a4-cd86-416c-b1b0-b11142c69552" />
+
+
+---
+
+## ## What is the T3 Stack?
+
+This project is built using the principles of the **T3 Stack**, which is a web development stack focused on a simple philosophy: **full-stack typesafety**.
+
+> The goal is to provide a seamless developer experience where the data types defined in your backend are automatically shared with your frontend. This eliminates a huge category of bugs and drastically speeds up development by providing features like autocompletion across the API boundary.
+
+It’s built around a few core, typesafe technologies that are modular and easy to work with.
 
 ---
 
