@@ -1,4 +1,4 @@
-# Nitjsr Hub v1 - student platform for NIT JSR🚀
+# NIT-JSR-Hub v1 - student platform for NIT JSR🚀
 
 A comprehensive, full-stack application designed to integrate essential community and student tools into a single, seamless platform. This project features real-time chat, a peer-to-peer marketplace, integrated video conferencing, and a unique automated attendance tracking system.
 
@@ -11,7 +11,7 @@ A comprehensive, full-stack application designed to integrate essential communit
 
 ## ## Key Features ✨
 
-Nexus is divided into four primary modules, each packed with its own set of features:
+NIT-JSR-hub is divided into four primary modules, each packed with its own set of features:
 
 ### ### 💬 Real-Time Chat
 -   **Instant Messaging:** One-on-one and group conversations with real-time message delivery powered by **Pusher**.
