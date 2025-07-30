@@ -10,23 +10,45 @@ import Loader from '@/app/(app)/videoChat/components/Loader';
 const API_KEY = process.env.NEXT_PUBLIC_STREAM_API_KEY;
 
 const StreamVideoProvider = ({ children }: { children: ReactNode }) => {
-  const [videoClient, setVideoClient] = useState<StreamVideoClient>();
+  const [videoClient, setVideoClient] = useState<StreamVideoClient | null>(null);
   const { currentUser } = useCurrentUserContext();
 
   useEffect(() => {
-    if (!currentUser) return;
-    if (!API_KEY) throw new Error('Stream API key is missing');
+    if (!currentUser || !API_KEY) return;
 
     const client = new StreamVideoClient({
       apiKey: API_KEY,
-      user: { id: currentUser.id, name: currentUser.username || currentUser.id, image: currentUser.image || '' },
+      user: { 
+        id: currentUser.id, 
+        name: currentUser.username || currentUser.id, 
+        image: currentUser.image || '' 
+      },
       tokenProvider,
     });
 
     setVideoClient(client);
+
+    // Cleanup function
+    return () => {
+      client.disconnectUser();
+    };
   }, [currentUser]);
 
-  if (!videoClient) return <Loader />;
+  if (!currentUser) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <p className="text-gray-600">Please log in to access video chat.</p>
+    </div>;
+  }
+
+  if (!API_KEY) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <p className="text-red-500">Stream API key is missing. Please check your configuration.</p>
+    </div>;
+  }
+
+  if (!videoClient) {
+    return <Loader />;
+  }
 
   return <StreamVideo client={videoClient}>{children}</StreamVideo>;
 };

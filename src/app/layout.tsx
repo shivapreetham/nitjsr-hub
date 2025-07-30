@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 import { ThemeProvider } from "@/context/ThemeProvider";
 import ActiveStatus from "@/components/chat/ActiveStatus";
+
 export const metadata: Metadata = {
   title: "NIT JSR Hub | shadowme",
   description: "Your goto website for NIT JSR",
@@ -19,7 +20,6 @@ export const viewport = {
   maximumScale: 1,
 };
 
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,20 +27,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="antialiased bg-background min-h-screen">
+      <body className="antialiased bg-background min-h-screen" suppressHydrationWarning>
         <AuthProvider>
-          {/* <PusherProvider> */}
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="light"
-              enableSystem
-              disableTransitionOnChange
-            >
-              <ActiveStatus />
-              {children}
-              <Toaster />
-            </ThemeProvider>
-          {/* </PusherProvider> */}
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <ActiveStatus />
+            {children}
+            <Toaster />
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

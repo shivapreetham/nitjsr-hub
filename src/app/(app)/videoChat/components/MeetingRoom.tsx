@@ -8,9 +8,24 @@ import {
   PaginatedGridLayout,
   SpeakerLayout,
   useCallStateHooks,
+  VideoPreview,
+  useCall,
 } from '@stream-io/video-react-sdk';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Users, LayoutList } from 'lucide-react';
+import { 
+  Users, 
+  LayoutGrid, 
+  Mic, 
+  MicOff, 
+  Video, 
+  VideoOff, 
+  Phone, 
+  PhoneOff,
+  Settings,
+  MessageSquare,
+  Share,
+  MoreHorizontal
+} from 'lucide-react';
 
 import {
   DropdownMenu,
@@ -19,22 +34,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import Loader from './Loader';
 import EndCallButton from './EndCallButton';
 import { cn } from '@/lib/utils';
-// its really amamzing seeing that you actually dont need a grain of shitty backend to run your stuffs, 
-// we thats partly due to the fact that the maker hand used easy authentication , 
-// easy authentication would be meaning that i will be doing things really no jwt , 
-// using client auth is cool , 
-// but for my case i am using next auth , or even you can call it auth js
-// its amazing for how many things , free services are available in next js environment , 
-// that simply is great and obviously marvellous piece of shit , 
-// use calling state , 
-// calling layout , 
-// calling 
-/// yuck man , i just love this , 
-// so so many foreigners going in front of my eyes 
-// i just cant , but ya i became like india ++ after seeing this , anyone should feel the same thing too
 
 type CallLayoutType = 'grid' | 'speaker-left' | 'speaker-right';
 
@@ -44,12 +48,37 @@ const MeetingRoom = () => {
   const router = useRouter();
   const [layout, setLayout] = useState<CallLayoutType>('speaker-left');
   const [showParticipants, setShowParticipants] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [isMicOn, setIsMicOn] = useState(true);
+  const [isVideoOn, setIsVideoOn] = useState(true);
   const { useCallCallingState } = useCallStateHooks();
+  const call = useCall();
 
-  // for more detail about types of CallingState see: https://getstream.io/video/docs/react/ui-cookbook/ringing-call/#incoming-call-panel
   const callingState = useCallCallingState();
 
   if (callingState !== CallingState.JOINED) return <Loader />;
+
+  const toggleMic = () => {
+    if (call) {
+      if (isMicOn) {
+        call.microphone.disable();
+      } else {
+        call.microphone.enable();
+      }
+      setIsMicOn(!isMicOn);
+    }
+  };
+
+  const toggleVideo = () => {
+    if (call) {
+      if (isVideoOn) {
+        call.camera.disable();
+      } else {
+        call.camera.enable();
+      }
+      setIsVideoOn(!isVideoOn);
+    }
+  };
 
   const CallLayout = () => {
     switch (layout) {
@@ -63,54 +92,182 @@ const MeetingRoom = () => {
   };
 
   return (
-    <section className="relative h-screen w-full overflow-hidden pt-4 text-white">
-      
-      <div className="relative flex size-full items-center justify-center">
-        <div className=" flex size-full max-w-[1000px] items-center">
-          <CallLayout />
-        </div>
-        <div
-          className={cn('h-[calc(100vh-86px)] hidden ml-2', {
-            'show-block': showParticipants,
-          })}
-        >
-          <CallParticipantsList onClose={() => setShowParticipants(false)} />
-        </div>
-      </div>
-      {/* video layout and call controls */}
-      <div className="fixed bottom-0 flex w-full items-center justify-center gap-5">
-        <CallControls onLeave={() => router.push(`/`)} />
-
-        <DropdownMenu>
-          <div className="flex items-center">
-            <DropdownMenuTrigger className="cursor-pointer rounded-2xl bg-[#19232d] px-4 py-2 hover:bg-[#4c535b]  ">
-              <LayoutList size={20} className="text-white" />
-            </DropdownMenuTrigger>
+    <div className="relative h-screen w-full bg-gray-900 overflow-hidden">
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 z-10 bg-black/20 backdrop-blur-sm border-b border-white/10">
+        <div className="flex items-center justify-between px-6 py-3">
+          <div className="flex items-center gap-4">
+            <h1 className="text-white font-medium">Meeting</h1>
+            <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
+              Live
+            </Badge>
           </div>
-          <DropdownMenuContent className="border-dark-1 bg-dark-1 text-white">
-            {['Grid', 'Speaker-Left', 'Speaker-Right'].map((item, index) => (
-              <div key={index}>
-                <DropdownMenuItem
-                  onClick={() =>
-                    setLayout(item.toLowerCase() as CallLayoutType)
-                  }
-                >
-                  {item}
+          
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-white hover:bg-white/10"
+              onClick={() => setShowParticipants(!showParticipants)}
+            >
+              <Users size={18} />
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-white hover:bg-white/10"
+              onClick={() => setShowChat(!showChat)}
+            >
+              <MessageSquare size={18} />
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-white hover:bg-white/10"
+            >
+              <Share size={18} />
+            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
+                  <MoreHorizontal size={18} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-gray-800 border-gray-700 text-white">
+                <DropdownMenuItem className="hover:bg-gray-700">
+                  <Settings size={16} className="mr-2" />
+                  Settings
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="border-dark-1" />
-              </div>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <CallStatsButton />
-        <button onClick={() => setShowParticipants((prev) => !prev)}>
-          <div className=" cursor-pointer rounded-2xl bg-[#19232d] px-4 py-2 hover:bg-[#4c535b]  ">
-            <Users size={20} className="text-white" />
+                <DropdownMenuSeparator className="bg-gray-700" />
+                <DropdownMenuItem className="hover:bg-gray-700">
+                  <CallStatsButton />
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </button>
-        {!isPersonalRoom && <EndCallButton />}
+        </div>
       </div>
-    </section>
+
+      {/* Main Content */}
+      <div className="flex h-full pt-16">
+        {/* Video Area */}
+        <div className="flex-1 relative">
+          <div className="h-full flex items-center justify-center">
+            <div className="w-full max-w-7xl">
+              <CallLayout />
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        {(showParticipants || showChat) && (
+          <div className="w-80 bg-gray-800 border-l border-gray-700">
+            {showParticipants && (
+              <div className="h-full">
+                <div className="p-4 border-b border-gray-700">
+                  <h3 className="text-white font-medium">Participants</h3>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  <CallParticipantsList onClose={() => setShowParticipants(false)} />
+                </div>
+              </div>
+            )}
+            
+            {showChat && (
+              <div className="h-full">
+                <div className="p-4 border-b border-gray-700">
+                  <h3 className="text-white font-medium">Chat</h3>
+                </div>
+                <div className="flex-1 p-4">
+                  <div className="text-center text-gray-400">
+                    <MessageSquare size={48} className="mx-auto mb-4 opacity-50" />
+                    <p>Chat feature coming soon</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Controls */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 bg-black/20 backdrop-blur-sm border-t border-white/10">
+        <div className="flex items-center justify-center gap-4 p-4">
+          {/* Layout Controls */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
+                <LayoutGrid size={20} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-gray-800 border-gray-700 text-white">
+              <DropdownMenuItem 
+                onClick={() => setLayout('grid')}
+                className="hover:bg-gray-700"
+              >
+                Grid View
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setLayout('speaker-left')}
+                className="hover:bg-gray-700"
+              >
+                Speaker Left
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setLayout('speaker-right')}
+                className="hover:bg-gray-700"
+              >
+                Speaker Right
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Main Controls */}
+          <Button
+            variant="ghost"
+            size="lg"
+            className={cn(
+              "rounded-full w-12 h-12",
+              isMicOn 
+                ? "text-white hover:bg-white/10" 
+                : "bg-red-500 text-white hover:bg-red-600"
+            )}
+            onClick={toggleMic}
+          >
+            {isMicOn ? <Mic size={20} /> : <MicOff size={20} />}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="lg"
+            className={cn(
+              "rounded-full w-12 h-12",
+              isVideoOn 
+                ? "text-white hover:bg-white/10" 
+                : "bg-red-500 text-white hover:bg-red-600"
+            )}
+            onClick={toggleVideo}
+          >
+            {isVideoOn ? <Video size={20} /> : <VideoOff size={20} />}
+          </Button>
+
+          {/* End Call Button */}
+          <Button
+            variant="destructive"
+            size="lg"
+            className="rounded-full w-12 h-12 bg-red-500 hover:bg-red-600"
+            onClick={() => router.push('/videoChat')}
+          >
+            <PhoneOff size={20} />
+          </Button>
+
+          {!isPersonalRoom && <EndCallButton />}
+        </div>
+      </div>
+    </div>
   );
 };
 
