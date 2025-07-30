@@ -5,7 +5,7 @@ import { StreamVideoClient, StreamVideo } from '@stream-io/video-react-sdk';
 import { useCurrentUserContext } from '@/context/CurrentUserProvider';
 
 import { tokenProvider } from '@/app/actions/stream.actions';
-import Loader from '@/components/videoChat/Loader';
+import Loader from '@/app/(app)/videoChat/components/Loader';
 
 const API_KEY = process.env.NEXT_PUBLIC_STREAM_API_KEY;
 
