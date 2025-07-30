@@ -1,143 +1,170 @@
-# 🚀 NIT-JSR Hub
+# NIT-JSR-Hub v1 - The All-in-One Student Platform 🚀
 
-**Digital companion platform for NIT Jamshedpur students**—attendance tracking, campus marketplace, real‑time chat, and more, all in one modular, extensible ecosystem.
+A comprehensive, full-stack application designed to integrate essential community and student tools into a single, seamless platform. This project features real-time chat, a peer-to-peer marketplace, integrated video conferencing, and a unique automated attendance tracking system, all built with a focus on typesafety using the T3 Stack.
 
----
+**[Live Demo](https://nit-jsr-hub-v1.vercel.app)** 🔗
 
-## 🎯 Key Features
-
-* **Real-Time Attendance Dashboard**
-  Track and visualize your attendance live: see percentages per course, historical charts, and AI-driven trend forecasting to predict future attendance.
-* **Campus-Only Marketplace**
-  Post, browse, and transact study materials and electronics exclusively within NIT-JSR, with search, filtering, and safe user ratings.
-* **Integrated Chat & Anonymous Messaging**
-  One-on-one and group chat powered by Socket.IO, plus dedicated anonymous channels for candid feedback, all secured with end-to-end encryption.
-* **AI-Powered Chat Commands**
-  Use `@bot` commands to generate study tips, summarize discussion threads, or fetch campus announcements on-the-fly.
-* **Modular Plugin Architecture**
-  Easily add or remove features (attendance, chat, marketplace, anonymous) as separate modules—no monolithic codebase headaches.
-* **Responsive & Accessible UI**
-  Built with Shadcn/ui, Radix, and Tailwind CSS, ensuring mobile-first design, dark mode, and WCAG-compliant accessibility.
+<img width="1865" height="932" alt="Application Screenshot" src="https://github.com/user-attachments/assets/c6030e99-36c9-4fa0-a99b-315ad5cc75fa" />
 
 ---
 
-## 🛠 Tech Stack
+## Key Features ✨
 
-| Layer          | Technology                                    |
-| -------------- | --------------------------------------------- |
-| Framework      | Next.js (App Router)                          |
-| Language       | TypeScript                                    |
-| UI Components  | Shadcn/ui, Radix, Tailwind CSS, Framer Motion |
-| Database       | PostgreSQL (Supabase) + Drizzle ORM           |
-| Real‑Time      | Socket.IO (hosted on Fly.io) + Redis          |
-| Authentication | Supabase Auth                                 |
-| Storage        | Supabase Storage                              |
-| Deployment     | Vercel (Frontend/API), Fly.io (Sockets)       |
+NIT-JSR-Hub is divided into four primary modules, each packed with its own set of features:
 
----
+### 💬 Real-Time Chat
+- **Instant Messaging:** One-on-one and group conversations with real-time message delivery powered by **Pusher**.
+- **Typing Indicators & Read Receipts:** See when users are typing and when your messages have been seen.
+- **Rich Media:** Share images and files seamlessly within chats.
+- **Group Management:** Easily create groups and add or remove members.
 
-## 📂 Project Structure
+### 🛒 Peer-to-Peer Marketplace
+- **Product Listings:** Users can create, update, and delete their product listings.
+- **Image Uploads:** Multiple image uploads for each product, handled by **Supabase Storage**.
+- **Show Interest:** Users can express interest in products, notifying the seller and initiating a conversation.
+- **Direct-to-Chat:** A "Contact Seller" button creates a private conversation between the buyer and seller.
 
-```
-/apps
-  ├─ attendance    # Attendance module (Dashboard, Calendar, Leaderboard)
-  ├─ chat          # Chat module (Socket.IO integration, UI components)
-  ├─ marketplace   # Marketplace module (Products CRUD)
-  ├─ anonymous     # Anonymous messaging module
-  └─ videoChat     # Group/Personal WebRTC rooms
-/lib
-  ├─ db           # Drizzle schema & queries
-  ├─ socket       # Socket.IO server client setup
-  └─ cache        # Redis client wrapper
-/components      # Shared UI components
-/schemas         # Zod schemas & validations
-/types           # Shared TypeScript types
-/pages/api       # Next.js API routes (Auth, REST endpoints)
-```
+### 🎥 Video Conferencing
+- **Seamless Integration:** High-quality video and audio calls powered directly by the **Stream.io SDK**.
+- **Schedule Meetings:** Plan and schedule future meetings with other users.
+- **Recording & History:** Access a history of past meetings and view recordings, all managed by Stream's backend.
+
+### 📅 Attendance Tracker
+- **Automated Data Scraping:** An independent **Express.js microservice** uses **Playwright** to automatically log into a college portal and scrape attendance data.
+- **Data Analytics:** The microservice processes the raw data to calculate daily/weekly attendance percentages and trends.
+- **Visualizations:** The frontend displays attendance data in a calendar view, with analytics charts and a student leaderboard.
+- **Manual Refresh Trigger:** A "Refresh" button on the frontend can ping the microservice to wake it up and trigger an on-demand scrape.
 
 ---
 
-## ⚙️ Getting Started
+## System Architecture 🏗️
+**[system design - eraser.io](https://app.eraser.io/workspace/Apx9i6oQtdCXhSVASqn2)** 🔗
+This project utilizes a modular, microservice-oriented architecture to separate concerns and ensure scalability. The main application is a **Next.js** monolith, while the attendance scraper runs as an independent **Express.js** microservice. A single **MongoDB** instance serves as the source of truth for all modules.
 
-### 1. Prerequisites
-
-* Node.js >= 18
-* PNPM or npm
-* Supabase account (free tier)
-* Fly.io account (free tier)
-
-### 2. Clone & Install
-
-```bash
-git clone https://github.com/your-org/nit-jsr-hub.git
-cd nit-jsr-hub
-pnpm install
-```
-
-### 3. Environment Variables
-
-Create a `.env.local` at project root:
-
-```
-NEXT_PUBLIC_SUPABASE_URL=...  
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...  
-DATABASE_URL=...  
-SOCKET_IO_URL=...  
-REDIS_URL=...  
-```
-
-### 4. Initialize & Generate Migrations
-
-```bash
-npx drizzle-kit generate:migration
-npx drizzle-kit migrate:dev
-```
-
-### 5. Run in Development
-
-```bash
-pnpm dev
-```
+<img width="741" height="818" alt="image" src="https://github.com/user-attachments/assets/ef1bf3c1-727d-4c54-8e46-0b990920a0f4" />
 
 ---
 
-## 🚀 Deployment
+## What is the T3 Stack?
 
-1. **Frontend/API**
-   Push to `main`; Vercel will auto‑deploy your Next.js app.
-2. **Socket.IO Server**
-   Deploy `/lib/socket/server.js` to Fly.io as a separate service. Use the provided Fly.io config.
-3. **Database & Auth**
-   Managed by Supabase (no extra steps).
+This project is built using the principles of the **T3 Stack**, which is a web development stack focused on a simple philosophy: **full-stack typesafety**.
 
----
+> The goal is to provide a seamless developer experience where the data types defined in your backend are automatically shared with your frontend. This eliminates a huge category of bugs and drastically speeds up development by providing features like autocompletion across the API boundary.
 
-## 🤝 Contributing
-
-We follow a **modular plugin** model—each feature lives under `/apps/<feature>`. To contribute:
-
-1. Fork the repo & create your feature under `/apps/oops`
-2. Add your routes, Drizzle queries, and UI components
-3. Draft a PR against `main`
-4. CI runs lint, type‑check, and integration tests
-
-**Scaffold a new module:**
-
-```bash
-pnpm run create:app <app-name>
-```
+It’s built around a few core, typesafe technologies that are modular and easy to work with.
 
 ---
 
-## 📈 Roadmap
+## Technology Stack 🛠️
 
-* [ ] On‑device emotion detection integration
-* [ ] Scheduled scraper via serverless cron
-* [ ] Analytics dashboard for usage metrics
-* [ ] Mobile app wrapper (React Native)
+| Category              | Technology                                                                                                                                                                                                                                                                                       |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Frontend** | ![Next.js](https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white) ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB) ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white) ![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white) |
+| **Backend** | ![Node.js](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white) ![Express.js](https://img.shields.io/badge/express.js-%23404d59.svg?style=for-the-badge&logo=express&logoColor=%2361DAFB) (for Microservice)                                                |
+| **Database** | ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)                                                                                                                                                                                     |
+| **Authentication** | ![NextAuth.js](https://img.shields.io/badge/NextAuth.js-000?style=for-the-badge&logo=next-auth&logoColor=white)                                                                                                                                                                                      |
+| **Real-Time Services**| **Pusher** (Chat), **Stream.io** (Video)                                                                                                                                                                                                                                                           |
+| **File Storage** | **Supabase Storage** (for Images & Files)                                                                                                                                                                                                                                                          |
+| **Scraping** | **Playwright** |
+| **Uptime/Monitoring** | **UptimeRobot** (for pinging the scraper microservice)                                                                                                                                                                                                                                           |
+| **Deployment** | **Vercel** (Next.js App), **Render / Fly.io** (Microservice) - *Recommended* |
 
 ---
 
-## 📄 License
+## Getting Started
 
-MIT © Your Name
+Follow these instructions to get a copy of the project up and running on your local machine for development and testing.
+
+### Prerequisites
+
+- Node.js (v18.x or later)
+- npm or yarn
+- Git
+- MongoDB instance (you can get a free one from [MongoDB Atlas](https://www.mongodb.com/cloud/atlas))
+
+### Installation & Setup
+
+1.  **Clone the repository:**
+    ```sh
+    git clone [https://github.com/your-username/your-repo-name.git](https://github.com/your-username/your-repo-name.git)
+    cd your-repo-name
+    ```
+
+2.  **Set up the Main Next.js Application:**
+    - Navigate to the root directory.
+    - Install dependencies:
+      ```sh
+      npm install
+      ```
+    - Create a `.env.local` file in the root directory and add the following environment variables:
+      ```env
+      # MongoDB
+      DATABASE_URL="your_mongodb_connection_string"
+
+      # NextAuth
+      NEXTAUTH_SECRET="a_random_strong_secret_for_jwt"
+      NEXTAUTH_URL="http://localhost:3000"
+
+      # Pusher
+      PUSHER_APP_ID="your_pusher_app_id"
+      NEXT_PUBLIC_PUSHER_APP_KEY="your_pusher_public_key"
+      PUSHER_SECRET="your_pusher_secret"
+
+      # Stream
+      NEXT_PUBLIC_STREAM_API_KEY="your_stream_api_key"
+      STREAM_API_SECRET="your_stream_secret"
+
+      # Supabase (for File Storage)
+      NEXT_PUBLIC_SUPABASE_URL="your_supabase_project_url"
+      NEXT_PUBLIC_SUPABASE_ANON_KEY="your_supabase_anon_key"
+      ```
+
+3.  **Set up the Attendance Scraper Microservice:**
+    - Navigate to the microservice directory:
+      ```sh
+      cd microservices/attendance-scraper
+      ```
+    - Install dependencies:
+      ```sh
+      npm install
+      ```
+    - Create a `.env` file in this directory (`/microservices/attendance-scraper`) and add the following:
+      ```env
+      # Database
+      DATABASE_URL="your_mongodb_connection_string" # Should be the same as above
+
+      # College Portal Credentials for the scraper bot
+      COLLEGE_PORTAL_USERNAME="your_college_portal_login_id"
+      COLLEGE_PORTAL_PASSWORD="your_college_portal_password"
+
+      # Server Port
+      PORT=3001
+      ```
+
+### Running the Application
+
+You'll need to run both the frontend and the microservice in separate terminal windows.
+
+1.  **Start the Next.js development server (from the root directory):**
+    ```sh
+    npm run dev
+    ```
+    Your application will be available at `http://localhost:3000`.
+
+2.  **Start the Express.js scraper server (from the `/microservices/attendance-scraper` directory):**
+    ```sh
+    npm run dev
+    ```
+    The scraper microservice will be running on `http://localhost:3001`.
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the `LICENSE` file for details.
+
+## Acknowledgements
+
+- ReadMe Template inspiration
+- Icons from [Shields.io](https://shields.io/)
+- All the amazing developers behind the open-source libraries used in this project.
