@@ -104,16 +104,16 @@ export default function AttendanceDashboard() {
   if (!attendanceData) return <Error error="No attendance data is available for your account. Please contact your administrator." />;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-4">
-        <header className="mb-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-4 sm:py-8 transition-colors duration-200">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4">
+        <header className="mb-6 sm:mb-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
   {/* Attendance Dashboard Info */}
   <div>
-    <h1 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white">
+    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 dark:text-white">
       Attendance Dashboard
     </h1>
-    <p className="text-gray-600 dark:text-gray-400 mt-2">
+    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
       {attendanceData.user.name} • {attendanceData.user.branch || 'No Department'} • {attendanceData.user.batch ? `Semester ${attendanceData.user.batch}` : 'No Semester'}
     </p>
   </div>
@@ -179,25 +179,29 @@ export default function AttendanceDashboard() {
         <AttendanceStatusCards attendanceData={attendanceData} />
         <UserStatsBanner userStats={attendanceData.userStats} />
         {viewMode === "overview" && (
-          <AttendanceCharts
-            chartType={chartType}
-            setChartType={setChartType}
-            overallChartData={overallChartData}
-            subjectComparisonData={subjectComparisonData}
-            isDarkTheme={isDarkTheme}
-            attendanceData={attendanceData}
-            getAttendanceStatus={getAttendanceStatus}
-          />
-        )}
-        {viewMode === "overview" && (
-          <SubjectList
-            displayedSubjects={displayedSubjects}
-            showAllSubjects={showAllSubjects}
-            setShowAllSubjects={setShowAllSubjects}
-            setActiveSubject={setActiveSubject}
-            setViewMode={setViewMode}
-            getAttendanceStatus={getAttendanceStatus}
-          />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1">
+              <AttendanceCharts
+                chartType={chartType}
+                setChartType={setChartType}
+                overallChartData={overallChartData}
+                subjectComparisonData={subjectComparisonData}
+                isDarkTheme={isDarkTheme}
+                attendanceData={attendanceData}
+                getAttendanceStatus={getAttendanceStatus}
+              />
+            </div>
+            <div className="lg:col-span-2">
+              <SubjectList
+                displayedSubjects={displayedSubjects}
+                showAllSubjects={showAllSubjects}
+                setShowAllSubjects={setShowAllSubjects}
+                setActiveSubject={setActiveSubject}
+                setViewMode={setViewMode}
+                getAttendanceStatus={getAttendanceStatus}
+              />
+            </div>
+          </div>
         )}
         {viewMode === "detailed" && (
           <SubjectDetail

@@ -1,7 +1,7 @@
 "use client";
 
 import { 
-  Search, Filter, RefreshCw, Download, Share2 
+  Search, Filter, RefreshCw, Download, Share2, X, Trophy, Award, Calendar, BookOpen
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import useLeaderboardData from './hooks/useLeaderboardData';
@@ -250,39 +250,120 @@ export default function LeaderboardPage() {
           </div>
         )}
         
-        {/* User detail modal - keeping the original modal code for now */}
+        {/* User detail modal */}
         {selectedUserDetails && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+              className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-y-auto"
             >
-              {/* Modal content - keeping original for now */}
+              {/* Modal header */}
               <div className="p-6 border-b">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-bold">Student Details</h2>
+                  <div className="flex items-center space-x-3">
+                    <div className="h-12 w-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold text-lg">
+                        {selectedUserDetails.username.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">{selectedUserDetails.username}</h2>
+                      <p className="text-sm text-gray-600">
+                        Rank #{selectedUserDetails.rank} • {selectedUserDetails.batch || 'N/A'} • {selectedUserDetails.branch || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
                   <button 
                     onClick={() => setSelectedUserDetails(null)}
-                    className="p-2 rounded-full hover:bg-gray-100"
+                    className="p-2 rounded-full hover:bg-gray-100 transition-colors"
                   >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
+                    <X className="w-5 h-5 text-gray-500" />
                   </button>
                 </div>
               </div>
               
+              {/* Modal content */}
               <div className="p-6">
-                {/* User details content - keeping original for now */}
-                <p>User details for: {selectedUserDetails.username}</p>
+                {/* Overall Performance */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <Trophy className="h-5 w-5 text-yellow-500 mr-2" />
+                    Overall Performance
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <div className="flex items-center mb-2">
+                        <Award className="h-5 w-5 text-blue-600 mr-2" />
+                        <span className="text-sm font-medium text-gray-700">Overall Percentage</span>
+                      </div>
+                      <p className="text-2xl font-bold text-blue-600">
+                        {selectedUserDetails.overallPercentage.toFixed(1)}%
+                      </p>
+                    </div>
+                    <div className="bg-green-50 rounded-lg p-4">
+                      <div className="flex items-center mb-2">
+                        <Calendar className="h-5 w-5 text-green-600 mr-2" />
+                        <span className="text-sm font-medium text-gray-700">Classes Attended</span>
+                      </div>
+                      <p className="text-2xl font-bold text-green-600">
+                        {selectedUserDetails.overallAttendedClasses}
+                      </p>
+                    </div>
+                    <div className="bg-purple-50 rounded-lg p-4">
+                      <div className="flex items-center mb-2">
+                        <BookOpen className="h-5 w-5 text-purple-600 mr-2" />
+                        <span className="text-sm font-medium text-gray-700">Total Classes</span>
+                      </div>
+                      <p className="text-2xl font-bold text-purple-600">
+                        {selectedUserDetails.overallTotalClasses}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subject-wise Performance */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Subject-wise Performance</h3>
+                  <div className="space-y-3">
+                    {selectedUserDetails.subjects.map((subject: any, index: number) => (
+                      <div key={index} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h4 className="font-medium text-gray-900">{subject.subjectName}</h4>
+                            <p className="text-sm text-gray-600">Prof. {subject.facultyName}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-gray-900">
+                              {subject.attendancePercentage.toFixed(1)}%
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {subject.attendedClasses}/{subject.totalClasses} classes
+                            </p>
+                          </div>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full ${
+                              subject.attendancePercentage >= 90 ? 'bg-green-500' : 
+                              subject.attendancePercentage >= 75 ? 'bg-blue-500' : 
+                              subject.attendancePercentage >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                            }`}
+                            style={{ width: `${Math.min(100, subject.attendancePercentage)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
               
+              {/* Modal footer */}
               <div className="p-4 border-t bg-gray-50 flex justify-end">
                 <button
                   onClick={() => setSelectedUserDetails(null)}
-                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg mr-2 transition-colors"
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
                 >
                   Close
                 </button>
