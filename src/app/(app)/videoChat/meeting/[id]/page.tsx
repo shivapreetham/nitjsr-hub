@@ -7,10 +7,10 @@ import { Loader } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 import { useGetCallById } from '@/app/hooks/useGetCallById';
-import Alert from '@/components/videoChat/Alert';
+import Alert from '@//app/(app)/videoChat/components/Alert';
 import { useCurrentUserContext } from '@/context/CurrentUserProvider';
-import MeetingSetup from '@/components/videoChat/MeetingSetup';
-import MeetingRoom from '@/components/videoChat/MeetingRoom';
+import MeetingSetup from '@/app/(app)/videoChat/components/MeetingSetup';
+import MeetingRoom from '@/app/(app)/videoChat/components/MeetingRoom';
 
 const MeetingPage = () => {
   const { id } = useParams();

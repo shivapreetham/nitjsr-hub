@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Product } from "@/types/products";
-import { ProductCard } from "@/components/products/ProductCard";
+import { ProductCard } from "@/app/(app)/market/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSession } from "next-auth/react";
@@ -18,9 +18,8 @@ export default function MyProductsPage() {
   const { data: session, status } = useSession();
 
   useEffect(() => {
-    // Redirect if not authenticated
     if (status === "unauthenticated") {
-      router.push("/login");
+      router.push("/sign-in");
     }
 
     const fetchUserProducts = async () => {

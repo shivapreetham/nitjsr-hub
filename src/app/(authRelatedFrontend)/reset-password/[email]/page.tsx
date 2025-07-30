@@ -11,12 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Sparkles } from 'lucide-react';
 import { useToast } from '@/app/hooks/use-toast';
 import axios, { AxiosError } from 'axios';
-
 // Schema for the reset password form
-const resetPasswordSchema = z.object({
-  verifyCode: z.string().length(6, 'Verification code must be 6 digits'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-});
+import { resetPasswordSchema } from '@/schemas/resetPasswordSchema';
 
 export default function ResetPasswordForm({ params }: { params: any }) {
   const router = useRouter();
@@ -132,7 +128,7 @@ export default function ResetPasswordForm({ params }: { params: any }) {
 
         <div className="text-center space-y-4">
           <p className="text-muted-foreground">
-            Didn't receive a code?{' '}
+            Didn`&apos;`t receive a code?{' '}
             <Link 
               href="/forgot-password" 
               className="text-primary/90 hover:text-primary transition-colors duration-300"

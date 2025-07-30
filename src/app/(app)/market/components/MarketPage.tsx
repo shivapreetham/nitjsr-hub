@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { Product, PRODUCT_CATEGORIES } from "@/types/products";
-import { ProductCard } from "@/components/products/ProductCard";
+import { ProductCard } from "@/app/(app)/market/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {

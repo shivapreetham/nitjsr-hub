@@ -11,11 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Sparkles } from 'lucide-react';
 import { useToast } from '@/app/hooks/use-toast';
 import axios, { AxiosError } from 'axios';
+import { forgotPasswordSchema } from '@/schemas/forgotPasswordSchema';
 
-// Schema for the forgot password form
-const forgotPasswordSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-});
 
 export default function ForgotPasswordForm() {
   const router = useRouter();
@@ -40,7 +37,7 @@ export default function ForgotPasswordForm() {
       router.replace(`/reset-password/${data.email}`);
     } catch (error) {
       console.error('Error requesting password reset:', error);
-      const axiosError = error as AxiosError<any>;
+      const axiosError = error as AxiosError<{ message: string }>;
 
       toast({
         title: 'Failed to Send Reset Email',

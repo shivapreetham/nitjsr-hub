@@ -29,7 +29,7 @@ import { toast } from "@/app/hooks/use-toast";
 import { ArrowLeft, Loader2, Upload, Image as ImageIcon, Tag, MapPin, LayoutGrid } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { productSchema as formSchema } from "@/schemas/productSchema";
-import { MainImageUpload, AdditionalImagesUpload, PaymentQRUpload } from "@/components/market/imageUpload";
+import { MainImageUpload, AdditionalImagesUpload, PaymentQRUpload } from "@/app/(app)/market/components/market/imageUpload";
 
 export default function NewProductPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);

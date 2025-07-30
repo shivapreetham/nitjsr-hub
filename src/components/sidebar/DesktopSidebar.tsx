@@ -8,6 +8,7 @@ import Avatar from '@/components/chat/Avatar';
 import SettingsModal from './SettingsModal';
 import { ModeToggle } from '@/components/home&anonymous/ModeToggle';
 import { useTheme } from 'next-themes';
+import Image from 'next/image';
 
 interface DesktopSidebarProps {
   currentUser: User;
@@ -43,10 +44,10 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({ currentUser }) => {
             : "0 4px 20px rgba(0, 0, 0, 0.05)"
         }}
       >
-        {/* Logo or app name */}
+        
         <div className="flex items-center justify-center mt-6 mb-8">
           <div className="glass-card text-foreground font-bold text-lg w-10 h-10 flex items-center justify-center rounded-full">
-            YA
+            <Image src="/logo_nit.png" alt="Logo" className="w-8 h-8" />
           </div>
         </div>
 

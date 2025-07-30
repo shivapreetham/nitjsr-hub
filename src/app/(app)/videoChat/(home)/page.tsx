@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import MeetingTypeList from '@/components/videoChat/MeetingTypeList';
+import MeetingTypeList from '@/app/(app)/videoChat/components/MeetingTypeList';
 import { useRouter } from 'next/navigation';
 import { useStreamVideoClient } from '@stream-io/video-react-sdk';
 import { useToast } from '@/app/hooks/use-toast';
@@ -11,8 +11,8 @@ import { Button } from '@/components/ui/button';
 import { useGetCallById } from '@/app/hooks/useGetCallById';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useGetCalls } from '@/app/hooks/useGetCalls';
-import Loader from '@/components/videoChat/Loader';
-import CallList from '@/components/videoChat/CallList';
+import Loader from '@/app/(app)/videoChat/components/Loader';
+import CallList from '@/app/(app)/videoChat/components/CallList';
 
 const Home = () => {
   const now = new Date();
