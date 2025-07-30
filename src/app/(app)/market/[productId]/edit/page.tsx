@@ -30,7 +30,7 @@ import {
 import { toast } from "@/app/hooks/use-toast";
 import { ArrowLeft, Loader2, Upload, Image as ImageIcon, Tag, MapPin, LayoutGrid, Trash } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { MainImageUpload, AdditionalImagesUpload, PaymentQRUpload } from "@/components/market/imageUpload";
+import { MainImageUpload, AdditionalImagesUpload, PaymentQRUpload } from "@/app/(app)/market/components/market/imageUpload";
 
 // Create schema for editing product
 interface Field {
