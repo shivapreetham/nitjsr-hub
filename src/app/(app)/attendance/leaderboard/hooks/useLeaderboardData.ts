@@ -188,6 +188,7 @@ export default function useLeaderboardData() {
     setShowFilters,
     highlightedUser,
     sortConfig,
+    setSortConfig,
     selectedUserDetails,
     setSelectedUserDetails,
     isExporting,

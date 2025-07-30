@@ -27,6 +27,7 @@ export default function LeaderboardPage() {
     setShowFilters,
     highlightedUser,
     sortConfig,
+    setSortConfig,
     selectedUserDetails,
     setSelectedUserDetails,
     isExporting,
