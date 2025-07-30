@@ -47,7 +47,13 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({ currentUser }) => {
         
         <div className="flex items-center justify-center mt-6 mb-8">
           <div className="glass-card text-foreground font-bold text-lg w-10 h-10 flex items-center justify-center rounded-full">
-            <Image src="/logo_nit.png" alt="Logo" className="w-8 h-8" />
+          <Image 
+              src="/logo_nit.png" 
+              alt="Logo" 
+              width={40}  // required
+              height={40} // required
+              className="w-10 h-10"
+            />
           </div>
         </div>
 

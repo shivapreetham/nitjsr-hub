@@ -79,5 +79,36 @@ body {
     border-color: rgb(var(--primary) / 0.2);
   }
 
-  
+  /* Marketplace specific styles */
+  .marketplace-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .product-card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:scale-[1.02];
+  }
+
+  .hover-lift {
+    @apply transition-transform duration-300 hover:-translate-y-1;
+  }
+
+  /* Ensure proper spacing for sidebar layout */
+  .main-content {
+    @apply w-full;
+  }
+
+  /* Responsive grid adjustments */
+  .marketplace-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6;
+  }
+
+  /* Filter badge styles */
+  .filter-badge {
+    @apply px-3 py-1 rounded-xl bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer text-sm transition-colors;
+  }
+
+  /* Loading animation */
+  .loading-spinner {
+    @apply animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary;
+  }
 }
