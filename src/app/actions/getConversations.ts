@@ -26,6 +26,7 @@ const getConversations = async () => {
     const enhancedConversations = await Promise.all(
       conversations.map(async (conversation) => {
         try {
+          // First get messages without including sender to avoid null issues
           const messages = await prisma.message.findMany({
             where: {
               conversationId: conversation.id,
@@ -33,16 +34,52 @@ const getConversations = async () => {
             orderBy: {
               createdAt: 'desc',
             },
-            // take: 30,
-            include: {
-              sender: true,
-              seen: true,
+            select: {
+              id: true,
+              body: true,
+              image: true,
+              createdAt: true,
+              senderId: true,
+              seenIds: true,
             },
           });
           
+          // Then fetch sender information separately for valid senderIds
+          const validMessages = await Promise.all(
+            messages.map(async (message) => {
+              if (!message.senderId) {
+                return null; // Skip messages without sender
+              }
+              
+              try {
+                const sender = await prisma.user.findUnique({
+                  where: { id: message.senderId },
+                  select: { id: true, username: true, email: true, image: true }
+                });
+                
+                const seen = await prisma.user.findMany({
+                  where: { id: { in: message.seenIds } },
+                  select: { id: true, username: true, email: true, image: true }
+                });
+                
+                return {
+                  ...message,
+                  sender,
+                  seen,
+                };
+              } catch (error) {
+                console.error(`Error fetching sender for message ${message.id}:`, error);
+                return null; // Skip this message if sender fetch fails
+              }
+            })
+          );
+          
+          // Filter out null messages
+          const filteredMessages = validMessages.filter(msg => msg !== null);
+          
           return {
             ...conversation,
-            messages,
+            messages: filteredMessages,
           };
         } catch (error) {
           console.error(`Error fetching messages for conversation ${conversation.id}:`, error);

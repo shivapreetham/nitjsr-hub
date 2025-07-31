@@ -7,11 +7,18 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { HiChevronLeft } from 'react-icons/hi';
 import { HiEllipsisHorizontal } from 'react-icons/hi2';
+import { Phone, Video } from 'lucide-react';
 import ProfileDrawer from './ProfileDrawer';
 import AvatarGroup from '@/components/chat/AvatarGroup';
 import useActiveList from '@/app/hooks/useActiveList';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import { useStreamVideoClient } from '@stream-io/video-react-sdk';
+import { useCurrentUserContext } from '@/context/CurrentUserProvider';
+import { useToast } from '@/app/hooks/use-toast';
+import axios from 'axios';
 
 type ExtendedUser = Omit<User, "conversationIds" | "seenMessageIds"> & {
   conversationIds: string[];
@@ -63,8 +70,13 @@ const formatLastSeen = (lastSeenDate: Date | string | undefined): string => {
 const Header: React.FC<HeaderProps> = ({ conversation }) => {
   const otherUser:any = useOtherUser(conversation);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isStartingCall, setIsStartingCall] = useState(false);
   const { members } = useActiveList();
   const { data: session } = useSession();
+  const router = useRouter();
+  const client = useStreamVideoClient();
+  const { currentUser } = useCurrentUserContext();
+  const { toast } = useToast();
 
   const isAnonymous = conversation.isGroup && conversation.isAnonymous;
 
@@ -108,6 +120,61 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
       ? 'text-emerald-500' 
       : 'text-neutral-500 dark:text-neutral-400';
   }, [conversation.isGroup, otherMember?.activeStatus, isAnonymous]);
+
+  const startVideoCall = async () => {
+    if (!currentUser || !otherUser) {
+      console.log('Call blocked:', { currentUser: !!currentUser, otherUser: !!otherUser });
+      toast({ title: 'Cannot start call - missing user data', variant: 'destructive' });
+      return;
+    }
+    
+    setIsStartingCall(true);
+    try {
+      console.log('Starting video call from header...');
+      
+      // Create a Stream call
+      const callId = `chat-${conversation.id}-${Date.now()}`;
+      
+      // Create the call using Stream client
+      const { call } = await client.call({
+        id: callId,
+        type: 'default',
+        members: [
+          { user_id: currentUser.id, role: 'admin' },
+          { user_id: otherUser.id, role: 'user' }
+        ],
+        custom: {
+          conversationId: conversation.id,
+          createdBy: currentUser.id,
+          participants: [currentUser.id, otherUser.id]
+        }
+      });
+      
+      console.log('Stream call created:', call);
+      
+      // Join the call
+      await call.join({ create: true });
+      
+      const meetingLink = `${window.location.origin}/videoChat/meeting/${callId}`;
+      
+      // Send a message with the meeting link
+      await axios.post('/api/chat/messages', {
+        message: `📞 Started a video call - Join here: ${meetingLink}`,
+        conversationId: conversation.id,
+        image: null,
+      });
+      
+      // Navigate to the meeting page
+      router.push(`/videoChat/meeting/${callId}?fromChat=true&conversationId=${conversation.id}`);
+      
+      toast({ title: 'Starting video call...' });
+    } catch (error) {
+      console.error('Error starting call:', error);
+      toast({ title: 'Failed to start call', variant: 'destructive' });
+    } finally {
+      setIsStartingCall(false);
+    }
+  };
 
   return (
     <>
@@ -169,7 +236,36 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
             </div>
           </div>
 
-          {!isAnonymous && (
+          {!isAnonymous && !conversation.isGroup && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 rounded-full hover:bg-muted transition-colors duration-200"
+                onClick={startVideoCall}
+                disabled={isStartingCall}
+                title="Start video call"
+              >
+                <Video
+                  className="text-primary hover:text-primary/80 transition"
+                  size={20}
+                />
+              </Button>
+              
+              <button
+                onClick={() => setDrawerOpen(true)}
+                className="p-2 rounded-full hover:bg-muted transition-colors duration-200"
+                aria-label="Open conversation options"
+              >
+                <HiEllipsisHorizontal
+                  className="text-primary hover:text-primary/80 transition"
+                  size={32}
+                />
+              </button>
+            </div>
+          )}
+
+          {!isAnonymous && conversation.isGroup && (
             <button
               onClick={() => setDrawerOpen(true)}
               className="p-2 rounded-full hover:bg-muted transition-colors duration-200"
