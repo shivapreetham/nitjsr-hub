@@ -17,6 +17,7 @@ import { useCurrentUserContext } from '@/context/CurrentUserProvider';
 import { useToast } from '@/app/hooks/use-toast';
 import useOtherUser from '@/app/hooks/useOtherUser';
 import { Conversation, User } from '@prisma/client';
+import { useMessages } from '@/context/MessagesProvider';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -47,6 +48,7 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
   const { currentUser } = useCurrentUserContext();
   const { toast } = useToast();
   const otherUser = useOtherUser(conversation);
+  const { addOptimisticMessage, updateOptimisticMessage, removeOptimisticMessage } = useMessages();
 
   const {
     register,
@@ -118,12 +120,39 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
       
       console.log('Meeting details:', { callId, meetingLink });
       
-      // Send the meeting link to the conversation
-      await axios.post('/api/chat/messages', {
-        message: `📞 Video call started! Join here: ${meetingLink}`,
-        conversationId: conversationId,
+      // Send the meeting link to the conversation with optimistic update
+      const tempId = `temp-video-${Date.now()}-${Math.random()}`;
+      const optimisticVideoMessage = {
+        tempId,
+        body: `📞 Video call started! Join here: ${meetingLink}`,
         image: null,
-      });
+        createdAt: new Date(),
+        senderId: currentUser?.id || '',
+        seenIds: [currentUser?.id || ''],
+        conversationId,
+        sender: currentUser,
+        seen: currentUser ? [currentUser] : [],
+      };
+
+      // Add optimistic message immediately
+      addOptimisticMessage(optimisticVideoMessage);
+
+      // Make API call in background
+      try {
+        const response = await axios.post('/api/chat/messages', {
+          message: `📞 Video call started! Join here: ${meetingLink}`,
+          conversationId: conversationId,
+          image: null,
+        });
+
+        // Update optimistic message with real message
+        if (response.data) {
+          updateOptimisticMessage(tempId, response.data);
+        }
+      } catch (error) {
+        console.error('Error sending video call message:', error);
+        removeOptimisticMessage(tempId);
+      }
       
       console.log('Message sent successfully');
       
@@ -208,19 +237,54 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
         return;
       }
 
-      await axios.post('/api/chat/messages', {
-        message: data.message,
+      // Create optimistic message
+      const tempId = `temp-${Date.now()}-${Math.random()}`;
+      const optimisticMessage = {
+        tempId,
+        body: data.message,
         image: data.imageUrl || imageUrl,
-        conversationId
-      });
+        createdAt: new Date(),
+        senderId: currentUser?.id || '',
+        seenIds: [currentUser?.id || ''],
+        conversationId,
+        sender: currentUser,
+        seen: currentUser ? [currentUser] : [],
+      };
 
+      // Add optimistic message immediately
+      addOptimisticMessage(optimisticMessage);
+
+      // Reset form immediately for better UX
       reset();
       setImageUrl(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+
+      // Make API call in background
+      try {
+        const response = await axios.post('/api/chat/messages', {
+          message: data.message,
+          image: data.imageUrl || imageUrl,
+          conversationId
+        });
+
+        // Update optimistic message with real message
+        if (response.data) {
+          updateOptimisticMessage(tempId, response.data);
+        }
+      } catch (error) {
+        console.error('Error sending message:', error);
+        // Remove optimistic message if API call failed
+        removeOptimisticMessage(tempId);
+        toast({
+          title: 'Failed to send message',
+          description: 'Your message could not be sent. Please try again.',
+          variant: 'destructive',
+        });
+      }
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error in form submission:', error);
     } finally {
       setIsSendingMessage(false);
       isSubmitting.current = false;

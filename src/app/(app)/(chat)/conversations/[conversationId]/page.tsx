@@ -5,6 +5,7 @@ import Header from './components/Header';
 import Body from './components/Body';
 import Form from './components/Form';
 import CallIntegration from './components/CallIntegration';
+import { MessagesProvider } from '@/context/MessagesProvider';
 
 const ConversationId = async ( {params}:{params :any}) => {
   const cparams = await params;
@@ -26,15 +27,17 @@ const ConversationId = async ( {params}:{params :any}) => {
     <div className="lg:pl-60 h-full">
       <div className="h-full flex flex-col bg-background theme-transition">
         <CallIntegration conversationId={conversationId} />
-        <div className="shadow-sm">
-          <Header conversation={conversation} />
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          <Body initialMessages={messages} conversation={conversation as any} />
-        </div>
-        <div className="border-t border-border shadow-card">
-          <Form conversation={conversation} />
-        </div>
+        <MessagesProvider initialMessages={messages}>
+          <div className="shadow-sm">
+            <Header conversation={conversation} />
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <Body conversation={conversation as any} />
+          </div>
+          <div className="border-t border-border shadow-card">
+            <Form conversation={conversation} />
+          </div>
+        </MessagesProvider>
       </div>
     </div>
   );

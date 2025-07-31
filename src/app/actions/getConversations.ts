@@ -41,6 +41,7 @@ const getConversations = async () => {
               createdAt: true,
               senderId: true,
               seenIds: true,
+              conversationId: true,
             },
           });
           
@@ -54,12 +55,10 @@ const getConversations = async () => {
               try {
                 const sender = await prisma.user.findUnique({
                   where: { id: message.senderId },
-                  select: { id: true, username: true, email: true, image: true }
                 });
                 
                 const seen = await prisma.user.findMany({
                   where: { id: { in: message.seenIds } },
-                  select: { id: true, username: true, email: true, image: true }
                 });
                 
                 return {

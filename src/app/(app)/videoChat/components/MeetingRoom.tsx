@@ -70,7 +70,7 @@ const MeetingRoom = () => {
 
   // Get call state for mic/video
   const { useMicrophoneState, useCameraState } = useCallStateHooks();
-  const { microphone, isMuted } = useMicrophoneState();
+  const { microphone, isMute } = useMicrophoneState();
   const { camera, isEnabled: isVideoEnabled } = useCameraState();
 
   // Meeting timer
@@ -285,7 +285,7 @@ const MeetingRoom = () => {
                               {participant.isLocalParticipant && (
                                 <span className="text-xs text-gray-400">(You)</span>
                               )}
-                              {participant.role === 'admin' && (
+                              {participant.roles?.includes('admin') && (
                                 <Crown size={12} className="text-yellow-500" />
                               )}
                             </div>
@@ -299,10 +299,10 @@ const MeetingRoom = () => {
                               </div>
                               <div className={cn(
                                 "flex items-center gap-1 text-xs",
-                                participant.video ? "text-green-400" : "text-gray-400"
+                                participant.videoStream ? "text-green-400" : "text-gray-400"
                               )}>
-                                {participant.video ? <VideoIcon size={10} /> : <VideoOff size={10} />}
-                                <span>{participant.video ? 'Video On' : 'Video Off'}</span>
+                                {participant.videoStream ? <VideoIcon size={10} /> : <VideoOff size={10} />}
+                                <span>{participant.videoStream ? 'Video On' : 'Video Off'}</span>
                               </div>
                             </div>
                           </div>
@@ -386,16 +386,16 @@ const MeetingRoom = () => {
                   size="lg"
                   className={cn(
                     "rounded-full w-14 h-14",
-                    !isMuted 
+                    !isMute 
                       ? "text-white hover:bg-white/10" 
                       : "bg-red-500 text-white hover:bg-red-600"
                   )}
                   onClick={toggleMic}
                 >
-                  {!isMuted ? <Mic size={24} /> : <MicOff size={24} />}
+                  {!isMute ? <Mic size={24} /> : <MicOff size={24} />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{!isMuted ? 'Mute' : 'Unmute'}</TooltipContent>
+              <TooltipContent>{!isMute ? 'Mute' : 'Unmute'}</TooltipContent>
             </Tooltip>
 
             <Tooltip>

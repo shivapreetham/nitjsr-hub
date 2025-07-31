@@ -19,6 +19,7 @@ import { useStreamVideoClient } from '@stream-io/video-react-sdk';
 import { useCurrentUserContext } from '@/context/CurrentUserProvider';
 import { useToast } from '@/app/hooks/use-toast';
 import axios from 'axios';
+import { useMessages } from '@/context/MessagesProvider';
 
 type ExtendedUser = Omit<User, "conversationIds" | "seenMessageIds"> & {
   conversationIds: string[];
@@ -77,6 +78,7 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
   const client = useStreamVideoClient();
   const { currentUser } = useCurrentUserContext();
   const { toast } = useToast();
+  const { addOptimisticMessage, updateOptimisticMessage, removeOptimisticMessage } = useMessages();
 
   const isAnonymous = conversation.isGroup && conversation.isAnonymous;
 
@@ -128,6 +130,12 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
       return;
     }
     
+    if (!client) {
+      console.log('Call blocked: Stream client not available');
+      toast({ title: 'Video chat is not available at the moment', variant: 'destructive' });
+      return;
+    }
+    
     setIsStartingCall(true);
     try {
       console.log('Starting video call from header...');
@@ -136,33 +144,60 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
       const callId = `chat-${conversation.id}-${Date.now()}`;
       
       // Create the call using Stream client
-      const { call } = await client.call({
-        id: callId,
-        type: 'default',
-        members: [
-          { user_id: currentUser.id, role: 'admin' },
-          { user_id: otherUser.id, role: 'user' }
-        ],
-        custom: {
-          conversationId: conversation.id,
-          createdBy: currentUser.id,
-          participants: [currentUser.id, otherUser.id]
-        }
-      });
+      const call = client.call("default", callId);
+      
+      if (!call) {
+        throw new Error("Failed to create call");
+      }
       
       console.log('Stream call created:', call);
       
-      // Join the call
-      await call.join({ create: true });
+      // Get or create the call
+      await call.getOrCreate({
+        data: {
+          custom: {
+            conversationId: conversation.id,
+            createdBy: currentUser.id,
+            participants: [currentUser.id, otherUser.id]
+          }
+        }
+      });
       
       const meetingLink = `${window.location.origin}/videoChat/meeting/${callId}`;
       
-      // Send a message with the meeting link
-      await axios.post('/api/chat/messages', {
-        message: `📞 Started a video call - Join here: ${meetingLink}`,
-        conversationId: conversation.id,
+      // Send a message with the meeting link using optimistic updates
+      const tempId = `temp-video-header-${Date.now()}-${Math.random()}`;
+      const optimisticVideoMessage = {
+        tempId,
+        body: `📞 Started a video call - Join here: ${meetingLink}`,
         image: null,
-      });
+        createdAt: new Date(),
+        senderId: currentUser?.id || '',
+        seenIds: [currentUser?.id || ''],
+        conversationId: conversation.id,
+        sender: currentUser,
+        seen: currentUser ? [currentUser] : [],
+      };
+
+      // Add optimistic message immediately
+      addOptimisticMessage(optimisticVideoMessage);
+
+      // Make API call in background
+      try {
+        const response = await axios.post('/api/chat/messages', {
+          message: `📞 Started a video call - Join here: ${meetingLink}`,
+          conversationId: conversation.id,
+          image: null,
+        });
+
+        // Update optimistic message with real message
+        if (response.data) {
+          updateOptimisticMessage(tempId, response.data);
+        }
+      } catch (error) {
+        console.error('Error sending video call message:', error);
+        removeOptimisticMessage(tempId);
+      }
       
       // Navigate to the meeting page
       router.push(`/videoChat/meeting/${callId}?fromChat=true&conversationId=${conversation.id}`);

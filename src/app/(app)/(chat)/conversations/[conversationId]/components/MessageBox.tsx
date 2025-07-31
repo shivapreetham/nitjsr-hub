@@ -3,6 +3,12 @@
 import { useState, useRef, useEffect } from 'react';
 import Avatar from '@/components/chat/Avatar';
 import { FullMessageType } from '@/types';
+
+// Type for optimistic messages that have tempId instead of id
+type OptimisticMessageType = Omit<FullMessageType, 'id'> & { tempId: string };
+
+// Union type for all message types
+type MessageType = FullMessageType | OptimisticMessageType;
 import clsx from 'clsx';
 import { useSession } from 'next-auth/react';
 import { format } from 'date-fns';
@@ -16,7 +22,7 @@ import { Button } from '@/components/ui/button';
 
 interface MessageBoxProps {
   isLast: boolean;
-  data: FullMessageType;
+  data: MessageType;
   isAnonymous?: boolean;
   onDelete?: (messageId: string) => Promise<void>;
 }
@@ -34,6 +40,7 @@ const MessageBox: React.FC<MessageBoxProps> = ({
   const messageRef = useRef<HTMLDivElement>(null);
 
   const isOwn = session?.data?.user?.email === data.sender?.email;
+  const isOptimistic = (data as any).tempId; // Check if this is an optimistic message
   const seenList = (data.seen || [])
     .filter((user: any) => user.email !== session?.data?.user?.email)
     .map((user: any) => user.name)
@@ -43,7 +50,9 @@ const MessageBox: React.FC<MessageBoxProps> = ({
     if (isDeleting) return;
     try {
       setIsDeleting(true);
-      await onDelete?.(data.id);
+      if ('id' in data) {
+        await onDelete?.(data.id);
+      }
     } catch (error) {
       console.error('Error deleting message:', error);
     } finally {
@@ -89,7 +98,8 @@ const MessageBox: React.FC<MessageBoxProps> = ({
           ? 'bg-primary text-primary-foreground' 
           : 'bg-secondary text-secondary-foreground'),
     data.image ? 'rounded-lg p-0' : 'rounded-2xl py-2 px-4',
-    'hover:shadow-card-hover'
+    'hover:shadow-card-hover',
+    isOptimistic && 'opacity-75' // Make optimistic messages slightly transparent
   );
 
   const actionButtons = clsx(
@@ -114,9 +124,9 @@ const MessageBox: React.FC<MessageBoxProps> = ({
               className="rounded-full"
             />
           </div>
-        ) : (
-          <Avatar user={data.sender} />
-        )}
+                 ) : (
+           data.sender ? <Avatar user={data.sender} /> : null
+         )}
       </div>
       <div className={body}>
         <div className="flex items-center gap-2">
@@ -152,7 +162,12 @@ const MessageBox: React.FC<MessageBoxProps> = ({
                 className="object-cover cursor-pointer rounded-lg hover:scale-105"
               />
             ) : (
-              <div className="max-w-sm break-words">{data.body}</div>
+              <div className="max-w-sm break-words flex items-center gap-2">
+                {data.body}
+                {isOptimistic && (
+                  <div className="w-2 h-2 bg-current rounded-full animate-pulse opacity-60" />
+                )}
+              </div>
             )}
           </div>
 
