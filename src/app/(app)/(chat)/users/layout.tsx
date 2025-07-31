@@ -4,7 +4,8 @@ import Sidebar from '@/components/sidebar/Sidebar';
 import UserList from './components/UserList';
 
 export const metadata: Metadata = {
-  title: 'All Users | shatterbox - Your Ultimate Chat Experience',
+  title: 'All Users - NIT JSR Hub',
+  description: 'Connect with NIT Jamshedpur students',
 };
 
 export default async function UsersLayout({

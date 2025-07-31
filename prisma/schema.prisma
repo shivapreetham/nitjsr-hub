@@ -56,6 +56,9 @@ model User {
   products                     Product[]
   interestedProductIds         String[]            @db.ObjectId
   interestedProducts           Product[]           @relation("InterestedProducts", fields: [interestedProductIds], references: [id])
+  
+  // Reactions
+  reactions                    Reaction[]
 }
 
 model AnonymousMessage {
@@ -97,6 +100,29 @@ model Message {
   
   senderId       String   @db.ObjectId
   sender         User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  
+  // Reply functionality
+  replyToId      String?  @db.ObjectId
+  replyTo        Message? @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies        Message[] @relation("MessageReplies")
+  
+  // Reactions
+  reactions      Reaction[]
+}
+
+model Reaction {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  emoji     String   // The emoji reaction (👍, ❤️, 😂, etc.)
+  createdAt DateTime @default(now())
+  
+  // Relations
+  messageId String   @db.ObjectId
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([messageId, userId, emoji]) // Prevent duplicate reactions from same user
 }
 
 model SubjectMetrics {

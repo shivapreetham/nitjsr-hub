@@ -7,7 +7,7 @@ const getConversations = async () => {
 
     if (!currentUser?.id) return [];
 
-    // First fetch just the conversations with users
+    // Fetch conversations with all required message fields
     const conversations = await prisma.conversation.findMany({
       orderBy: {
         lastMessageAt: 'desc',
@@ -19,81 +19,32 @@ const getConversations = async () => {
       },
       include: {
         users: true,
-      }
+        messages: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+          include: {
+            sender: true,
+            seen: true,
+            replyTo: {
+              include: {
+                sender: true,
+                seen: true,
+              },
+            },
+            reactions: {
+              include: {
+                user: true,
+              },
+            },
+          },
+        },
+      },
     });
 
-    // Then enhance each conversation with its messages
-    const enhancedConversations = await Promise.all(
-      conversations.map(async (conversation) => {
-        try {
-          // First get messages without including sender to avoid null issues
-          const messages = await prisma.message.findMany({
-            where: {
-              conversationId: conversation.id,
-            },
-            orderBy: {
-              createdAt: 'desc',
-            },
-            select: {
-              id: true,
-              body: true,
-              image: true,
-              createdAt: true,
-              senderId: true,
-              seenIds: true,
-              conversationId: true,
-            },
-          });
-          
-          // Then fetch sender information separately for valid senderIds
-          const validMessages = await Promise.all(
-            messages.map(async (message) => {
-              if (!message.senderId) {
-                return null; // Skip messages without sender
-              }
-              
-              try {
-                const sender = await prisma.user.findUnique({
-                  where: { id: message.senderId },
-                });
-                
-                const seen = await prisma.user.findMany({
-                  where: { id: { in: message.seenIds } },
-                });
-                
-                return {
-                  ...message,
-                  sender,
-                  seen,
-                };
-              } catch (error) {
-                console.error(`Error fetching sender for message ${message.id}:`, error);
-                return null; // Skip this message if sender fetch fails
-              }
-            })
-          );
-          
-          // Filter out null messages
-          const filteredMessages = validMessages.filter(msg => msg !== null);
-          
-          return {
-            ...conversation,
-            messages: filteredMessages,
-          };
-        } catch (error) {
-          console.error(`Error fetching messages for conversation ${conversation.id}:`, error);
-          // Return conversation with empty messages array if there's an error
-          return {
-            ...conversation,
-            messages: [],
-          };
-        }
-      })
-    );
-
-    return enhancedConversations;
+    return conversations;
   } catch (error: any) {
-    console.error("Error fetching conversations:", error);
+    console.error('Error fetching conversations:', error);
     return [];
   }
 };

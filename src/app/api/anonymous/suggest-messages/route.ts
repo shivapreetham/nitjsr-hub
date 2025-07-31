@@ -3,8 +3,6 @@ import { cohere } from '@ai-sdk/cohere';
 import {generateText} from 'ai';
 // import { NextResponse } from 'next/server';
 
-export const runtime = 'edge';
-
 export async function POST(req: Request) {
   try {
     const { topic } = await req.json();

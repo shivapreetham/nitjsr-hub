@@ -5,10 +5,10 @@ import { pusherServer } from '@/lib/pusher';
 
 
 
-export async function POST(request: Request, {params}:{params :any}) { {
+export async function POST(request: Request, { params }: { params: Promise<{ conversationId: string }> }) {
   try {
     const currentUser = await getCurrentUser();
-    const { conversationId } =await params;
+    const { conversationId } = await params;
 
     if (!currentUser?.id || !currentUser?.email) {
       return new NextResponse('Unauthorized', { status: 401 });
@@ -80,5 +80,4 @@ export async function POST(request: Request, {params}:{params :any}) { {
     console.log(error, 'ERROR_MESSAGES_SEEN');
     return new NextResponse('Internal Server Error', { status: 500 });
   }
-}
 }

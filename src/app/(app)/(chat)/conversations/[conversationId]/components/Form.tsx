@@ -18,6 +18,9 @@ import { useToast } from '@/app/hooks/use-toast';
 import useOtherUser from '@/app/hooks/useOtherUser';
 import { Conversation, User } from '@prisma/client';
 import { useMessages } from '@/context/MessagesProvider';
+import { FullMessageType } from '@/types';
+import ReplyInput from './ReplyInput';
+import { useReply } from '@/context/ReplyProvider';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -39,6 +42,7 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isStartingCall, setIsStartingCall] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const isSubmitting = useRef(false);
@@ -49,6 +53,7 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
   const { toast } = useToast();
   const otherUser = useOtherUser(conversation);
   const { addOptimisticMessage, updateOptimisticMessage, removeOptimisticMessage } = useMessages();
+  const { replyTo, setReplyTo } = useReply();
 
   const {
     register,
@@ -65,6 +70,11 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
   });
 
   const message = watch('message');
+
+  // Function to cancel reply
+  const cancelReply = () => {
+    setReplyTo(null);
+  };
 
   const startVideoCall = async () => {
     console.log('Video call button clicked!');
@@ -130,6 +140,7 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
         senderId: currentUser?.id || '',
         seenIds: [currentUser?.id || ''],
         conversationId,
+        replyToId: null,
         sender: currentUser,
         seen: currentUser ? [currentUser] : [],
       };
@@ -137,22 +148,20 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
       // Add optimistic message immediately
       addOptimisticMessage(optimisticVideoMessage);
 
-      // Make API call in background
-      try {
-        const response = await axios.post('/api/chat/messages', {
-          message: `📞 Video call started! Join here: ${meetingLink}`,
-          conversationId: conversationId,
-          image: null,
-        });
-
+      // Make API call in background (without blocking the UI)
+      axios.post('/api/chat/messages', {
+        message: `📞 Video call started! Join here: ${meetingLink}`,
+        conversationId: conversationId,
+        image: null,
+      }).then(response => {
         // Update optimistic message with real message
         if (response.data) {
           updateOptimisticMessage(tempId, response.data);
         }
-      } catch (error) {
+      }).catch(error => {
         console.error('Error sending video call message:', error);
         removeOptimisticMessage(tempId);
-      }
+      });
       
       console.log('Message sent successfully');
       
@@ -234,6 +243,7 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
     try {
       if (data.message.startsWith('@')) {
         await processAICommand(data.message);
+        setIsSendingMessage(false);
         return;
       }
 
@@ -247,33 +257,43 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
         senderId: currentUser?.id || '',
         seenIds: [currentUser?.id || ''],
         conversationId,
+        replyToId: replyTo?.id || null,
         sender: currentUser,
         seen: currentUser ? [currentUser] : [],
+        replyTo: replyTo || undefined,
       };
 
       // Add optimistic message immediately
       addOptimisticMessage(optimisticMessage);
+      console.log('Added optimistic message:', tempId);
 
       // Reset form immediately for better UX
       reset();
       setImageUrl(null);
+      setReplyTo(null); // Clear reply when message is sent
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
 
-      // Make API call in background
-      try {
-        const response = await axios.post('/api/chat/messages', {
-          message: data.message,
-          image: data.imageUrl || imageUrl,
-          conversationId
-        });
+      // Re-enable the input immediately after optimistic update
+      setIsSendingMessage(false);
 
+      // Add a small delay to ensure optimistic update is processed before API call
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Make API call in background (without blocking the UI)
+      axios.post('/api/chat/messages', {
+        message: data.message,
+        image: data.imageUrl || imageUrl,
+        conversationId,
+        replyToId: replyTo?.id
+      }).then(response => {
         // Update optimistic message with real message
         if (response.data) {
+          console.log('Updating optimistic message with real message:', { tempId, realId: response.data.id });
           updateOptimisticMessage(tempId, response.data);
         }
-      } catch (error) {
+      }).catch(error => {
         console.error('Error sending message:', error);
         // Remove optimistic message if API call failed
         removeOptimisticMessage(tempId);
@@ -282,18 +302,19 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
           description: 'Your message could not be sent. Please try again.',
           variant: 'destructive',
         });
-      }
+      });
     } catch (error) {
       console.error('Error in form submission:', error);
-    } finally {
       setIsSendingMessage(false);
+    } finally {
       isSubmitting.current = false;
     }
   };
 
   return (
     <div className="theme-transition relative">
-      <div className="py-4 px-4 bg-card dark:bg-card/95 backdrop-blur-sm border-t border-border dark:border-border/50 flex items-center gap-2 lg:gap-4 w-full shadow-card">
+      <ReplyInput replyTo={replyTo} onCancelReply={cancelReply} />
+      <div className="py-4 px-4 bg-white dark:bg-gray-900 backdrop-blur-sm border-t border-border dark:border-border/50 flex items-center gap-2 lg:gap-4 w-full shadow-card">
         <div className="flex items-center gap-2">
           {/* Photo Upload Button */}
           <div className="relative">
