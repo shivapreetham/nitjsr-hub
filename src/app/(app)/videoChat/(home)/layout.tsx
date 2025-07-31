@@ -5,8 +5,8 @@ import { ReactNode } from 'react';
 // import Sidebar from '@/components/videoChat/Sidebar';
 
 export const metadata: Metadata = {
-  title: 'videoChat | shadowme - Your Ultimate Chat Experience',
-  description: 'A workspace for your team, powered by Stream Chat .',
+  title: 'Video Chat - NIT JSR Hub',
+  description: 'Anonymous video chat for NIT Jamshedpur students',
 };
 
 const RootLayout = ({ children }: Readonly<{ children: ReactNode }>) => {

@@ -117,7 +117,7 @@ const MessageBox: React.FC<MessageBoxProps> = ({
         {isAnonymous ? (
           <div className="w-9 h-9 rounded-full bg-zinc-800 flex items-center justify-center">
             <Image
-              src="/image.jpg"
+              src="/logo_nit.png"
               alt="Anonymous"
               width={36}
               height={36}

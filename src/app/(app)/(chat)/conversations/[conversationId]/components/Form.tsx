@@ -18,6 +18,9 @@ import { useToast } from '@/app/hooks/use-toast';
 import useOtherUser from '@/app/hooks/useOtherUser';
 import { Conversation, User } from '@prisma/client';
 import { useMessages } from '@/context/MessagesProvider';
+import { FullMessageType } from '@/types';
+import ReplyInput from './ReplyInput';
+import { useReply } from '@/context/ReplyProvider';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -39,6 +42,7 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isStartingCall, setIsStartingCall] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const isSubmitting = useRef(false);
@@ -49,6 +53,7 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
   const { toast } = useToast();
   const otherUser = useOtherUser(conversation);
   const { addOptimisticMessage, updateOptimisticMessage, removeOptimisticMessage } = useMessages();
+  const { replyTo, setReplyTo } = useReply();
 
   const {
     register,
@@ -65,6 +70,11 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
   });
 
   const message = watch('message');
+
+  // Function to cancel reply
+  const cancelReply = () => {
+    setReplyTo(null);
+  };
 
   const startVideoCall = async () => {
     console.log('Video call button clicked!');
@@ -248,6 +258,7 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
         conversationId,
         sender: currentUser,
         seen: currentUser ? [currentUser] : [],
+        replyTo: replyTo || undefined,
       };
 
       // Add optimistic message immediately
@@ -257,6 +268,7 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
       // Reset form immediately for better UX
       reset();
       setImageUrl(null);
+      setReplyTo(null); // Clear reply when message is sent
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -271,7 +283,8 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
       axios.post('/api/chat/messages', {
         message: data.message,
         image: data.imageUrl || imageUrl,
-        conversationId
+        conversationId,
+        replyToId: replyTo?.id
       }).then(response => {
         // Update optimistic message with real message
         if (response.data) {
@@ -298,7 +311,8 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
 
   return (
     <div className="theme-transition relative">
-      <div className="py-4 px-4 bg-card dark:bg-card/95 backdrop-blur-sm border-t border-border dark:border-border/50 flex items-center gap-2 lg:gap-4 w-full shadow-card">
+      <ReplyInput replyTo={replyTo} onCancelReply={cancelReply} />
+      <div className="py-4 px-4 bg-white dark:bg-gray-900 backdrop-blur-sm border-t border-border dark:border-border/50 flex items-center gap-2 lg:gap-4 w-full shadow-card">
         <div className="flex items-center gap-2">
           {/* Photo Upload Button */}
           <div className="relative">

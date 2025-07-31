@@ -1,0 +1,33 @@
+{
+  "name": "NIT JSR Hub - Your goto website for NIT Jamshedpur",
+  "short_name": "NIT JSR Hub",
+  "description": "Your goto website for NIT Jamshedpur - Exclusive social platform for NIT Jamshedpur students with chat, video calls, attendance tracking, and campus marketplace.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo_nit.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo_nit.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo_nit.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["social", "education", "productivity"],
+  "lang": "en",
+  "dir": "ltr"
+} 

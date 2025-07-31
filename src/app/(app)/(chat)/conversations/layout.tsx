@@ -5,7 +5,8 @@ import getUsers from '@/app/actions/getUsers';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'My Conversations | shatterbox - Your Ultimate Chat Experience',
+  title: 'My Conversations - NIT JSR Hub',
+  description: 'Chat with NIT Jamshedpur students',
 };
 
 export default async function ConversationsLayout({

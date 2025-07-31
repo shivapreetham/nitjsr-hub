@@ -21,7 +21,7 @@ export async function sendVerificationEmail(
     const receiver = {
       from: process.env.EMAIL_USER,
       to: email,
-      subject: 'Shatterbox | Verification Code',
+      subject: 'NIT JSR Hub | Verification Code',
       headers: {
         'List-Unsubscribe': `<mailto:${process.env.EMAIL_USER}>`,
       },
@@ -36,12 +36,12 @@ export async function sendVerificationEmail(
         <body style="font-family: Arial, sans-serif;">
           <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
             <h2>Hello, ${username}!</h2>
-            <p>Your verification code for Shatterbox is:</p>
+            <p>Your verification code for NIT JSR Hub is:</p>
             <h3 style="color: green;">${verifyCode}</h3>
             <p>Please enter this code on the website to verify your email.</p>
             <p>Thank you!</p>
             <p style="font-size: 12px; color: gray;">
-              Shatterbox | NIT Jamshedpur | <a href="mailto:${process.env.EMAIL_USER}">Contact Support</a>
+              NIT JSR Hub | NIT Jamshedpur | <a href="mailto:${process.env.EMAIL_USER}">Contact Support</a>
             </p>
             <p style="font-size: 12px; color: gray;">If you didn’t request this, please ignore this email.</p>
           </div>

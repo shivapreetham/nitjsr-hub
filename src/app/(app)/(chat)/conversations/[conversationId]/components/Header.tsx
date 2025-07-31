@@ -225,7 +225,7 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
           "w-full flex border-b-[1px] px-4 py-3 lg:px-6 justify-between items-center shadow-card",
           isAnonymous
             ? "bg-zinc-900/95 backdrop-blur-sm border-zinc-800/50 shadow-zinc-900/20"
-            : "bg-card dark:bg-card/95 backdrop-blur-sm border-border dark:border-border/50"
+            : "bg-white dark:bg-gray-900 backdrop-blur-sm border-border dark:border-border/50"
         )}>
           <div className="flex gap-4 items-center">
             <Link

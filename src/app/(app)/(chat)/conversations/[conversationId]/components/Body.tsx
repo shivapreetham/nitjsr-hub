@@ -4,12 +4,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { FullMessageType } from '@/types';
 import useConversation from '@/app/hooks/useConversation';
-import MessageBox from './MessageBox';
+import MessageBubble from './MessageBubble';
 import axios from 'axios';
 import { pusherClient } from '@/lib/pusher';
 import { find } from 'lodash';
 import { FullConversationType } from '@/types';
 import { useMessages } from '@/context/MessagesProvider';
+import { useSession } from 'next-auth/react';
+import { useReply } from '@/context/ReplyProvider';
 
 interface BodyProps {
   conversation: FullConversationType;
@@ -20,6 +22,8 @@ const Body: React.FC<BodyProps> = ({ conversation }) => {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { conversationId } = useConversation();
+  const session = useSession();
+  const { setReplyTo } = useReply();
 
   useEffect(() => {
     const loadConversation = async () => {
@@ -96,15 +100,29 @@ const Body: React.FC<BodyProps> = ({ conversation }) => {
       );
     };
 
+    // Add reaction update handler
+    const reactionUpdateHandler = (data: { messageId: string; reactions: any[] }) => {
+      setMessages((prevMessages) =>
+        prevMessages.map((message) => {
+          if ('id' in message && message.id === data.messageId) {
+            return { ...message, reactions: data.reactions };
+          }
+          return message;
+        })
+      );
+    };
+
     pusherClient.bind('messages:new', messageHandler);
     pusherClient.bind('message:update', updateMessageHandler);
     pusherClient.bind('message:delete', deleteMessageHandler);
+    pusherClient.bind('message:reaction-update', reactionUpdateHandler);
 
     return () => {
       pusherClient.unsubscribe(conversationId);
       pusherClient.unbind('messages:new', messageHandler);
       pusherClient.unbind('message:update', updateMessageHandler);
       pusherClient.unbind('message:delete', deleteMessageHandler);
+      pusherClient.unbind('message:reaction-update', reactionUpdateHandler);
     };
   }, [conversationId]);
 
@@ -130,17 +148,39 @@ const Body: React.FC<BodyProps> = ({ conversation }) => {
     }
   };
 
+  // Add reaction handler
+  const handleReaction = async (messageId: string, emoji: string) => {
+    try {
+      await axios.post(`/api/chat/messages/${messageId}/reactions`, { emoji });
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+    }
+  };
+
+  // Add reply handler (this will be passed to Form component)
+  const handleReply = (message: FullMessageType) => {
+    setReplyTo(message);
+  };
+
   return (
-    <div className="flex-1 overflow-y-auto">
-      {messages.map((message, i) => (
-        <MessageBox
-          isLast={i === messages.length - 1}
-          key={'id' in message ? message.id : message.tempId}
-          data={message}
-          isAnonymous={isAnonymous}
-          onDelete={handleMessageDelete}
-        />
-      ))}
+    <div className="flex-1 overflow-y-auto bg-[#efeae2] dark:bg-[#0b141a]">
+      <div className="flex flex-col space-y-4 p-4 font-['Inter']">
+        {messages.map((message, i) => {
+          const isOwn = session?.data?.user?.email === message.sender?.email;
+          
+          return (
+            <MessageBubble
+              key={'id' in message ? message.id : message.tempId}
+              message={message}
+              isOwn={isOwn}
+              isLast={i === messages.length - 1}
+              onReply={handleReply}
+              onDelete={handleMessageDelete}
+              onReaction={handleReaction}
+            />
+          );
+        })}
+      </div>
       <div ref={bottomRef} className="pt-24" />
     </div>
   );
