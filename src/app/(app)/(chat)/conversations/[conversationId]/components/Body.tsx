@@ -46,8 +46,34 @@ const Body: React.FC<BodyProps> = ({ conversation }) => {
     const messageHandler = (message: FullMessageType) => {
       axios.post(`/api/chat/conversations/${conversationId}/seen`);
 
+      console.log('Pusher message received:', message.id, message.body);
+
       setMessages((prevMessages) => {
-        if (find(prevMessages, { id: message.id })) return prevMessages;
+        // Check if message already exists by id
+        if (find(prevMessages, { id: message.id })) {
+          console.log('Message already exists by id, skipping');
+          return prevMessages;
+        }
+        
+        // Check if there's an optimistic message with the same content and sender
+        // that was just sent (within last 5 seconds) to prevent duplicates
+        const recentOptimisticMessage = prevMessages.find(msg => 
+          'tempId' in msg && 
+          msg.body === message.body && 
+          msg.senderId === message.senderId &&
+          msg.createdAt && 
+          new Date().getTime() - new Date(msg.createdAt).getTime() < 5000
+        );
+        
+        if (recentOptimisticMessage) {
+          console.log('Found matching optimistic message, replacing:', recentOptimisticMessage.tempId);
+          // Replace the optimistic message with the real one
+          return prevMessages.map(msg => 
+            msg === recentOptimisticMessage ? message : msg
+          );
+        }
+        
+        console.log('Adding new message from Pusher');
         return [...prevMessages, message];
       });
 

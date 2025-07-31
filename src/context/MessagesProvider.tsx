@@ -43,11 +43,16 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
   };
 
   const updateOptimisticMessage = (tempId: string, realMessage: FullMessageType) => {
-    setMessages(prev => 
-      prev.map(msg => 
+    setMessages(prev => {
+      const updatedMessages = prev.map(msg => 
         'tempId' in msg && msg.tempId === tempId ? realMessage : msg
-      )
-    );
+      );
+      
+      // Log for debugging
+      console.log('Updating optimistic message:', { tempId, realMessageId: realMessage.id });
+      
+      return updatedMessages;
+    });
   };
 
   const removeOptimisticMessage = (tempId: string) => {

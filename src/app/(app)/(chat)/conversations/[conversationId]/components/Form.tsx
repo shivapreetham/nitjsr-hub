@@ -137,22 +137,20 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
       // Add optimistic message immediately
       addOptimisticMessage(optimisticVideoMessage);
 
-      // Make API call in background
-      try {
-        const response = await axios.post('/api/chat/messages', {
-          message: `📞 Video call started! Join here: ${meetingLink}`,
-          conversationId: conversationId,
-          image: null,
-        });
-
+      // Make API call in background (without blocking the UI)
+      axios.post('/api/chat/messages', {
+        message: `📞 Video call started! Join here: ${meetingLink}`,
+        conversationId: conversationId,
+        image: null,
+      }).then(response => {
         // Update optimistic message with real message
         if (response.data) {
           updateOptimisticMessage(tempId, response.data);
         }
-      } catch (error) {
+      }).catch(error => {
         console.error('Error sending video call message:', error);
         removeOptimisticMessage(tempId);
-      }
+      });
       
       console.log('Message sent successfully');
       
@@ -234,6 +232,7 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
     try {
       if (data.message.startsWith('@')) {
         await processAICommand(data.message);
+        setIsSendingMessage(false);
         return;
       }
 
@@ -253,6 +252,7 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
 
       // Add optimistic message immediately
       addOptimisticMessage(optimisticMessage);
+      console.log('Added optimistic message:', tempId);
 
       // Reset form immediately for better UX
       reset();
@@ -261,19 +261,24 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
         fileInputRef.current.value = '';
       }
 
-      // Make API call in background
-      try {
-        const response = await axios.post('/api/chat/messages', {
-          message: data.message,
-          image: data.imageUrl || imageUrl,
-          conversationId
-        });
+      // Re-enable the input immediately after optimistic update
+      setIsSendingMessage(false);
 
+      // Add a small delay to ensure optimistic update is processed before API call
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Make API call in background (without blocking the UI)
+      axios.post('/api/chat/messages', {
+        message: data.message,
+        image: data.imageUrl || imageUrl,
+        conversationId
+      }).then(response => {
         // Update optimistic message with real message
         if (response.data) {
+          console.log('Updating optimistic message with real message:', { tempId, realId: response.data.id });
           updateOptimisticMessage(tempId, response.data);
         }
-      } catch (error) {
+      }).catch(error => {
         console.error('Error sending message:', error);
         // Remove optimistic message if API call failed
         removeOptimisticMessage(tempId);
@@ -282,11 +287,11 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
           description: 'Your message could not be sent. Please try again.',
           variant: 'destructive',
         });
-      }
+      });
     } catch (error) {
       console.error('Error in form submission:', error);
-    } finally {
       setIsSendingMessage(false);
+    } finally {
       isSubmitting.current = false;
     }
   };
