@@ -5,8 +5,9 @@ import { pusherServer } from '@/lib/pusher';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { messageId: string } }
+  { params }: { params: Promise<{ messageId: string }> }
 ) {
+  const { messageId } = await params;
   try {
     const currentUser = await getCurrentUser();
     const { emoji } = await request.json();
@@ -23,7 +24,7 @@ export async function POST(
     const existingReaction = await prisma.reaction.findUnique({
       where: {
         messageId_userId_emoji: {
-          messageId: params.messageId,
+          messageId: messageId,
           userId: currentUser.id,
           emoji: emoji,
         },
@@ -42,7 +43,7 @@ export async function POST(
       await prisma.reaction.create({
         data: {
           emoji,
-          messageId: params.messageId,
+          messageId: messageId,
           userId: currentUser.id,
         },
         include: {
@@ -54,7 +55,7 @@ export async function POST(
     // Get updated message with reactions
     const updatedMessage = await prisma.message.findUnique({
       where: {
-        id: params.messageId,
+        id: messageId,
       },
       include: {
         reactions: {
@@ -72,7 +73,7 @@ export async function POST(
         updatedMessage.conversationId,
         'message:reaction-update',
         {
-          messageId: params.messageId,
+          messageId: messageId,
           reactions: updatedMessage.reactions,
         }
       );
@@ -87,8 +88,9 @@ export async function POST(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { messageId: string } }
+  { params }: { params: Promise<{ messageId: string }> }
 ) {
+  const { messageId } = await params;
   try {
     const currentUser = await getCurrentUser();
 
@@ -98,7 +100,7 @@ export async function GET(
 
     const reactions = await prisma.reaction.findMany({
       where: {
-        messageId: params.messageId,
+        messageId: messageId,
       },
       include: {
         user: true,

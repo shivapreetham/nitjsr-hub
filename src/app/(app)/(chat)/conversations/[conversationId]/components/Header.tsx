@@ -175,6 +175,7 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
         senderId: currentUser?.id || '',
         seenIds: [currentUser?.id || ''],
         conversationId: conversation.id,
+        replyToId: null,
         sender: currentUser,
         seen: currentUser ? [currentUser] : [],
       };

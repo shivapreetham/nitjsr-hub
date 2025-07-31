@@ -12,6 +12,7 @@ const getMessages = async (conversationId: string) => {
         replyTo: {
           include: {
             sender: true,
+            seen: true,
           },
         },
         reactions: {

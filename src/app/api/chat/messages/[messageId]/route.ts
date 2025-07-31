@@ -5,10 +5,10 @@ import { pusherServer } from '@/lib/pusher';
 
 export async function GET(
   request: Request,
-  { params }: { params: any}
+  { params }: { params: Promise<{ messageId: string }> }
 ) {
   try {
-    const { messageId } = params;
+    const { messageId } = await params;
 
     if (!messageId) {
       return new NextResponse('Message ID is required', { status: 400 });
@@ -37,11 +37,11 @@ export async function GET(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: any }
+  { params }: { params: Promise<{ messageId: string }> }
 ) {
   try {
     const currentUser = await getCurrentUser();
-    const { messageId } = params;
+    const { messageId } = await params;
 
     if (!currentUser?.id) {
       return new NextResponse('Unauthorized', { status: 401 });

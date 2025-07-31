@@ -140,6 +140,7 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
         senderId: currentUser?.id || '',
         seenIds: [currentUser?.id || ''],
         conversationId,
+        replyToId: null,
         sender: currentUser,
         seen: currentUser ? [currentUser] : [],
       };
@@ -256,6 +257,7 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
         senderId: currentUser?.id || '',
         seenIds: [currentUser?.id || ''],
         conversationId,
+        replyToId: replyTo?.id || null,
         sender: currentUser,
         seen: currentUser ? [currentUser] : [],
         replyTo: replyTo || undefined,

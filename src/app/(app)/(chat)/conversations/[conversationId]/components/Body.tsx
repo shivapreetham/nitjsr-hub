@@ -70,7 +70,7 @@ const Body: React.FC<BodyProps> = ({ conversation }) => {
         );
         
         if (recentOptimisticMessage) {
-          console.log('Found matching optimistic message, replacing:', recentOptimisticMessage.tempId);
+          console.log('Found matching optimistic message, replacing:', (recentOptimisticMessage as any).tempId);
           // Replace the optimistic message with the real one
           return prevMessages.map(msg => 
             msg === recentOptimisticMessage ? message : msg
@@ -169,15 +169,15 @@ const Body: React.FC<BodyProps> = ({ conversation }) => {
           const isOwn = session?.data?.user?.email === message.sender?.email;
           
           return (
-            <MessageBubble
-              key={'id' in message ? message.id : message.tempId}
-              message={message}
-              isOwn={isOwn}
-              isLast={i === messages.length - 1}
-              onReply={handleReply}
-              onDelete={handleMessageDelete}
-              onReaction={handleReaction}
-            />
+                         <MessageBubble
+               key={'id' in message ? message.id : (message as any).tempId}
+               message={message as FullMessageType}
+               isOwn={isOwn}
+               isLast={i === messages.length - 1}
+               onReply={handleReply}
+               onDelete={handleMessageDelete}
+               onReaction={handleReaction}
+             />
           );
         })}
       </div>
