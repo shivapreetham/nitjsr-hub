@@ -11,12 +11,14 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Sparkles } from 'lucide-react';
 import { useToast } from '@/app/hooks/use-toast';
 import axios, { AxiosError } from 'axios';
+import { useState } from 'react';
 import { forgotPasswordSchema } from '@/schemas/forgotPasswordSchema';
 
 
 export default function ForgotPasswordForm() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof forgotPasswordSchema>>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -26,15 +28,18 @@ export default function ForgotPasswordForm() {
   });
 
   const onSubmit = async (data: z.infer<typeof forgotPasswordSchema>) => {
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
     try {
-      await axios.post('/api/forgot-password', data);
+      await axios.post('/api/auth-utils/forgot-password', data);
       
       toast({
         title: 'Success',
         description: 'If an account exists with this email, you will receive a password reset code.',
       });
 
-      router.replace(`/reset-password/${data.email}`);
+      router.replace(`/reset-password/${encodeURIComponent(data.email)}`);
     } catch (error) {
       console.error('Error requesting password reset:', error);
       const axiosError = error as AxiosError<{ message: string }>;
@@ -44,6 +49,8 @@ export default function ForgotPasswordForm() {
         description: axiosError.response?.data.message || 'Something went wrong. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -85,9 +92,9 @@ export default function ForgotPasswordForm() {
             <Button 
               type="submit" 
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-lg shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 rounded-xl"
-              disabled={form.formState.isSubmitting}
+              disabled={form.formState.isSubmitting || isSubmitting}
             >
-              {form.formState.isSubmitting ? (
+              {(form.formState.isSubmitting || isSubmitting) ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Please wait

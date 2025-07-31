@@ -7,6 +7,17 @@ export async function sendPasswordResetEmail(
   verifyCode: string
 ): Promise<ApiResponse> {
   try {
+    // Check if required environment variables are set
+    if (!process.env.SENDGRID_API_KEY) {
+      console.error('SENDGRID_API_KEY is not set');
+      return { success: false, message: 'Email service configuration is missing.' };
+    }
+
+    if (!process.env.EMAIL_USER) {
+      console.error('EMAIL_USER is not set');
+      return { success: false, message: 'Email service configuration is missing.' };
+    }
+
     const transport = await nodemailer.createTransport({
       service: 'SendGrid', // For Mailgun, set 'host' and 'port' instead
       auth: {
