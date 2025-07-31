@@ -1,46 +1,51 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Call, useStreamVideoClient } from '@stream-io/video-react-sdk';
 import getCurrentUser from '@/app/actions/getCurrentUser';
+
 export const useGetCalls = () => {
   const client = useStreamVideoClient();
   const [calls, setCalls] = useState<Call[]>();
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
+    try {
       const user = await getCurrentUser();
       setUserId(user?.id || null);
-    };
-
-    fetchUser();
+    } catch (error) {
+      console.error('Error fetching user:', error);
+    }
   }, []);
 
   useEffect(() => {
-    const loadCalls = async () => {
-      if (!client || !userId) return;
+    fetchUser();
+  }, [fetchUser]);
 
-      setIsLoading(true);
+  const loadCalls = useCallback(async () => {
+    if (!client || !userId) return;
 
-      try {
-        const { calls } = await client.queryCalls({
-          sort: [{ field: 'starts_at', direction: -1 }],
-          filter_conditions: {
-            starts_at: { $exists: true },
-            $or: [{ created_by_user_id: userId }, { members: { $in: [userId] } }],
-          },
-        });
+    setIsLoading(true);
 
-        setCalls(calls);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    try {
+      const { calls } = await client.queryCalls({
+        sort: [{ field: 'starts_at', direction: -1 }],
+        filter_conditions: {
+          starts_at: { $exists: true },
+          $or: [{ created_by_user_id: userId }, { members: { $in: [userId] } }],
+        },
+      });
 
-    loadCalls();
+      setCalls(calls);
+    } catch (error) {
+      console.error('Error loading calls:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, [client, userId]);
+
+  useEffect(() => {
+    loadCalls();
+  }, [loadCalls]);
 
   const now = new Date();
 

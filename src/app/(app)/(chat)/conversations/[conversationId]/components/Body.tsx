@@ -9,14 +9,14 @@ import axios from 'axios';
 import { pusherClient } from '@/lib/pusher';
 import { find } from 'lodash';
 import { FullConversationType } from '@/types';
+import { useMessages } from '@/context/MessagesProvider';
 
 interface BodyProps {
-  initialMessages: FullMessageType[];
   conversation: FullConversationType;
 }
 
-const Body: React.FC<BodyProps> = ({ initialMessages, conversation }) => {
-  const [messages, setMessages] = useState(initialMessages);
+const Body: React.FC<BodyProps> = ({ conversation }) => {
+  const { messages, setMessages } = useMessages();
   const [isAnonymous, setIsAnonymous] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { conversationId } = useConversation();
@@ -57,7 +57,7 @@ const Body: React.FC<BodyProps> = ({ initialMessages, conversation }) => {
     const updateMessageHandler = (newMessage: FullMessageType) => {
       setMessages((prevMessages) =>
         prevMessages.map((message) => {
-          if (message.id === newMessage.id) return newMessage;
+          if ('id' in message && message.id === newMessage.id) return newMessage;
           return message;
         })
       );
@@ -66,7 +66,7 @@ const Body: React.FC<BodyProps> = ({ initialMessages, conversation }) => {
     // Add message deletion handler
     const deleteMessageHandler = (messageId: string) => {
       setMessages((prevMessages) => 
-        prevMessages.filter((message) => message.id !== messageId)
+        prevMessages.filter((message) => !('id' in message) || message.id !== messageId)
       );
     };
 
@@ -87,7 +87,7 @@ const Body: React.FC<BodyProps> = ({ initialMessages, conversation }) => {
     try {
       // Optimistically update UI
       setMessages((prevMessages) => 
-        prevMessages.filter((message) => message.id !== messageId)
+        prevMessages.filter((message) => !('id' in message) || message.id !== messageId)
       );
       
       // Make API call
@@ -97,7 +97,7 @@ const Body: React.FC<BodyProps> = ({ initialMessages, conversation }) => {
     } catch (error) {
       console.error('Error deleting message:', error);
       // Revert the optimistic update if the deletion failed
-      const deletedMessage = messages.find((message) => message.id === messageId);
+      const deletedMessage = messages.find((message) => 'id' in message && message.id === messageId);
       if (deletedMessage) {
         setMessages((prevMessages) => [...prevMessages, deletedMessage]);
       }
@@ -109,7 +109,7 @@ const Body: React.FC<BodyProps> = ({ initialMessages, conversation }) => {
       {messages.map((message, i) => (
         <MessageBox
           isLast={i === messages.length - 1}
-          key={message.id}
+          key={'id' in message ? message.id : message.tempId}
           data={message}
           isAnonymous={isAnonymous}
           onDelete={handleMessageDelete}

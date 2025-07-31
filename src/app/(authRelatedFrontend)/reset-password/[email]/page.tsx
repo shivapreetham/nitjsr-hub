@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Sparkles } from 'lucide-react';
 import { useToast } from '@/app/hooks/use-toast';
 import axios, { AxiosError } from 'axios';
+import { useState } from 'react';
 // Schema for the reset password form
 import { resetPasswordSchema } from '@/schemas/resetPasswordSchema';
 
@@ -18,6 +19,19 @@ export default function ResetPasswordForm({ params }: { params: any }) {
   const router = useRouter();
   const { toast } = useToast();
   const email = decodeURIComponent(params.email);
+  const [isResending, setIsResending] = useState(false);
+
+  // Validate email format
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Redirect if email is invalid
+  if (!isValidEmail(email)) {
+    router.replace('/forgot-password');
+    return null;
+  }
 
   const form = useForm<z.infer<typeof resetPasswordSchema>>({
     resolver: zodResolver(resetPasswordSchema),
@@ -29,7 +43,7 @@ export default function ResetPasswordForm({ params }: { params: any }) {
 
   const onSubmit = async (data: z.infer<typeof resetPasswordSchema>) => {
     try {
-        await axios.post('/api/reset-password', {
+        await axios.post('/api/auth-utils/reset-password', {
         email,
         verifyCode: data.verifyCode,
         password: data.password,
@@ -50,6 +64,29 @@ export default function ResetPasswordForm({ params }: { params: any }) {
         description: axiosError.response?.data.message || 'Something went wrong. Please try again.',
         variant: 'destructive',
       });
+    }
+  };
+
+  const handleResendCode = async () => {
+    setIsResending(true);
+    try {
+      await axios.post('/api/auth-utils/forgot-password', { email });
+      
+      toast({
+        title: 'Code Resent',
+        description: 'A new verification code has been sent to your email.',
+      });
+    } catch (error) {
+      console.error('Error resending code:', error);
+      const axiosError = error as AxiosError<{ message: string }>;
+
+      toast({
+        title: 'Failed to Resend Code',
+        description: axiosError.response?.data.message || 'Something went wrong. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -129,12 +166,13 @@ export default function ResetPasswordForm({ params }: { params: any }) {
         <div className="text-center space-y-4">
           <p className="text-muted-foreground">
             Didn`&apos;`t receive a code?{' '}
-            <Link 
-              href="/forgot-password" 
-              className="text-primary/90 hover:text-primary transition-colors duration-300"
+            <button 
+              onClick={handleResendCode}
+              disabled={isResending}
+              className="text-primary/90 hover:text-primary transition-colors duration-300 disabled:opacity-50"
             >
-              Resend Code
-            </Link>
+              {isResending ? 'Sending...' : 'Resend Code'}
+            </button>
           </p>
         </div>
       </div>

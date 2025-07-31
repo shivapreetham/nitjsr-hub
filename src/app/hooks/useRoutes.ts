@@ -90,7 +90,7 @@ const useRoutes = () => {
   const videoChatRoutes = useMemo<RouteItem[]>(
     () => [
       {
-        label: 'Home',
+        label: 'Video Chat',
         href: '/videoChat/',
         icon: HiVideoCamera,
         active: pathname === '/videoChat/' || pathname === '/videoChat',

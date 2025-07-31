@@ -4,16 +4,15 @@ import EmptyState from '@/components/chat/EmptyState';
 import Header from './components/Header';
 import Body from './components/Body';
 import Form from './components/Form';
-
-
+import CallIntegration from './components/CallIntegration';
+import { MessagesProvider } from '@/context/MessagesProvider';
 
 const ConversationId = async ( {params}:{params :any}) => {
   const cparams = await params;
   const  conversationId = await cparams.conversationId;
   const conversation = await getConversationById(conversationId);
   const messages = await getMessages(conversationId);
-  // console.log(params)
-  // console.log(conversationId)
+
   if (!conversation) {
     return (
       <div className="lg:pl-60 h-full">
@@ -27,15 +26,18 @@ const ConversationId = async ( {params}:{params :any}) => {
   return (
     <div className="lg:pl-60 h-full">
       <div className="h-full flex flex-col bg-background theme-transition">
-        <div className="shadow-sm">
-          <Header conversation={conversation} />
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          <Body initialMessages={messages} conversation={conversation as any} />
-        </div>
-        <div className="border-t border-border shadow-card">
-          <Form />
-        </div>
+        <CallIntegration conversationId={conversationId} />
+        <MessagesProvider initialMessages={messages}>
+          <div className="shadow-sm">
+            <Header conversation={conversation} />
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <Body conversation={conversation as any} />
+          </div>
+          <div className="border-t border-border shadow-card">
+            <Form conversation={conversation} />
+          </div>
+        </MessagesProvider>
       </div>
     </div>
   );

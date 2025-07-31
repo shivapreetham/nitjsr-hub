@@ -17,19 +17,24 @@ interface MongoConversationType {
 }
 
 const useOtherUser:any = (
-  conversation: MongoConversationType
+  conversation: MongoConversationType | null | undefined
 ) => {
   const session = useSession();
 
   const otherUser = useMemo(() => {
     const currentUserEmail = session?.data?.user?.email;
 
+    // Add null checks
+    if (!conversation || !conversation.users || !Array.isArray(conversation.users)) {
+      return null;
+    }
+
     const otherUser = conversation.users.filter(
       (user) => user.email !== currentUserEmail
     );
 
-    return otherUser[0];
-  }, [session?.data?.user?.email, conversation.users]);
+    return otherUser[0] || null;
+  }, [session?.data?.user?.email, conversation?.users]);
 
   return otherUser;
 };
