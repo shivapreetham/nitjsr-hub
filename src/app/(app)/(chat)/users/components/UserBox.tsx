@@ -1,7 +1,7 @@
 'use client';
 
-import Avatar from '@/shared/components/status&sidebar/Avatar';
-import LoadingModal from '@/shared/components/status&sidebar/LoadingModal';
+import Avatar from '@/components/status&sidebar/Avatar';
+import LoadingModal from '@/components/status&sidebar/LoadingModal';
 import { User } from '@prisma/client';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { sidebarLinks } from '@/shared/constants';
-import { cn } from '@/core/lib/utils';
+import { cn } from '@/app/lib/utils';
 
 const MobileNav = () => {
   const pathname = usePathname();

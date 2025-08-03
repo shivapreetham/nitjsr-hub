@@ -1,6 +1,6 @@
 // app/api/products/[productId]/route.ts
 import { NextResponse } from "next/server";
-import prisma from "@/core/lib/prismadb";
+import prisma from "@/app/lib/prismadb";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/(auth)/auth/[...nextauth]/options";
 

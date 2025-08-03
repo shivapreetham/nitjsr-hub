@@ -6,7 +6,7 @@ import { FullMessageType } from '@/shared/types';
 import useConversation from '@/app/(app)/(chat)/(comp)/hooks/useConversation';
 import MessageBubble from './MessageBubble';
 import axios from 'axios';
-import { pusherClient } from '@/core/lib/pusher';
+import { pusherClient } from '@/app/lib/pusher';
 import { find } from 'lodash';
 import { FullConversationType } from '@/shared/types';
 import { useMessages } from '@/core/lib/context/MessagesProvider';

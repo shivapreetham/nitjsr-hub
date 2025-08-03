@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { User } from '@prisma/client';
 import useRoutes from '@/app/hooks/useRoutes';
 import DesktopSidebarItem from './DesktopSidebarItem';
-import Avatar from '@/shared/components/status&sidebar/Avatar';
+import Avatar from '@/components/status&sidebar/Avatar';
 import SettingsModal from './SettingsModal';
-import { ModeToggle } from '@/shared/components/home&anonymous/ModeToggle';
+import { ModeToggle } from '@/components/home&anonymous/ModeToggle';
 import { useTheme } from 'next-themes';
 import Image from 'next/image';
 

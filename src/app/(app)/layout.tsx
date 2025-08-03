@@ -1,6 +1,6 @@
-import ActiveStatus from '@/shared/components/status&sidebar/ActiveStatus';
+import ActiveStatus from '@/components/status&sidebar/ActiveStatus';
 import { Metadata } from 'next';
-import Sidebar from '@/shared/components/sidebar/Sidebar';
+import Sidebar from '@/components/sidebar/Sidebar';
 import { CurrentUserProvider } from '@/core/lib/context/CurrentUserProvider';
 import getCurrentUser from '@/app/(shared)/serverActions/getCurrentUser';
 import StreamVideoProvider from '@/core/lib/context/StreamClientProvider';

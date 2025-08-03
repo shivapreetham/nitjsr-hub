@@ -3,7 +3,7 @@
 import useConversation from '@/app/(app)/(chat)/(comp)/hooks/useConversation';
 import useRoutes from '@/app/hooks/useRoutes';
 import MobileFooterItem from './MobileFooterItem';
-import Avatar from '@/shared/components/status&sidebar/Avatar';
+import Avatar from '@/components/status&sidebar/Avatar';
 import { useState } from 'react';
 import SettingsModal from './SettingsModal';
 import { User } from '@prisma/client';

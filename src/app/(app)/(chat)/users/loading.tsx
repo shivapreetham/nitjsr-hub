@@ -1,4 +1,4 @@
-import LoadingModal from '@/shared/components/status&sidebar/LoadingModal';
+import LoadingModal from '@/components/status&sidebar/LoadingModal';
 
 const loading = () => {
   return <LoadingModal />;

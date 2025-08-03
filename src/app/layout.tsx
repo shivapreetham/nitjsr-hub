@@ -4,7 +4,7 @@ import AuthProvider from "@/core/lib/context/AuthProvider";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 import { ThemeProvider } from "@/core/lib/context/ThemeProvider";
-import ActiveStatus from "@/shared/components/status&sidebar/ActiveStatus";
+import ActiveStatus from "@/components/status&sidebar/ActiveStatus";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),

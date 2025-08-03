@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Avatar from '@/shared/components/status&sidebar/Avatar';
+import Avatar from '@/components/status&sidebar/Avatar';
 import { FullMessageType } from '@/shared/types';
 
 // Type for optimistic messages that have tempId instead of id

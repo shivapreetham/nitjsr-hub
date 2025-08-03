@@ -5,7 +5,7 @@ import type { AnonymousMessage } from '@prisma/client';
 import type { ApiResponse } from '@/shared/types/ApiResponse';
 import type { AxiosError } from 'axios';
 
-import { MessageCard } from '@/shared/components/home&anonymous/AnonymousMessageCard';
+import { MessageCard } from '@/components/home&anonymous/AnonymousMessageCard';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
