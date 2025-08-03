@@ -9,9 +9,9 @@ import axios from 'axios';
 import { pusherClient } from '@/app/lib/pusher';
 import { find } from 'lodash';
 import { FullConversationType } from '@/shared/types';
-import { useMessages } from '@/core/lib/context/MessagesProvider';
+import { useMessages } from '@/context/MessagesProvider';
 import { useSession } from 'next-auth/react';
-import { useReply } from '@/core/lib/context/ReplyProvider';
+import { useReply } from '@/context/ReplyProvider';
 
 interface BodyProps {
   conversation: FullConversationType;

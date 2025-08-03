@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import useCalendarData from './(comps)/hooks/useCalendarData';
-import { formatDate } from './utils/calendarHelpers';
+import { formatDate } from './(comps)/utils/calendarHelpers';
 import CalendarGrid from './(comps)/components/CalendarGrid';
 import AttendanceDetails from './(comps)/components/AttendanceDetails';
 

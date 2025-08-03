@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/app/hooks/use-toast";
 import { useStreamVideoClient, Call } from "@stream-io/video-react-sdk";
-import { useCurrentUserContext } from "@/core/lib/context/CurrentUserProvider";
+import { useCurrentUserContext } from "@/context/CurrentUserProvider";
 import { Video, LogIn, Calendar, Plus } from "lucide-react";
 
 const initialValues = {

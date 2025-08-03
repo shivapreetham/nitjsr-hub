@@ -1,9 +1,9 @@
 // app/layout.tsx
 import type { Metadata } from "next";
-import AuthProvider from "@/core/lib/context/AuthProvider";
+import AuthProvider from "@/context/AuthProvider";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
-import { ThemeProvider } from "@/core/lib/context/ThemeProvider";
+import { ThemeProvider } from "@/context/ThemeProvider";
 import ActiveStatus from "@/components/status&sidebar/ActiveStatus";
 
 export const metadata: Metadata = {

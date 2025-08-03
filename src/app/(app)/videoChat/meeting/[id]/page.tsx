@@ -7,7 +7,7 @@ import { Loader } from 'lucide-react';
 
 import { useGetCallById } from '@/app/hooks/useGetCallById';
 import Alert from '@//app/(app)/videoChat/components/Alert';
-import { useCurrentUserContext } from '@/core/lib/context/CurrentUserProvider';
+import { useCurrentUserContext } from '@/context/CurrentUserProvider';
 import MeetingSetup from '@/app/(app)/videoChat/components/MeetingSetup';
 import MeetingRoom from '@/app/(app)/videoChat/components/MeetingRoom';
 

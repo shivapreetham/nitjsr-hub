@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { useTheme } from "next-themes";
@@ -51,7 +52,7 @@ import {
 import { getAttendanceStatus, formatDate } from './(comp)/utils/attendanceHelpers';
 
 // Move data fetching and state logic to a custom hook: hooks/useAttendanceDashboard.ts
-import useAttendanceDashboard from './hooks/useAttendanceDashboard';
+import useAttendanceDashboard from './(comp)/hooks/useAttendanceDashboard';
 
 // Move chart data preparation to a new file: components/AttendanceCharts.tsx
 import AttendanceCharts from './(comp)/components/AttendanceCharts';

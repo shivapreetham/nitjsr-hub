@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import { StreamVideoClient, StreamVideo } from '@stream-io/video-react-sdk';
-import { useCurrentUserContext } from '@/core/lib/context/CurrentUserProvider';
+import { useCurrentUserContext } from '@/context/CurrentUserProvider';
 
 import { tokenProvider } from '@/app/(shared)/serverActions/stream.actions';
 import Loader from '@/app/(app)/videoChat/components/Loader';

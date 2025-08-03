@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
-import { ApiResponse, UserData } from '../(comp)/components/types';
+import { ApiResponse, UserData } from '../components/types';
 
 export default function useLeaderboardData() {
   const { data: session } = useSession();

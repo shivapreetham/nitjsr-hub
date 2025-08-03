@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import StreamVideoProvider from '@/core/lib/context/StreamClientProvider';
+import StreamVideoProvider from '@/context/StreamClientProvider';
 
 export default async function VideoChatLayout({ children }: { children: ReactNode }) {
   return (

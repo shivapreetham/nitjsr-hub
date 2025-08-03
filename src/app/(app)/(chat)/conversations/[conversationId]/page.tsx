@@ -5,8 +5,8 @@ import Header from './components/Header';
 import Body from './components/Body';
 import Form from './components/Form';
 import CallIntegration from './components/CallIntegration';
-import { MessagesProvider } from '@/core/lib/context/MessagesProvider';
-import { ReplyProvider } from '@/core/lib/context/ReplyProvider';
+import { MessagesProvider } from '@/context/MessagesProvider';
+import { ReplyProvider } from '@/context/ReplyProvider';
 
 const ConversationId = async ( {params}:{params :any}) => {
   const cparams = await params;

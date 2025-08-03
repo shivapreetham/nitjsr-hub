@@ -16,10 +16,10 @@ import { cn } from '@/app/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useStreamVideoClient } from '@stream-io/video-react-sdk';
-import { useCurrentUserContext } from '@/core/lib/context/CurrentUserProvider';
+import { useCurrentUserContext } from '@/context/CurrentUserProvider';
 import { useToast } from '@/app/hooks/use-toast';
 import axios from 'axios';
-import { useMessages } from '@/core/lib/context/MessagesProvider';
+import { useMessages } from '@/context/MessagesProvider';
 
 type ExtendedUser = Omit<User, "conversationIds" | "seenMessageIds"> & {
   conversationIds: string[];
