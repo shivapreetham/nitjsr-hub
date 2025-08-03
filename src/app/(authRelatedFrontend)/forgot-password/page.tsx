@@ -12,7 +12,7 @@ import { Loader2, Sparkles } from 'lucide-react';
 import { useToast } from '@/app/hooks/use-toast';
 import axios, { AxiosError } from 'axios';
 import { useState } from 'react';
-import { forgotPasswordSchema } from '@/schemas/forgotPasswordSchema';
+import { forgotPasswordSchema } from '@/shared/schemas/forgotPasswordSchema';
 
 
 export default function ForgotPasswordForm() {

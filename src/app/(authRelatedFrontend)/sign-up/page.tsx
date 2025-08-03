@@ -1,6 +1,6 @@
 'use client';
 
-import { ApiResponse } from '@/types/ApiResponse';
+import { ApiResponse } from '@/shared/types/ApiResponse';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import axios, { AxiosError } from 'axios';
 import { Loader2, Sparkles, CheckCircle2, XCircle, Info } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { signUpSchema } from '@/schemas/signUpSchema';
+import { signUpSchema } from '@/shared/schemas/signUpSchema';
 import { useToast } from '@/app/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 

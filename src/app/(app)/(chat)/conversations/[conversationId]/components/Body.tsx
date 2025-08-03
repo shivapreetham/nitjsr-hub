@@ -2,13 +2,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { FullMessageType } from '@/types';
+import { FullMessageType } from '@/shared/types';
 import useConversation from '@/app/hooks/useConversation';
 import MessageBubble from './MessageBubble';
 import axios from 'axios';
 import { pusherClient } from '@/lib/pusher';
 import { find } from 'lodash';
-import { FullConversationType } from '@/types';
+import { FullConversationType } from '@/shared/types';
 import { useMessages } from '@/context/MessagesProvider';
 import { useSession } from 'next-auth/react';
 import { useReply } from '@/context/ReplyProvider';

@@ -1,5 +1,5 @@
 import prisma from '@/lib/prismadb';
-import { verifySchema } from '@/schemas/verifySchema';
+import { verifySchema } from '@/shared/schemas/verifySchema';
 
 export async function POST(request: Request) {
   try {

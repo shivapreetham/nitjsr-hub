@@ -1,6 +1,6 @@
 'use client';
 
-import type { ApiResponse } from '@/types/ApiResponse';
+import type { ApiResponse } from '@/shared/types/ApiResponse';
 import type { z } from 'zod';
 
 import React, { useState } from 'react';
@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/app/hooks/use-toast';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { anonymousMessageSchema as messageSchema } from '@/schemas/anonymousMessageSchema';
+import { anonymousMessageSchema as messageSchema } from '@/shared/schemas/anonymousMessageSchema';
 import { ModeToggle } from '@/components/home&anonymous/ModeToggle';
 import { cn } from '@/lib/utils';
 

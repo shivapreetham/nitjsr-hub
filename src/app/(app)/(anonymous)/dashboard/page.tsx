@@ -2,7 +2,7 @@
 
 import type { User } from 'next-auth';
 import type { AnonymousMessage } from '@prisma/client';
-import type { ApiResponse } from '@/types/ApiResponse';
+import type { ApiResponse } from '@/shared/types/ApiResponse';
 import type { AxiosError } from 'axios';
 
 import { MessageCard } from '@/components/home&anonymous/AnonymousMessageCard';
@@ -16,7 +16,7 @@ import { Copy, Link2, Loader2, RefreshCcw, Settings2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { AcceptAnonymousMessageSchema } from '@/schemas/acceptAnonymousMessageSchema';
+import { AcceptAnonymousMessageSchema } from '@/shared/schemas/acceptAnonymousMessageSchema';
 import {
   Dialog,
   DialogContent,

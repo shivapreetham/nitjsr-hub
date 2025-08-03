@@ -4,13 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Form, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/app/hooks/use-toast';
-import { ApiResponse } from '@/types/ApiResponse';
+import { ApiResponse } from '@/shared/types/ApiResponse';
 import { zodResolver } from '@hookform/resolvers/zod';
 import axios, { AxiosError } from 'axios';
 import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { verifySchema } from '@/schemas/verifySchema';
+import { verifySchema } from '@/shared/schemas/verifySchema';
 import { Loader2, Sparkles, Mail } from 'lucide-react';
 
 export default function VerifyAccount() {

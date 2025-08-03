@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Product } from "@/types/products";
+import { Product } from "@/shared/types/products";
 import { ProductCard } from "@/app/(app)/market/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

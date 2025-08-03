@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { MessageCircle, Smile, MoreHorizontal, Reply, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { FullMessageType, ReactionType } from '@/types';
+import { FullMessageType, ReactionType } from '@/shared/types';
 import Image from 'next/image';
 import clsx from 'clsx';
 

@@ -16,7 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { AlertCircle } from 'lucide-react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { GroupChatFormData, groupChatSchema } from '@/schemas/groupChatSchema';
+import { GroupChatFormData, groupChatSchema } from '@/shared/schemas/groupChatSchema';
 import debounce from 'lodash/debounce';
 import {Option} from '@/components/chat/input/Select';
 import {  useSession } from 'next-auth/react';

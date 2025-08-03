@@ -1,6 +1,6 @@
 import prisma from '@/lib/prismadb'; // Import Prisma client
 import { z } from 'zod';
-import { usernameValidation } from '@/schemas/signUpSchema';
+import { usernameValidation } from '@/shared/schemas/signUpSchema';
 
 const UsernameQuerySchema = z.object({
   username: usernameValidation,

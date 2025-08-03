@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/app/hooks/use-toast';
-import type { ApiResponse } from '@/types/ApiResponse';
+import type { ApiResponse } from '@/shared/types/ApiResponse';
 import axios, { AxiosError } from 'axios';
 import { Badge } from "@/components/ui/badge";
 

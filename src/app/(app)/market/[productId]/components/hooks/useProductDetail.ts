@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Product } from "@/types/products";
+import { Product } from "@/shared/types/products";
 import { ProductStatus } from "@prisma/client";
 
 export default function useProductDetail() {

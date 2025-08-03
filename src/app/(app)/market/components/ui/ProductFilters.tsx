@@ -14,7 +14,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { PRODUCT_CATEGORIES } from "@/types/products";
+import { PRODUCT_CATEGORIES } from "@/shared/types/products";
 import { ProductFiltersProps } from "../types";
 import { cn } from "@/lib/utils";
 

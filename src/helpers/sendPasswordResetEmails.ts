@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { ApiResponse } from '@/types/ApiResponse';
+import { ApiResponse } from '@/shared/types/ApiResponse';
 
 export async function sendPasswordResetEmail(
   email: string,

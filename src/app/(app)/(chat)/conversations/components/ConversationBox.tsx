@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { useSession } from 'next-auth/react';
 import clsx from 'clsx';
-import { FullConversationType } from '@/types';
+import { FullConversationType } from '@/shared/types';
 import useOtherUser from '@/app/hooks/useOtherUser';
 import Avatar from '@/components/chat/Avatar';
 import AvatarGroup from '@/components/chat/AvatarGroup';

@@ -9,7 +9,7 @@ import { HiPhoto, HiPaperAirplane } from 'react-icons/hi2';
 import { Video, Phone } from 'lucide-react';
 import MessageInput from './MessageInput';
 import { createClient } from '@supabase/supabase-js';
-import { messageSchema } from '@/schemas/messageSchema';
+import { messageSchema } from '@/shared/schemas/messageSchema';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useStreamVideoClient } from '@stream-io/video-react-sdk';
@@ -18,7 +18,7 @@ import { useToast } from '@/app/hooks/use-toast';
 import useOtherUser from '@/app/hooks/useOtherUser';
 import { Conversation, User } from '@prisma/client';
 import { useMessages } from '@/context/MessagesProvider';
-import { FullMessageType } from '@/types';
+import { FullMessageType } from '@/shared/types';
 import ReplyInput from './ReplyInput';
 import { useReply } from '@/context/ReplyProvider';
 

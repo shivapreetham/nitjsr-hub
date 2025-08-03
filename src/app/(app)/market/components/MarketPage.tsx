@@ -2,8 +2,8 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Product } from "@/types/products";
-import { PRODUCT_CATEGORIES } from "@/types/products";
+import { Product } from "@/shared/types/products";
+import { PRODUCT_CATEGORIES } from "@/shared/types/products";
 import { filterProducts } from "./utils/marketplaceHelpers";
 import useMarketplaceData from "./hooks/useMarketplaceData";
 import MarketplaceHeader from "./ui/MarketplaceHeader";

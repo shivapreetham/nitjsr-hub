@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Product } from "@/types/products";
+import { Product } from "@/shared/types/products";
 import { MarketplaceFilters } from "../types";
 
 export default function useMarketplaceData() {

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { PRODUCT_CATEGORIES, PRODUCT_CONDITIONS } from "@/types/products";
+import { PRODUCT_CATEGORIES, PRODUCT_CONDITIONS } from "@/shared/types/products";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -28,7 +28,7 @@ import {
 import { toast } from "@/app/hooks/use-toast";
 import { ArrowLeft, Loader2, Upload, Image as ImageIcon, Tag, MapPin, LayoutGrid } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { productSchema as formSchema } from "@/schemas/productSchema";
+import { productSchema as formSchema } from "@/shared/schemas/productSchema";
 import { MainImageUpload, AdditionalImagesUpload, PaymentQRUpload } from "@/app/(app)/market/components/market/imageUpload";
 
 export default function NewProductPage() {

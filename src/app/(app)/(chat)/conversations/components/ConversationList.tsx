@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import { MdOutlineGroupAdd } from 'react-icons/md';
-import { FullConversationType } from '@/types';
+import { FullConversationType } from '@/shared/types';
 import useConversation from '@/app/hooks/useConversation';
 import ConversationBox from './ConversationBox';
 import GroupChatModal from './GroupChatModal';

@@ -6,9 +6,9 @@ import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { PRODUCT_CATEGORIES, PRODUCT_CONDITIONS, Product } from "@/types/products";
+import { PRODUCT_CATEGORIES, PRODUCT_CONDITIONS, Product } from "@/shared/types/products";
 import { Button } from "@/components/ui/button";
-import {formSchema} from "@/schemas/productFormSchema"
+import {formSchema} from "@/shared/schemas/productFormSchema"
 import {
   Form,
   FormControl,

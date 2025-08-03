@@ -1,4 +1,4 @@
-import { Product } from "@/types/products";
+import { Product } from "@/shared/types/products";
 import { MarketplaceFilters } from "../types";
 
 export const filterProducts = (

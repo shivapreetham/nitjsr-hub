@@ -10,7 +10,7 @@ import { Form, FormField, FormItem, FormLabel, FormMessage } from '@/components/
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/app/hooks/use-toast';
-import { signInSchema } from '@/schemas/signInSchema';
+import { signInSchema } from '@/shared/schemas/signInSchema';
 import { signIn } from 'next-auth/react';
 import { Sparkles } from 'lucide-react';
 
