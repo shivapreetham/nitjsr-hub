@@ -2,10 +2,10 @@
 
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import useCalendarData from './hooks/useCalendarData';
+import useCalendarData from './(comps)/hooks/useCalendarData';
 import { formatDate } from './utils/calendarHelpers';
-import CalendarGrid from './components/CalendarGrid';
-import AttendanceDetails from './components/AttendanceDetails';
+import CalendarGrid from './(comps)/components/CalendarGrid';
+import AttendanceDetails from './(comps)/components/AttendanceDetails';
 
 export default function AttendanceCalendar() {
   const {

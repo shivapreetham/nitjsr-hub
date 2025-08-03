@@ -1,4 +1,4 @@
-import { CalendarDay } from '../components/types';
+import { CalendarDay } from '../(comps)/components/types';
 
 // Format date for display
 export const formatDate = (date: Date) => {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTheme } from "next-themes";
-import { AttendanceData } from '../components/types';
+import { AttendanceData } from '../(comp)/components/types';
 import { getAttendanceStatus } from '../utils/attendanceHelpers';
 
 export default function useAttendanceDashboard() {

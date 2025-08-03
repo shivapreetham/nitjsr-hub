@@ -45,35 +45,35 @@ import {
   TrendPoint,
   UserStats,
   AttendanceData
-} from './components/types';
+} from './(comp)/components/types';
 
 // Move all helper functions to a new file: utils/attendanceHelpers.ts
-import { getAttendanceStatus, formatDate } from './utils/attendanceHelpers';
+import { getAttendanceStatus, formatDate } from './(comp)/utils/attendanceHelpers';
 
 // Move data fetching and state logic to a custom hook: hooks/useAttendanceDashboard.ts
 import useAttendanceDashboard from './hooks/useAttendanceDashboard';
 
 // Move chart data preparation to a new file: components/AttendanceCharts.tsx
-import AttendanceCharts from './components/AttendanceCharts';
+import AttendanceCharts from './(comp)/components/AttendanceCharts';
 
 // Move overview cards to a new file: components/AttendanceStatusCards.tsx
-import AttendanceStatusCards from './components/AttendanceStatusCards';
+import AttendanceStatusCards from './(comp)/components/AttendanceStatusCards';
 
 // Move user stats banner to a new file: components/UserStatsBanner.tsx
-import UserStatsBanner from './components/UserStatsBanner';
+import UserStatsBanner from './(comp)/components/UserStatsBanner';
 
 // Move subject list to a new file: components/SubjectList.tsx
-import SubjectList from './components/SubjectList';
+import SubjectList from './(comp)/components/SubjectList';
 
 // Move subject detail to a new file: components/SubjectDetail.tsx
-import SubjectDetail from './components/SubjectDetail';
+import SubjectDetail from './(comp)/components/SubjectDetail';
 
 // Move trends view to a new file: components/AttendanceTrends.tsx
-import AttendanceTrends from './components/AttendanceTrends';
+import AttendanceTrends from './(comp)/components/AttendanceTrends';
 
 // Move loading and error UI to new files: components/Loading.tsx, components/Error.tsx
-import Loading from './components/Loading';
-import Error from './components/Error';
+import Loading from './(comp)/components/Loading';
+import Error from './(comp)/components/Error';
 
 export default function AttendanceDashboard() {
   const {

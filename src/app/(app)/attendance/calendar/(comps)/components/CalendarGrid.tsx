@@ -2,7 +2,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDay } from './types';
-import { getAttendanceStatus, getClassCount, isToday, weekDays } from '../utils/calendarHelpers';
+import { getAttendanceStatus, getClassCount, isToday, weekDays } from '../../utils/calendarHelpers';
 
 interface CalendarGridProps {
   calendarDays: CalendarDay[];
