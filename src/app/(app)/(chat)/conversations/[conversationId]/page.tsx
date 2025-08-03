@@ -1,5 +1,5 @@
-import getConversationById from '@/app/actions/getConversationById';
-import getMessages from '@/app/actions/getMessages';
+import getConversationById from '@/app/(shared)/actions/getConversationById';
+import getMessages from '@/app/(shared)/actions/getMessages';
 import EmptyState from '@/components/chat/EmptyState';
 import Header from './components/Header';
 import Body from './components/Body';

@@ -1,7 +1,7 @@
 // app/api/conversations/find-or-create/route.ts
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prismadb";
-import getCurrentUser from "@/app/actions/getCurrentUser";
+import getCurrentUser from "@/app/(shared)/actions/getCurrentUser";
 
 export async function POST(request: Request) {
   try {

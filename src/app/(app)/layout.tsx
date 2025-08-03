@@ -2,7 +2,7 @@ import ActiveStatus from '@/components/chat/ActiveStatus';
 import { Metadata } from 'next';
 import Sidebar from '@/components/sidebar/Sidebar';
 import { CurrentUserProvider } from '@/context/CurrentUserProvider';
-import getCurrentUser from '@/app/actions/getCurrentUser';
+import getCurrentUser from '@/app/(shared)/actions/getCurrentUser';
 import StreamVideoProvider from '@/context/StreamClientProvider';
 
 interface RootLayoutProps {

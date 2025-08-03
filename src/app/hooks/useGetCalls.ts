@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Call, useStreamVideoClient } from '@stream-io/video-react-sdk';
-import getCurrentUser from '@/app/actions/getCurrentUser';
+import getCurrentUser from '@/app/(shared)/actions/getCurrentUser';
 
 export const useGetCalls = () => {
   const client = useStreamVideoClient();
