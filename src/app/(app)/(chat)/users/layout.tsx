@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import getUsers from '@/app/(shared)/serverActions/getUsers';
-import Sidebar from '@/components/sidebar/Sidebar';
+import Sidebar from '@/shared/components/sidebar/Sidebar';
 import UserList from './components/UserList';
 
 export const metadata: Metadata = {

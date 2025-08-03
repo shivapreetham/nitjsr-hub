@@ -3,7 +3,7 @@
 import React, { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { ClipLoader } from 'react-spinners';
-import LOADING_MESSAGES from '@/constants/loadingMessages';
+import LOADING_MESSAGES from '@/shared/constants/loadingMessages';
 import getRandomIndex from '@/app/(app)/(chat)/(comp)/serverActions/getRandomIndex';
 
 const LoadingModal = () => {

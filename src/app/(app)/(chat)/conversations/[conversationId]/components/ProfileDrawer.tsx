@@ -1,13 +1,13 @@
 'use client';
 
-import Avatar from '@/components/chat/Avatar';
+import Avatar from '@/shared/components/status&sidebar/Avatar';
 import useOtherUser from '@/app/hooks/useOtherUser';
 import { Transition, Dialog } from '@headlessui/react';
 import { Conversation, User } from '@prisma/client';
 import { format } from 'date-fns';
 import { useMemo, Fragment, useState } from 'react';
 import { IoClose, IoPersonAdd, IoExitOutline, IoTrash } from 'react-icons/io5';
-import AvatarGroup from '@/components/chat/AvatarGroup';
+import AvatarGroup from '@/shared/components/status&sidebar/AvatarGroup';
 import useActiveList from '@/app/hooks/useActiveList';
 import AddMembersModal from './AddMembersModal';
 import axios from 'axios';

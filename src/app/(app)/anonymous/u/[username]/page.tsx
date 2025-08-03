@@ -17,8 +17,8 @@ import { toast } from '@/app/hooks/use-toast';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { anonymousMessageSchema as messageSchema } from '@/shared/schemas/anonymousMessageSchema';
-import { ModeToggle } from '@/components/home&anonymous/ModeToggle';
-import { cn } from '@/shared/lib/utils';
+import { ModeToggle } from '@/shared/components/home&anonymous/ModeToggle';
+import { cn } from '@/core/lib/utils';
 
 interface SendMessageState {
   isLoading: boolean;

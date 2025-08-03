@@ -13,14 +13,14 @@ import { messageSchema } from '@/shared/schemas/messageSchema';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useStreamVideoClient } from '@stream-io/video-react-sdk';
-import { useCurrentUserContext } from '@/context/CurrentUserProvider';
+import { useCurrentUserContext } from '@/core/lib/context/CurrentUserProvider';
 import { useToast } from '@/app/hooks/use-toast';
 import useOtherUser from '@/app/hooks/useOtherUser';
 import { Conversation, User } from '@prisma/client';
-import { useMessages } from '@/context/MessagesProvider';
+import { useMessages } from '@/core/lib/context/MessagesProvider';
 import { FullMessageType } from '@/shared/types';
 import ReplyInput from './ReplyInput';
-import { useReply } from '@/context/ReplyProvider';
+import { useReply } from '@/core/lib/context/ReplyProvider';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

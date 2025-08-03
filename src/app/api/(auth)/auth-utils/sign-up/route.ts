@@ -1,6 +1,6 @@
-import prisma from '@/shared/lib/prismadb';
+import prisma from '@/core/lib/prismadb';
 import bcrypt from 'bcryptjs';
-import { sendVerificationEmail } from '@/helpers/sendVerificationEmails';
+import { sendVerificationEmail } from '@/app/(authRelatedFrontend)/helpers/sendVerificationEmails';
 
 // Email pattern to extract information
 const EMAIL_PATTERN = /^(\d{4})(ug|pg)([a-z]+)\d+@nitjsr\.ac\.in$/i;

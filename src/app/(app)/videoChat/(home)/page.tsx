@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback } from "react";
 import MeetingTypeList from '@/app/(app)/videoChat/components/MeetingTypeList';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/app/hooks/use-toast';
-import { useCurrentUserContext } from '@/context/CurrentUserProvider';
+import { useCurrentUserContext } from '@/core/lib/context/CurrentUserProvider';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Video, Calendar, Clock, Users } from 'lucide-react';

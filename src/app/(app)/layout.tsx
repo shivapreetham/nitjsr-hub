@@ -1,9 +1,9 @@
-import ActiveStatus from '@/components/chat/ActiveStatus';
+import ActiveStatus from '@/shared/components/status&sidebar/ActiveStatus';
 import { Metadata } from 'next';
-import Sidebar from '@/components/sidebar/Sidebar';
-import { CurrentUserProvider } from '@/context/CurrentUserProvider';
+import Sidebar from '@/shared/components/sidebar/Sidebar';
+import { CurrentUserProvider } from '@/core/lib/context/CurrentUserProvider';
 import getCurrentUser from '@/app/(shared)/serverActions/getCurrentUser';
-import StreamVideoProvider from '@/context/StreamClientProvider';
+import StreamVideoProvider from '@/core/lib/context/StreamClientProvider';
 
 interface RootLayoutProps {
   children: React.ReactNode;

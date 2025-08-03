@@ -6,12 +6,12 @@ import { FullMessageType } from '@/shared/types';
 import useConversation from '@/app/(app)/(chat)/(comp)/hooks/useConversation';
 import MessageBubble from './MessageBubble';
 import axios from 'axios';
-import { pusherClient } from '@/shared/lib/pusher';
+import { pusherClient } from '@/core/lib/pusher';
 import { find } from 'lodash';
 import { FullConversationType } from '@/shared/types';
-import { useMessages } from '@/context/MessagesProvider';
+import { useMessages } from '@/core/lib/context/MessagesProvider';
 import { useSession } from 'next-auth/react';
-import { useReply } from '@/context/ReplyProvider';
+import { useReply } from '@/core/lib/context/ReplyProvider';
 
 interface BodyProps {
   conversation: FullConversationType;

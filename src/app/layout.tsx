@@ -1,10 +1,10 @@
 // app/layout.tsx
 import type { Metadata } from "next";
-import AuthProvider from "@/context/AuthProvider";
+import AuthProvider from "@/core/lib/context/AuthProvider";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
-import { ThemeProvider } from "@/context/ThemeProvider";
-import ActiveStatus from "@/components/chat/ActiveStatus";
+import { ThemeProvider } from "@/core/lib/context/ThemeProvider";
+import ActiveStatus from "@/shared/components/status&sidebar/ActiveStatus";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),

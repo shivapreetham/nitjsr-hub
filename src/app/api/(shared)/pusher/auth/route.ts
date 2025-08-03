@@ -1,8 +1,8 @@
 // app/api/pusher/auth/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { pusherServer } from '@/shared/lib/pusher';
-import prisma from '@/shared/lib/prismadb';
+import { pusherServer } from '@/core/lib/pusher';
+import prisma from '@/core/lib/prismadb';
 
 export async function POST(request: Request) {
   try {

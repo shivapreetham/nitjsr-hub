@@ -1,5 +1,5 @@
 "use client";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/core/lib/utils";
 import { useMotionValue, motion, useMotionTemplate } from "framer-motion";
 import React from "react";
 

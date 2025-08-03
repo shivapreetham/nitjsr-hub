@@ -7,8 +7,8 @@ import { useSession } from 'next-auth/react';
 import clsx from 'clsx';
 import { FullConversationType } from '@/shared/types';
 import useOtherUser from '@/app/hooks/useOtherUser';
-import Avatar from '@/components/chat/Avatar';
-import AvatarGroup from '@/components/chat/AvatarGroup';
+import Avatar from '@/shared/components/status&sidebar/Avatar';
+import AvatarGroup from '@/shared/components/status&sidebar/AvatarGroup';
 
 interface ConversationBoxProps {
   conversation: FullConversationType;
