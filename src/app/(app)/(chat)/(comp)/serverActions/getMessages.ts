@@ -1,4 +1,4 @@
-import prisma from '@/lib/prismadb';
+import prisma from '@/shared/lib/prismadb';
 
 const getMessages = async (conversationId: string) => {
   try {

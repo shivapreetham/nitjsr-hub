@@ -1,6 +1,6 @@
 import Sidebar from '@/components/sidebar/Sidebar';
-import ConversationList from './components/ConversationList';
-import getConversations from '@/app/(app)/(chat)/serverActions/getConversations';
+import ConversationList from '../(comp)/components/ConversationList';
+import getConversations from '@/app/(app)/(chat)/(comp)/serverActions/getConversations';
 import getUsers from '@/app/(shared)/serverActions/getUsers';
 import { Metadata } from 'next';
 

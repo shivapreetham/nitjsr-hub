@@ -1,8 +1,8 @@
 'use client';
 
 import clsx from 'clsx';
-import useConversation from '@/app/hooks/useConversation';
-import EmptyState from '@/components/chat/EmptyState';
+import useConversation from '@/app/(app)/(chat)/(comp)/hooks/useConversation';
+import EmptyState from '@/app/(app)/(chat)/(comp)/components/EmptyState';
 
 const Home = () => {
   const { isOpen } = useConversation();

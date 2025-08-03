@@ -3,10 +3,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { FullMessageType } from '@/shared/types';
-import useConversation from '@/app/hooks/useConversation';
+import useConversation from '@/app/(app)/(chat)/(comp)/hooks/useConversation';
 import MessageBubble from './MessageBubble';
 import axios from 'axios';
-import { pusherClient } from '@/lib/pusher';
+import { pusherClient } from '@/shared/lib/pusher';
 import { find } from 'lodash';
 import { FullConversationType } from '@/shared/types';
 import { useMessages } from '@/context/MessagesProvider';

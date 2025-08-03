@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef } from 'react';
-import useConversation from '@/app/hooks/useConversation';
+import useConversation from '@/app/(app)/(chat)/(comp)/hooks/useConversation';
 import axios from 'axios';
 import { FieldValues, SubmitHandler, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';

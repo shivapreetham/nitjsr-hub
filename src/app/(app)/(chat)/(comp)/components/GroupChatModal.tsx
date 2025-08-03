@@ -1,9 +1,9 @@
 'use client'
 
 import React from 'react';
-import Modal from '@/components/chat/Modal';
-import Input from '@/components/chat/input/Input';
-import Select from '@/components/chat/input/Select';
+import Modal from '@/app/(app)/(chat)/(comp)/components/Modal';
+import Input from '@/app/(app)/(chat)/(comp)/components/input/Input';
+import Select from '@/app/(app)/(chat)/(comp)/components/input/Select';
 import { User } from '@prisma/client';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
@@ -18,7 +18,7 @@ import { AlertCircle } from 'lucide-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { GroupChatFormData, groupChatSchema } from '@/shared/schemas/groupChatSchema';
 import debounce from 'lodash/debounce';
-import {Option} from '@/components/chat/input/Select';
+import {Option} from '@/app/(app)/(chat)/(comp)/components/input/Select';
 import {  useSession } from 'next-auth/react';
 
 interface GroupChatModalProps {

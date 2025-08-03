@@ -1,7 +1,7 @@
 // app/api/users/status/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import prisma from '@/lib/prismadb';
+import prisma from '@/shared/lib/prismadb';
 
 export async function POST(req: Request) {
   try {

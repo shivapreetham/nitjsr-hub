@@ -1,6 +1,6 @@
 // File: app/api/attendance/leaderboard/route.ts
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prismadb';
+import prisma from '@/shared/lib/prismadb';
 
 export async function GET(request: Request) {
   try {

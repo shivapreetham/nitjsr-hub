@@ -2,7 +2,7 @@ import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
 import { HiChat } from 'react-icons/hi';
 import { signOut } from 'next-auth/react';
-import useConversation from './useConversation';
+import useConversation from '../(app)/(chat)/(comp)/hooks/useConversation';
 import { 
   HiArrowLeftOnRectangle, 
   HiUsers, 

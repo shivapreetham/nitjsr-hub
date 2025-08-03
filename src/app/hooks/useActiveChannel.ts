@@ -2,7 +2,7 @@
 // hooks/useActiveChannel.ts
 import { Channel, Members } from 'pusher-js';
 import { useState, useEffect } from 'react';
-import { pusherClient } from '@/lib/pusher';
+import { pusherClient } from '@/shared/lib/pusher';
 import useActiveList from './useActiveList';
 import { useSession } from 'next-auth/react';
 

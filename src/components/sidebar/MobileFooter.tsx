@@ -1,6 +1,6 @@
 'use client';
 
-import useConversation from '@/app/hooks/useConversation';
+import useConversation from '@/app/(app)/(chat)/(comp)/hooks/useConversation';
 import useRoutes from '@/app/hooks/useRoutes';
 import MobileFooterItem from './MobileFooterItem';
 import Avatar from '@/components/chat/Avatar';

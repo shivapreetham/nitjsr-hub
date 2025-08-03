@@ -1,14 +1,14 @@
 'use client';
 
-import Modal from '@/components/chat/Modal';
-import useConversation from '@/app/hooks/useConversation';
+import Modal from '@/app/(app)/(chat)/(comp)/components/Modal';
+import useConversation from '@/app/(app)/(chat)/(comp)/hooks/useConversation';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { FiAlertTriangle } from 'react-icons/fi';
 import { Dialog } from '@headlessui/react';
-import Button from '@/components/chat/Button';
+import Button from '@/app/(app)/(chat)/(comp)/components/Button';
 
 interface ConfirmModalProps {
   isOpen?: boolean;
