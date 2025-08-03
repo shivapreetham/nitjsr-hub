@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShoppingBag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import useProductDetail from "./components/hooks/useProductDetail";
-import ProductImageCarousel from "./components/ui/ProductImageCarousel";
-import ProductInfo from "./components/ui/ProductInfo";
-import SellerInfo from "./components/ui/SellerInfo";
-import ProductActions from "./components/ui/ProductActions";
+import useProductDetail from "./(comp)/components/hooks/useProductDetail";
+import ProductImageCarousel from "./(comp)/components/ui/ProductImageCarousel";
+import ProductInfo from "./(comp)/components/ui/ProductInfo";
+import SellerInfo from "./(comp)/components/ui/SellerInfo";
+import ProductActions from "./(comp)/components/ui/ProductActions";
 
 export default function ProductDetailPage() {
   const router = useRouter();
