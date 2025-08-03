@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import prisma from '@/lib/prismadb';
-import { authOptions } from '@/app/api/auth/[...nextauth]/options';
+import { authOptions } from '@/app/api/(auth)/auth/[...nextauth]/options';
 
 interface SessionUser {
   id: string;
