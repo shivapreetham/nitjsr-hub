@@ -1,5 +1,5 @@
 import prisma from '@/lib/prismadb';
-import getCurrentUser from './getCurrentUser';
+import getCurrentUser from '../../../(shared)/serverActions/getCurrentUser';
 
 const getConversations = async () => {
   try {

@@ -4,7 +4,7 @@ import React, { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { ClipLoader } from 'react-spinners';
 import LOADING_MESSAGES from '@/constants/loadingMessages';
-import getRandomIndex from '@/app/(shared)/actions/getRandomIndex';
+import getRandomIndex from '@/app/(app)/(chat)/serverActions/getRandomIndex';
 
 const LoadingModal = () => {
   const index = getRandomIndex(LOADING_MESSAGES);
