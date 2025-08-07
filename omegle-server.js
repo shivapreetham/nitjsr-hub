@@ -57,6 +57,10 @@ const findPartner = (userId, audioEnabled, videoEnabled) => {
 
 wss.on('connection', (ws) => {
   const userId = generateId();
+  
+  // Store userId in the WebSocket object for later reference
+  ws.userId = userId;
+  
   userCount.count++;
   broadcastUserCount();
   

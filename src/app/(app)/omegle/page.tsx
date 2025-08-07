@@ -121,7 +121,7 @@ export default function OmeglePage() {
       const data = JSON.parse(event.data);
       if (data.type === "room_assigned" && data.room) {
         setIsSearching(false);
-        router.push(`/omegle/room?roomId=${data.room}&initiator=${data.initiator ? '1' : '0'}`);
+        router.push(`/omegle/room?roomId=${data.room}`);
         socket.close();
       } else if (data.type === "user_count") {
         setUserCount(data.count);
