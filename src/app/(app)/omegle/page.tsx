@@ -34,7 +34,7 @@ export default function OmeglePage() {
 
     const handleMessage = (event: MessageEvent) => {
       try {
-        const data = JSON.parse(event.data);
+      const data = JSON.parse(event.data);
         if (data.type === "user_count") {
           setUserCount(data.count);
         } else if (data.type === "room_assigned" && data.room) {

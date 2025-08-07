@@ -49,10 +49,11 @@ export default function OmegleRoomPage() {
     console.log("[CLIENT] handleSocketMessage called with:", data.type, data);
     
     if (data.type === "room_assigned") {
-      console.log("[CLIENT] Room assigned with role:", data.role);
+      console.log("[CLIENT] Room assigned with role:", data.role, "initiator:", data.initiator);
       setIsInitiator(data.initiator ?? false);
       setUserRole(data.role ?? "Unknown");
       setIsRoomAssigned(true);
+      setHasReceivedOffer(false); // Reset offer state for new room
       setConnectionStatus("Room assigned - " + (data.role ?? "Unknown"));
       // Update sessionStorage with the latest room assignment
       sessionStorage.setItem("omegle_room", JSON.stringify({
@@ -60,6 +61,8 @@ export default function OmegleRoomPage() {
         initiator: data.initiator,
         role: data.role
       }));
+      console.log("[CLIENT] Updated state - isInitiator:", data.initiator, "role:", data.role);
+      console.log("[CLIENT] My room:", sessionStorage.getItem("omegle_room"));
       return; // Don't need PeerConnection for room assignment
     }
 
@@ -80,7 +83,9 @@ export default function OmegleRoomPage() {
         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
-        send({ type: "answer", answer, room: roomId });
+        const payload = { type: "answer", answer, room: roomId, token };
+        console.log("[CLIENT] Sending answer:", payload);
+        send(payload);
         console.log("[CLIENT] Answer sent");
       } catch (error) {
         console.error("[CLIENT] Error handling offer:", error);
@@ -126,9 +131,9 @@ export default function OmegleRoomPage() {
     const handleMessage = (event: MessageEvent) => {
       try {
         console.log("[CLIENT] Raw WebSocket message received:", event.data);
-        const data = JSON.parse(event.data);
+      const data = JSON.parse(event.data);
         console.log("[CLIENT] Parsed message:", data);
-        handleSocketMessage(data);
+      handleSocketMessage(data);
       } catch (error) {
         console.error("[CLIENT] Error parsing WebSocket message:", error, "Raw data:", event.data);
       }
@@ -137,16 +142,14 @@ export default function OmegleRoomPage() {
     socket.addEventListener('message', handleMessage);
     
     // Check if we were already assigned to this room (from main page)
+    // But don't set the state yet - wait for WebSocket message to ensure we have the latest role
     const savedRoom = sessionStorage.getItem("omegle_room");
     if (savedRoom) {
-      const { room: savedRoomId, initiator, role } = JSON.parse(savedRoom);
+      const { room: savedRoomId } = JSON.parse(savedRoom);
       if (savedRoomId === roomId) {
-        console.log("[CLIENT] Already assigned to this room, setting state from sessionStorage");
-        setIsInitiator(initiator ?? false);
-        setUserRole(role ?? "Unknown");
+        console.log("[CLIENT] Already assigned to this room, waiting for WebSocket confirmation");
         setIsRoomAssigned(true);
-        setConnectionStatus("Room assigned - " + (role ?? "Unknown"));
-        // Don't return early - we still need to listen for WebSocket messages
+        setConnectionStatus("Room assigned - waiting for role confirmation");
       }
     }
     
@@ -190,11 +193,14 @@ export default function OmegleRoomPage() {
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         console.log("[CLIENT] Sending ICE candidate");
-        send({
-          type: "candidate",
-          candidate: event.candidate,
-          room: roomId,
-        });
+        const payload = {
+            type: "candidate",
+            candidate: event.candidate,
+            room: roomId,
+            token
+        };
+        console.log("[CLIENT] Sending ICE candidate:", payload);
+        send(payload);
       }
     };
 
@@ -280,12 +286,14 @@ export default function OmegleRoomPage() {
       console.log("[CLIENT] Creating offer...");
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      send({ type: "offer", offer, room: roomId });
+      const payload = { type: "offer", offer, room: roomId, token };
+      console.log("[CLIENT] Sending offer:", payload);
+      send(payload);
       console.log("[CLIENT] Offer sent");
     } catch (error) {
       console.error("[CLIENT] Error creating offer:", error);
     }
-  }, [send]);
+  }, [send, token]);
 
   const toggleAudio = useCallback(() => {
     if (localStreamRef.current) {
@@ -393,7 +401,7 @@ export default function OmegleRoomPage() {
             <CardContent className="p-4">
               <div className="text-center mb-2">
                 <h3 className="text-foreground font-semibold">Stranger</h3>
-              </div>
+        </div>
               <div className="relative">
                 <video 
                   ref={remoteVideoRef} 
@@ -406,8 +414,8 @@ export default function OmegleRoomPage() {
                     <div className="text-center">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-2"></div>
                       <p className="text-muted-foreground">Waiting for stranger...</p>
-                    </div>
-                  </div>
+        </div>
+      </div>
                 )}
               </div>
             </CardContent>

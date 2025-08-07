@@ -276,30 +276,24 @@ wss.on('connection', (ws) => {
           
         case 'offer':
         case 'answer':
-        case 'candidate':
-          // Forward WebRTC signaling messages
+        case 'candidate': {
           const targetRoom = activeRooms.get(data.room);
-          if (targetRoom) {
-            const targetUser = targetRoom.user1.id === curUserId ? targetRoom.user2 : targetRoom.user1;
-            const senderUser = targetRoom.user1.id === curUserId ? targetRoom.user1 : targetRoom.user2;
-            console.log(`[SERVER] Forwarding ${data.type} from ${curUserId} (${senderUser.initiator ? 'initiator' : 'responder'}) to ${targetUser.id} (${targetUser.initiator ? 'initiator' : 'responder'}) in room ${data.room}`);
-            try {
-              if (targetUser.socket && targetUser.socket.readyState === WebSocket.OPEN) {
-                targetUser.socket.send(JSON.stringify({
-                  ...data,
-                  from: curUserId,
-                  initiator: senderUser.initiator
-                }));
-              } else {
-                console.warn('[SERVER] Target socket not open when forwarding signaling');
-              }
-            } catch (err) {
-              console.warn('[SERVER] Error forwarding signaling:', err);
-            }
+          const senderId = ws.userId;
+          if (!targetRoom) {
+            console.warn(`[SERVER] No room ${data.room} for ${data.type} from ${senderId}`);
+            break;
+          }
+          const targetUser = targetRoom.user1.id === senderId
+            ? targetRoom.user2
+            : targetRoom.user1;
+          if (targetUser.socket?.readyState === WebSocket.OPEN) {
+            targetUser.socket.send(JSON.stringify(data));
+            console.log(`[SERVER] Forwarded ${data.type} from ${senderId} to ${targetUser.id} in room ${data.room}`);
           } else {
-            console.log(`[SERVER] Received ${data.type} for non-existent room ${data.room} from ${userId}`);
+            console.warn(`[SERVER] Target socket not open for ${targetUser.id} in room ${data.room}`);
           }
           break;
+        }
           
         default:
           console.log(`[SERVER] Unknown message type from ${userId}:`, data.type);
