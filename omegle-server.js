@@ -13,6 +13,23 @@ const userCount = { count: 0 };
 const generateId = () => Math.random().toString(36).substr(2, 9);
 const generateRoomId = () => Math.random().toString(36).substr(2, 12);
 
+// Determine initiator based on deterministic criteria
+const determineInitiator = (user1Id, user1Data, user2Id, user2Data) => {
+  // Method 1: Use join time (first to join becomes initiator)
+  if (user1Data.joinTime < user2Data.joinTime) {
+    return { initiator: user1Id, responder: user2Id };
+  } else if (user2Data.joinTime < user1Data.joinTime) {
+    return { initiator: user2Id, responder: user1Id };
+  }
+  
+  // Method 2: If join times are the same, use alphabetical order of user IDs
+  if (user1Id < user2Id) {
+    return { initiator: user1Id, responder: user2Id };
+  } else {
+    return { initiator: user2Id, responder: user1Id };
+  }
+};
+
 // Broadcast user count to all connected clients
 const broadcastUserCount = () => {
   const message = JSON.stringify({
@@ -38,30 +55,12 @@ const findPartner = (userId, audioEnabled, videoEnabled) => {
   return null;
 };
 
-// Determine initiator based on deterministic criteria
-const determineInitiator = (user1Id, user1Data, user2Id, user2Data) => {
-  // Method 1: Use join time (first to join becomes initiator)
-  if (user1Data.joinTime < user2Data.joinTime) {
-    return { initiator: user1Id, responder: user2Id };
-  } else if (user2Data.joinTime < user1Data.joinTime) {
-    return { initiator: user2Id, responder: user1Id };
-  }
-  
-  // Method 2: If join times are the same, use alphabetical order of user IDs
-  if (user1Id < user2Id) {
-    return { initiator: user1Id, responder: user2Id };
-  } else {
-    return { initiator: user2Id, responder: user1Id };
-  }
-};
-
 wss.on('connection', (ws) => {
   const userId = generateId();
-  const joinTime = Date.now();
   userCount.count++;
   broadcastUserCount();
   
-  console.log(`User ${userId} connected at ${new Date(joinTime).toISOString()}. Total users: ${userCount.count}`);
+  console.log(`User ${userId} connected. Total users: ${userCount.count}`);
 
   ws.on('message', (message) => {
     try {
@@ -84,7 +83,7 @@ wss.on('connection', (ws) => {
             waitingUsers.delete(userId);
             
             // Determine initiator and responder
-            const roles = determineInitiator(userId, { joinTime }, partner.userId, partnerData);
+            const roles = determineInitiator(userId, { joinTime: Date.now() }, partner.userId, partnerData);
             
             // Create room with proper roles
             activeRooms.set(roomId, {
@@ -118,17 +117,17 @@ wss.on('connection', (ws) => {
               role: 'responder'
             }));
             
-            console.log(`Room ${roomId} created with users ${roles.initiator} (initiator) and ${roles.responder} (responder)`);
+            console.log(`Room ${roomId} created with ${roles.initiator} (initiator) and ${roles.responder} (responder)`);
           } else {
             // Add user to waiting list with join time
             waitingUsers.set(userId, {
               socket: ws,
               audioEnabled,
               videoEnabled,
-              joinTime
+              joinTime: Date.now()
             });
             
-            console.log(`User ${userId} added to waiting list at ${new Date(joinTime).toISOString()}`);
+            console.log(`User ${userId} added to waiting list`);
           }
           break;
           
@@ -159,18 +158,17 @@ wss.on('connection', (ws) => {
             activeRooms.delete(roomId);
             
             // Add both users back to waiting list with new join times
-            const newJoinTime = Date.now();
             waitingUsers.set(userId, { 
               socket: ws, 
               audioEnabled: true, 
               videoEnabled: true, 
-              joinTime: newJoinTime 
+              joinTime: Date.now() 
             });
             waitingUsers.set(otherUser.id, { 
               socket: otherUser.socket, 
               audioEnabled: true, 
               videoEnabled: true, 
-              joinTime: newJoinTime 
+              joinTime: Date.now() 
             });
             
             console.log(`User ${userId} skipped in room ${roomId}`);
@@ -249,6 +247,6 @@ setInterval(() => {
   for (const [roomId, roomData] of activeRooms.entries()) {
     // You could add timestamp tracking to remove old rooms
     // For now, we'll just log active rooms
-    console.log(`Active room: ${roomId} with users ${roomData.user1.id} (${roomData.user1.initiator ? 'initiator' : 'responder'}) and ${roomData.user2.id} (${roomData.user2.initiator ? 'initiator' : 'responder'})`);
+    console.log(`Active room: ${roomId} with ${roomData.user1.id} (${roomData.user1.initiator ? 'initiator' : 'responder'}) and ${roomData.user2.id} (${roomData.user2.initiator ? 'initiator' : 'responder'})`);
   }
 }, 30000); // Log every 30 seconds
