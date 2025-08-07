@@ -1,17 +1,20 @@
 const WebSocket = require('ws');
 const http = require('http');
+const crypto = require('crypto');
 
 const server = http.createServer();
 const wss = new WebSocket.Server({ server });
 
 // Store active users and rooms
-const waitingUsers = new Map(); // userId -> { socket, audioEnabled, videoEnabled, joinTime }
+const waitingUsers = new Map(); // userId -> { socket, audioEnabled, videoEnabled, joinTime, token }
 const activeRooms = new Map(); // roomId -> { user1, user2 }
+const tokenToUser = new Map(); // token -> { userId, roomId? }
 const userCount = { count: 0 };
 
 // Generate unique IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
 const generateRoomId = () => Math.random().toString(36).substr(2, 12);
+const generateToken = () => crypto.randomBytes(12).toString('hex');
 
 // Determine initiator based on deterministic criteria
 const determineInitiator = (user1Id, user1Data, user2Id, user2Data) => {
@@ -56,15 +59,22 @@ const findPartner = (userId, audioEnabled, videoEnabled) => {
 };
 
 wss.on('connection', (ws) => {
+  // Create stable userId and token for this logical user
   const userId = generateId();
-  
-  // Store userId in the WebSocket object for later reference
+  const token = generateToken();
   ws.userId = userId;
-  
+  ws.token = token;
+
+  // store token->user mapping (socket will be updated)
+  tokenToUser.set(token, { userId, socket: ws, roomId: null });
+
   userCount.count++;
   broadcastUserCount();
   
-  console.log(`[SERVER] User ${userId} connected. Total users: ${userCount.count}`);
+  console.log(`[SERVER] User ${userId} connected. Token ${token}. Total users: ${userCount.count}`);
+
+  // Send welcome with token
+  ws.send(JSON.stringify({ type: 'welcome', userId, token }));
 
   ws.on('message', (message) => {
     try {
@@ -72,6 +82,35 @@ wss.on('connection', (ws) => {
       console.log(`[SERVER] Received message from ${userId}:`, data.type);
       
       switch (data.type) {
+        case 'reconnect': {
+          // client asks to claim an existing token
+          const { token: clientToken } = data;
+          const entry = tokenToUser.get(clientToken);
+          if (entry) {
+            // replace socket reference with the new ws
+            entry.socket = ws;
+            ws.userId = entry.userId;
+            ws.token = clientToken;
+            // update waitingUsers or activeRooms if present to use this new socket object
+            if (waitingUsers.has(entry.userId)) {
+              const u = waitingUsers.get(entry.userId);
+              u.socket = ws;
+              waitingUsers.set(entry.userId, u);
+            }
+            // update any activeRooms user socket references
+            for (const [rid, room] of activeRooms.entries()) {
+              if (room.user1.id === entry.userId) room.user1.socket = ws;
+              if (room.user2.id === entry.userId) room.user2.socket = ws;
+            }
+            ws.send(JSON.stringify({ type: 'reconnect_ok', room: entry.roomId || null }));
+            console.log(`[SERVER] Reconnect successful for token ${clientToken} -> user ${entry.userId}`);
+          } else {
+            ws.send(JSON.stringify({ type: 'reconnect_failed' }));
+            console.log(`[SERVER] Reconnect failed for token ${clientToken}`);
+          }
+          break;
+        }
+
         case 'find_partner':
           const { audioEnabled = true, videoEnabled = true } = data;
           console.log(`[SERVER] User ${userId} looking for partner (audio: ${audioEnabled}, video: ${videoEnabled})`);
@@ -106,6 +145,10 @@ wss.on('connection', (ws) => {
                 initiator: false 
               }
             });
+
+            // store roomId in tokenToUser
+            tokenToUser.get(user1.socket.token).roomId = roomId;
+            tokenToUser.get(user2.socket.token).roomId = roomId;
             
             // Notify both users with their roles
             const initiatorSocket = roles.initiator === userId ? ws : partnerData.socket;
@@ -142,21 +185,32 @@ wss.on('connection', (ws) => {
           break;
           
         case 'join':
-          // User joining an existing room
-          console.log(`[SERVER] User ${userId} trying to join room ${data.room}`);
-          console.log(`[SERVER] Active rooms:`, Array.from(activeRooms.keys()));
-          const room = activeRooms.get(data.room);
+          // client asks to join existing room - optionally with token
+          const { room: roomToJoin, token: clientToken } = data;
+          console.log(`[SERVER] User ${userId} trying to join room ${roomToJoin} (token: ${clientToken || 'none'})`);
+          const room = activeRooms.get(roomToJoin);
           if (room) {
-            console.log(`[SERVER] User ${userId} joined room ${data.room}`);
-            console.log(`[SERVER] Room details:`, {
-              user1: room.user1.id,
-              user2: room.user2.id,
-              user1Initiator: room.user1.initiator,
-              user2Initiator: room.user2.initiator
-            });
+            // If token provided, use it to map this socket to the correct user slot
+            if (clientToken && tokenToUser.has(clientToken)) {
+              const entry = tokenToUser.get(clientToken);
+              // update socket references in room if userIds match
+              if (room.user1.id === entry.userId) {
+                room.user1.socket = ws;
+                entry.socket = ws;
+              } else if (room.user2.id === entry.userId) {
+                room.user2.socket = ws;
+                entry.socket = ws;
+              } else {
+                // token doesn't match either slot, but still accept join (optional)
+                console.log(`[SERVER] Token matched user ${entry.userId} but they are not in room ${roomToJoin}`);
+              }
+            }
+            // ack join
+            ws.send(JSON.stringify({ type: 'join_ok', room: roomToJoin }));
+            console.log(`[SERVER] User ${userId} joined room ${roomToJoin}`);
           } else {
-            console.log(`[SERVER] User ${userId} tried to join non-existent room ${data.room}`);
-            console.log(`[SERVER] Available rooms:`, Array.from(activeRooms.keys()));
+            ws.send(JSON.stringify({ type: 'join_failed', reason: 'no_room' }));
+            console.log(`[SERVER] User ${userId} tried to join non-existent room ${roomToJoin}`);
           }
           break;
           
@@ -256,6 +310,15 @@ wss.on('connection', (ws) => {
         
         console.log(`[SERVER] Room ${roomId} closed due to user ${userId} disconnection`);
         break;
+      }
+    }
+    
+    // Cleanup token mapping if this socket was the stored socket
+    if (ws.token && tokenToUser.has(ws.token)) {
+      const entry = tokenToUser.get(ws.token);
+      if (entry.socket === ws) {
+        // keep tokenToUser entry (so reconnect can work) but clear socket reference
+        // entry.socket = null; // optional - leave socket so reconnect replacement works
       }
     }
     

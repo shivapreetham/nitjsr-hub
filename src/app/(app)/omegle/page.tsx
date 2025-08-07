@@ -16,12 +16,11 @@ import {
   VideoOff,
   VideoIcon
 } from 'lucide-react';
-
-const OMEGLE_SERVER_URL = process.env.NEXT_PUBLIC_OMEGLE_SERVER_URL || process.env.OMEGLE_SERVER_URL;
+import { useWebSocket } from '@/context/WebSocketProvider';
 
 export default function OmeglePage() {
   const router = useRouter();
-  const socketRef = useRef<WebSocket | null>(null);
+  const { socket, send } = useWebSocket();
   const [isSearching, setIsSearching] = useState(false);
   const [userCount, setUserCount] = useState(0);
   const [searchTime, setSearchTime] = useState(0);
@@ -29,39 +28,28 @@ export default function OmeglePage() {
   const [videoEnabled, setVideoEnabled] = useState(true);
   const searchIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Connect to WebSocket for real-time user count
+  // Listen for messages from shared WebSocket
   useEffect(() => {
-    if (!OMEGLE_SERVER_URL) return;
+    if (!socket) return;
 
-    const socket = new WebSocket(OMEGLE_SERVER_URL.replace(/^http/, "ws"));
-    
-    socket.onopen = () => {
-      console.log('Connected to Omegle server for user count');
-    };
-
-    socket.onmessage = (event) => {
+    const handleMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
         if (data.type === "user_count") {
           setUserCount(data.count);
+        } else if (data.type === "room_assigned" && data.room) {
+          console.log('[MAIN] Room assigned, navigating to room:', data.room);
+          setIsSearching(false);
+          router.push(`/omegle/room?roomId=${data.room}`);
         }
       } catch (error) {
-        console.error('Error parsing user count message:', error);
+        console.error('[MAIN] Error parsing message:', error);
       }
     };
 
-    socket.onerror = (err) => {
-      console.error('WebSocket error for user count:', err);
-    };
-
-    socket.onclose = () => {
-      console.log('Disconnected from Omegle server');
-    };
-
-    return () => {
-      socket.close();
-    };
-  }, []); // Only run once on mount
+    socket.addEventListener('message', handleMessage);
+    return () => socket.removeEventListener('message', handleMessage);
+  }, [socket, router]);
 
   // Update search time when searching
   useEffect(() => {
@@ -100,68 +88,32 @@ export default function OmeglePage() {
   }, []);
 
   const handleStart = useCallback(() => {
-    if (!OMEGLE_SERVER_URL) {
-      alert('Server not configured');
+    if (!socket) {
+      alert('WebSocket not connected');
       return;
     }
 
     console.log('[MAIN] Starting search for partner...');
     setIsSearching(true);
-    const socket = new WebSocket(OMEGLE_SERVER_URL.replace(/^http/, "ws"));
-    socketRef.current = socket;
-
-    socket.onopen = () => {
-      console.log('[MAIN] WebSocket connected, sending find_partner');
-      socket.send(JSON.stringify({ 
-        type: "find_partner",
-        audioEnabled,
-        videoEnabled
-      }));
-    };
-
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('[MAIN] Received message:', data.type, data);
-        
-        if (data.type === "room_assigned" && data.room) {
-          console.log('[MAIN] Room assigned, navigating to room:', data.room);
-          setIsSearching(false);
-          router.push(`/omegle/room?roomId=${data.room}`);
-          // Don't close the socket - let the room page handle it
-        } else if (data.type === "user_count") {
-          setUserCount(data.count);
-        } else {
-          console.log('[MAIN] Unknown message type:', data.type);
-        }
-      } catch (error) {
-        console.error('[MAIN] Error parsing message:', error);
-      }
-    };
-
-    socket.onerror = (err) => {
-      console.error('[MAIN] WebSocket error:', err);
-      setIsSearching(false);
-      alert('Connection error. Please try again.');
-      socket.close();
-    };
-  }, [OMEGLE_SERVER_URL, audioEnabled, videoEnabled, router]);
+    
+    send({ 
+      type: "find_partner",
+      audioEnabled,
+      videoEnabled
+    });
+  }, [socket, send, audioEnabled, videoEnabled]);
 
   const handleStop = useCallback(() => {
     console.log('[MAIN] Stopping search');
     setIsSearching(false);
-    if (socketRef.current) {
-      socketRef.current.close();
-      socketRef.current = null;
-    }
   }, []);
 
   const handleSkip = useCallback(() => {
     console.log('[MAIN] Skipping current search');
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ type: "skip" }));
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      send({ type: "skip" });
     }
-  }, []);
+  }, [socket, send]);
 
   return (
     <div className="min-h-screen bg-background p-4 flex flex-col items-center">

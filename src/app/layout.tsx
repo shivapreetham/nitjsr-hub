@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 import { ThemeProvider } from "@/context/ThemeProvider";
 import ActiveStatus from "@/components/status&sidebar/ActiveStatus";
+import ClientProviders from "@/context/ClientProviders";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
@@ -65,9 +66,11 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <ActiveStatus />
-            {children}
-            <Toaster />
+            <ClientProviders>
+              <ActiveStatus />
+              {children}
+              <Toaster />
+            </ClientProviders>
           </ThemeProvider>
         </AuthProvider>
       </body>

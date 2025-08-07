@@ -14,17 +14,16 @@ import {
   VideoIcon,
   RotateCcw
 } from 'lucide-react';
-
-const OMEGLE_SERVER_URL = process.env.NEXT_PUBLIC_OMEGLE_SERVER_URL || process.env.OMEGLE_SERVER_URL;
+import { useWebSocket } from "@/context/WebSocketProvider";
 
 export default function OmegleRoomPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roomId = searchParams.get("roomId");
+  const { socket, send, token } = useWebSocket();
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const socketRef = useRef<WebSocket | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   
@@ -74,9 +73,7 @@ export default function OmegleRoomPage() {
         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
-        socketRef.current?.send(
-          JSON.stringify({ type: "answer", answer, room: roomId })
-        );
+        send({ type: "answer", answer, room: roomId });
         console.log("[CLIENT] Answer sent");
       } catch (error) {
         console.error("[CLIENT] Error handling offer:", error);
@@ -110,25 +107,14 @@ export default function OmegleRoomPage() {
     }
   }, [roomId]);
 
-  // Initialize WebSocket connection and join room
+  // Listen for messages from shared WebSocket and join room
   useEffect(() => {
-    if (!OMEGLE_SERVER_URL || !roomId) {
-      console.log("[CLIENT] Missing OMEGLE_SERVER_URL or roomId:", { OMEGLE_SERVER_URL, roomId });
+    if (!socket || !roomId) {
+      console.log("[CLIENT] Missing socket or roomId:", { hasSocket: !!socket, roomId });
       return;
     }
-    
-    console.log("[CLIENT] Connecting to WebSocket server...", OMEGLE_SERVER_URL);
-    const socket = new WebSocket(OMEGLE_SERVER_URL.replace(/^http/, "ws"));
-    socketRef.current = socket;
 
-    socket.onopen = () => {
-      console.log("[CLIENT] WebSocket connected successfully");
-      setConnectionStatus("Connected to server");
-      console.log("[CLIENT] Sending join message for room:", roomId);
-      socket.send(JSON.stringify({ type: "join", room: roomId }));
-    };
-
-    socket.onmessage = (event) => {
+    const handleMessage = (event: MessageEvent) => {
       try {
         console.log("[CLIENT] Raw WebSocket message received:", event.data);
         const data = JSON.parse(event.data);
@@ -139,36 +125,30 @@ export default function OmegleRoomPage() {
       }
     };
 
-    socket.onerror = (err) => {
-      console.error("[CLIENT] WebSocket error:", err);
-      setConnectionStatus("Connection error");
-    };
-
-    socket.onclose = (event) => {
-      console.log("[CLIENT] WebSocket closed:", event.code, event.reason);
-      setConnectionStatus("Disconnected");
-    };
+    socket.addEventListener('message', handleMessage);
+    
+    // Join the room with token if available
+    console.log("[CLIENT] Sending join message for room:", roomId);
+    send({ type: "join", room: roomId, token: token || undefined });
+    setConnectionStatus("Connected to server");
 
     return () => {
-      console.log("[CLIENT] Cleaning up WebSocket connection");
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.close();
-      }
+      socket.removeEventListener('message', handleMessage);
     };
-  }, [roomId, handleSocketMessage]);
+  }, [socket, roomId, send, token, handleSocketMessage]);
 
   // Initialize PeerConnection and local media stream
   useEffect(() => {
     console.log("[CLIENT] PeerConnection useEffect triggered:", {
-      hasSocket: !!socketRef.current,
+      hasSocket: !!socket,
       hasRoomId: !!roomId,
       isRoomAssigned,
-      socketReadyState: socketRef.current?.readyState
+      socketReadyState: socket?.readyState
     });
 
-    if (!socketRef.current || !roomId || !isRoomAssigned) {
+    if (!socket || !roomId || !isRoomAssigned) {
       console.log("[CLIENT] Not ready to create PeerConnection:", {
-        hasSocket: !!socketRef.current,
+        hasSocket: !!socket,
         hasRoomId: !!roomId,
         isRoomAssigned
       });
@@ -187,13 +167,11 @@ export default function OmegleRoomPage() {
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         console.log("[CLIENT] Sending ICE candidate");
-        socketRef.current?.send(
-          JSON.stringify({
-            type: "candidate",
-            candidate: event.candidate,
-            room: roomId,
-          })
-        );
+        send({
+          type: "candidate",
+          candidate: event.candidate,
+          room: roomId,
+        });
       }
     };
 
@@ -276,14 +254,12 @@ export default function OmegleRoomPage() {
       console.log("[CLIENT] Creating offer...");
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      socketRef.current?.send(
-        JSON.stringify({ type: "offer", offer, room: roomId })
-      );
+      send({ type: "offer", offer, room: roomId });
       console.log("[CLIENT] Offer sent");
     } catch (error) {
       console.error("[CLIENT] Error creating offer:", error);
     }
-  }, []);
+  }, [send]);
 
   const toggleAudio = useCallback(() => {
     if (localStreamRef.current) {
@@ -309,11 +285,11 @@ export default function OmegleRoomPage() {
 
   const handleSkip = useCallback(() => {
     console.log("[CLIENT] Skipping...");
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ type: "skip", room: roomId }));
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      send({ type: "skip", room: roomId });
     }
     router.push("/omegle");
-  }, [roomId, router]);
+  }, [roomId, router, socket, send]);
 
   const handleStop = useCallback(() => {
     console.log("[CLIENT] Stopping...");
@@ -479,7 +455,7 @@ export default function OmegleRoomPage() {
             <div className="text-sm text-muted-foreground">
               <p><strong>Debug Info:</strong></p>
               <p>Room ID: {roomId}</p>
-              <p>WebSocket State: {socketRef.current?.readyState}</p>
+              <p>WebSocket State: {socket?.readyState}</p>
               <p>Room Assigned: {isRoomAssigned ? 'Yes' : 'No'}</p>
               <p>User Role: {userRole}</p>
               <p>Local Stream Ready: {localStreamReady ? 'Yes' : 'No'}</p>
