@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,10 +12,6 @@ import {
   MicOff, 
   VideoOff, 
   VideoIcon,
-  Settings,
-  MessageCircle,
-  Phone,
-  PhoneOff,
   RotateCcw
 } from 'lucide-react';
 
@@ -33,16 +29,15 @@ export default function OmegleRoomPage() {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   
-  const [pcState, setPcState] = useState<string>("new");
   const [isConnected, setIsConnected] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState("Connecting...");
-  const [showSettings, setShowSettings] = useState(false);
 
   // Initialize WebSocket connection and join room
   useEffect(() => {
     if (!OMEGLE_SERVER_URL || !roomId) return;
+    
     const socket = new WebSocket(OMEGLE_SERVER_URL.replace(/^http/, "ws"));
     socketRef.current = socket;
 
@@ -68,8 +63,7 @@ export default function OmegleRoomPage() {
     return () => {
       socket.close();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId]);
+  }, [roomId]); // Only depend on roomId
 
   // Initialize PeerConnection and local media stream
   useEffect(() => {
@@ -82,7 +76,6 @@ export default function OmegleRoomPage() {
       ],
     });
     pcRef.current = pc;
-    setPcState(pc.signalingState);
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
@@ -97,7 +90,6 @@ export default function OmegleRoomPage() {
     };
 
     pc.oniceconnectionstatechange = () => {
-      setPcState(pc.iceConnectionState);
       if (pc.iceConnectionState === "connected") {
         setIsConnected(true);
         setConnectionStatus("Connected to stranger");
@@ -138,10 +130,9 @@ export default function OmegleRoomPage() {
     return () => {
       pc.close();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId, initiator]);
+  }, [roomId, initiator]); // Depend on roomId and initiator
 
-  const handleSocketMessage = async (data: { type: string; offer?: RTCSessionDescriptionInit; answer?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit; }) => {
+  const handleSocketMessage = useCallback(async (data: { type: string; offer?: RTCSessionDescriptionInit; answer?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit; }) => {
     const pc = pcRef.current;
     if (!pc) return;
 
@@ -161,10 +152,10 @@ export default function OmegleRoomPage() {
         // Ignore
       }
     }
-  };
+  }, [roomId]);
 
   // Initiator starts the call
-  const startCall = async (pc: RTCPeerConnection, socket: WebSocket | null, roomId: string) => {
+  const startCall = useCallback(async (pc: RTCPeerConnection, socket: WebSocket | null, roomId: string) => {
     if (!pc || !socket) return;
     if (pc.signalingState === "closed") {
       return;
@@ -174,9 +165,9 @@ export default function OmegleRoomPage() {
     socket.send(
       JSON.stringify({ type: "offer", offer, room: roomId })
     );
-  };
+  }, []);
 
-  const toggleAudio = () => {
+  const toggleAudio = useCallback(() => {
     if (localStreamRef.current) {
       const audioTrack = localStreamRef.current.getAudioTracks()[0];
       if (audioTrack) {
@@ -184,9 +175,9 @@ export default function OmegleRoomPage() {
         setIsAudioEnabled(audioTrack.enabled);
       }
     }
-  };
+  }, []);
 
-  const toggleVideo = () => {
+  const toggleVideo = useCallback(() => {
     if (localStreamRef.current) {
       const videoTrack = localStreamRef.current.getVideoTracks()[0];
       if (videoTrack) {
@@ -194,16 +185,16 @@ export default function OmegleRoomPage() {
         setIsVideoEnabled(videoTrack.enabled);
       }
     }
-  };
+  }, []);
 
-  const handleSkip = () => {
+  const handleSkip = useCallback(() => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       socketRef.current.send(JSON.stringify({ type: "skip", room: roomId }));
     }
     router.push("/omegle");
-  };
+  }, [roomId, router]);
 
-  const handleStop = () => {
+  const handleStop = useCallback(() => {
     if (pcRef.current) {
       pcRef.current.close();
     }
@@ -211,26 +202,26 @@ export default function OmegleRoomPage() {
       localStreamRef.current.getTracks().forEach(track => track.stop());
     }
     router.push("/omegle");
-  };
+  }, [router]);
 
-  const handleReconnect = () => {
+  const handleReconnect = useCallback(() => {
     router.push("/omegle");
-  };
+  }, [router]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
+    <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-white mb-2">Omegle Chat</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Random Video Chat</h1>
           <div className="flex items-center justify-center gap-4">
             <Badge 
               variant={isConnected ? "default" : "secondary"}
-              className={isConnected ? "bg-green-500" : "bg-yellow-500"}
+              className={isConnected ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300"}
             >
               {connectionStatus}
             </Badge>
-            <Badge variant="outline" className="border-purple-300 text-purple-300">
+            <Badge variant="outline" className="text-muted-foreground">
               Room: {roomId}
             </Badge>
           </div>
@@ -239,10 +230,10 @@ export default function OmegleRoomPage() {
         {/* Video Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Local Video */}
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <Card className="glass-card">
             <CardContent className="p-4">
               <div className="text-center mb-2">
-                <h3 className="text-white font-semibold">You</h3>
+                <h3 className="text-foreground font-semibold">You</h3>
               </div>
               <div className="relative">
                 <video 
@@ -250,11 +241,11 @@ export default function OmegleRoomPage() {
                   autoPlay 
                   playsInline 
                   muted 
-                  className="w-full aspect-video rounded-lg bg-black"
+                  className="w-full aspect-video rounded-lg bg-muted"
                 />
                 {!isVideoEnabled && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
-                    <VideoOff className="h-12 w-12 text-white" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-lg">
+                    <VideoOff className="h-12 w-12 text-muted-foreground" />
                   </div>
                 )}
               </div>
@@ -262,23 +253,23 @@ export default function OmegleRoomPage() {
           </Card>
 
           {/* Remote Video */}
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <Card className="glass-card">
             <CardContent className="p-4">
               <div className="text-center mb-2">
-                <h3 className="text-white font-semibold">Stranger</h3>
+                <h3 className="text-foreground font-semibold">Stranger</h3>
               </div>
               <div className="relative">
                 <video 
                   ref={remoteVideoRef} 
                   autoPlay 
                   playsInline 
-                  className="w-full aspect-video rounded-lg bg-black"
+                  className="w-full aspect-video rounded-lg bg-muted"
                 />
                 {!isConnected && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-lg">
                     <div className="text-center">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-300 mx-auto mb-2"></div>
-                      <p className="text-white">Waiting for stranger...</p>
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-2"></div>
+                      <p className="text-muted-foreground">Waiting for stranger...</p>
                     </div>
                   </div>
                 )}
@@ -288,7 +279,7 @@ export default function OmegleRoomPage() {
         </div>
 
         {/* Control Panel */}
-        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+        <Card className="glass-card">
           <CardContent className="p-6">
             <div className="flex flex-wrap justify-center gap-4">
               {/* Media Controls */}
@@ -317,7 +308,7 @@ export default function OmegleRoomPage() {
                 variant="outline"
                 size="lg"
                 onClick={handleSkip}
-                className="flex items-center gap-2 border-purple-300 text-purple-300 hover:bg-purple-300 hover:text-purple-900"
+                className="flex items-center gap-2"
               >
                 <SkipForward className="h-5 w-5" />
                 Skip
@@ -337,7 +328,7 @@ export default function OmegleRoomPage() {
                 variant="outline"
                 size="lg"
                 onClick={handleReconnect}
-                className="flex items-center gap-2 border-blue-300 text-blue-300 hover:bg-blue-300 hover:text-blue-900"
+                className="flex items-center gap-2"
               >
                 <RotateCcw className="h-5 w-5" />
                 New Chat
@@ -347,7 +338,7 @@ export default function OmegleRoomPage() {
         </Card>
 
         {/* Footer */}
-        <div className="text-center mt-6 text-purple-200 text-sm">
+        <div className="text-center mt-6 text-muted-foreground text-sm">
           <p>⚠️ Be respectful and follow community guidelines</p>
           <p className="mt-1">You are responsible for your own safety</p>
         </div>

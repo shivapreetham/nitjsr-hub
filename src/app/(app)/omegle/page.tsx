@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,6 @@ import {
   SkipForward, 
   Search, 
   StopCircle, 
-  Settings,
   Mic,
   MicOff,
   VideoOff,
@@ -28,49 +27,79 @@ export default function OmeglePage() {
   const [searchTime, setSearchTime] = useState(0);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
-  const [searchInterval, setSearchInterval] = useState<NodeJS.Timeout | null>(null);
+  const searchIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Simulate user count updates (in real implementation, this would come from server)
+  // Connect to WebSocket for real-time user count
   useEffect(() => {
-    const interval = setInterval(() => {
-      setUserCount(prev => {
-        const change = Math.floor(Math.random() * 5) - 2; // Random change between -2 and +2
-        return Math.max(0, prev + change);
-      });
-    }, 3000);
+    if (!OMEGLE_SERVER_URL) return;
 
-    return () => clearInterval(interval);
-  }, []);
+    const socket = new WebSocket(OMEGLE_SERVER_URL.replace(/^http/, "ws"));
+    
+    socket.onopen = () => {
+      console.log('Connected to Omegle server for user count');
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "user_count") {
+          setUserCount(data.count);
+        }
+      } catch (error) {
+        console.error('Error parsing user count message:', error);
+      }
+    };
+
+    socket.onerror = (err) => {
+      console.error('WebSocket error for user count:', err);
+    };
+
+    socket.onclose = () => {
+      console.log('Disconnected from Omegle server');
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, []); // Only run once on mount
 
   // Update search time when searching
   useEffect(() => {
     if (isSearching) {
+      // Clear any existing interval first
+      if (searchIntervalRef.current) {
+        clearInterval(searchIntervalRef.current);
+      }
+      
       const interval = setInterval(() => {
         setSearchTime(prev => prev + 1);
       }, 1000);
-      setSearchInterval(interval);
+      
+      searchIntervalRef.current = interval;
     } else {
-      if (searchInterval) {
-        clearInterval(searchInterval);
-        setSearchInterval(null);
+      // Clear interval and reset time when not searching
+      if (searchIntervalRef.current) {
+        clearInterval(searchIntervalRef.current);
+        searchIntervalRef.current = null;
       }
       setSearchTime(0);
     }
 
+    // Cleanup function
     return () => {
-      if (searchInterval) {
-        clearInterval(searchInterval);
+      if (searchIntervalRef.current) {
+        clearInterval(searchIntervalRef.current);
       }
     };
-  }, [isSearching, searchInterval]);
+  }, [isSearching]); // Only depend on isSearching
 
-  const formatTime = (seconds: number) => {
+  const formatTime = useCallback((seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  }, []);
 
-  const handleStart = () => {
+  const handleStart = useCallback(() => {
     if (!OMEGLE_SERVER_URL) {
       alert('Server not configured');
       return;
@@ -104,40 +133,42 @@ export default function OmeglePage() {
       alert('Connection error. Please try again.');
       socket.close();
     };
-  };
+  }, [OMEGLE_SERVER_URL, audioEnabled, videoEnabled, router]);
 
-  const handleStop = () => {
+  const handleStop = useCallback(() => {
     setIsSearching(false);
     if (socketRef.current) {
       socketRef.current.close();
       socketRef.current = null;
     }
-  };
+  }, []);
 
-  const handleSkip = () => {
+  const handleSkip = useCallback(() => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       socketRef.current.send(JSON.stringify({ type: "skip" }));
     }
-  };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background p-4 flex flex-col items-center">
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-white mb-2">Omegle</h1>
-          <p className="text-purple-200 text-lg">Talk to strangers!</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">
+            Random Video Chat
+          </h1>
+          <p className="text-muted-foreground text-lg">Connect with strangers anonymously</p>
         </div>
 
         {/* User Count Card */}
-        <Card className="mb-6 bg-white/10 backdrop-blur-sm border-white/20">
+        <Card className="mb-6 glass-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-center gap-3">
-              <Users className="h-6 w-6 text-purple-300" />
-              <span className="text-white text-lg">
-                <span className="font-bold text-purple-300">{userCount}</span> people online
+              <Users className="h-6 w-6 text-primary" />
+              <span className="text-foreground text-lg">
+                <span className="font-bold text-primary">{userCount}</span> people online
               </span>
-              <Badge variant="secondary" className="bg-green-500/20 text-green-300 border-green-500/30">
+              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">
                 Live
               </Badge>
             </div>
@@ -145,22 +176,22 @@ export default function OmeglePage() {
         </Card>
 
         {/* Main Chat Card */}
-        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+        <Card className="glass-card">
           <CardHeader className="text-center">
-            <CardTitle className="text-white text-2xl">
+            <CardTitle className="text-2xl text-foreground">
               {isSearching ? 'Looking for someone...' : 'Start a Random Chat'}
             </CardTitle>
             {isSearching && (
-              <div className="text-purple-300 text-lg font-mono">
+              <div className="text-primary text-lg font-mono">
                 {formatTime(searchTime)}
               </div>
             )}
           </CardHeader>
           <CardContent className="p-6">
             {!isSearching ? (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {/* Media Controls */}
-                <div className="flex justify-center gap-4 mb-6">
+                <div className="flex justify-center gap-4">
                   <Button
                     variant={audioEnabled ? "default" : "secondary"}
                     size="sm"
@@ -185,18 +216,18 @@ export default function OmeglePage() {
                 <Button 
                   onClick={handleStart} 
                   size="lg" 
-                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-lg py-6"
+                  className="w-full text-lg py-6"
                 >
                   <Search className="h-5 w-5 mr-2" />
                   Start Chatting
                 </Button>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {/* Searching Animation */}
-                <div className="flex justify-center mb-6">
+                <div className="flex justify-center">
                   <div className="animate-pulse">
-                    <Video className="h-16 w-16 text-purple-300" />
+                    <Video className="h-16 w-16 text-primary" />
                   </div>
                 </div>
 
@@ -205,7 +236,7 @@ export default function OmeglePage() {
                   <Button 
                     onClick={handleSkip} 
                     variant="outline" 
-                    className="flex-1 border-purple-300 text-purple-300 hover:bg-purple-300 hover:text-purple-900"
+                    className="flex-1"
                   >
                     <SkipForward className="h-4 w-4 mr-2" />
                     Skip
@@ -225,7 +256,7 @@ export default function OmeglePage() {
         </Card>
 
         {/* Footer */}
-        <div className="text-center mt-6 text-purple-200 text-sm">
+        <div className="text-center mt-8 text-muted-foreground text-sm">
           <p>⚠️ Be respectful and follow community guidelines</p>
           <p className="mt-1">You are responsible for your own safety</p>
         </div>
