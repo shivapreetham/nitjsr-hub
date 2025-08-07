@@ -166,7 +166,7 @@ function UserDashboard(): JSX.Element {
 
   const { username } = session.user as User;
   const baseUrl = `${window.location.protocol}//${window.location.host}`;
-  const profileUrl = `${baseUrl}/u/${username}`;
+  const profileUrl = `${baseUrl}/anonymous/u/${username}`;
 
   const copyToClipboard = async (): Promise<void> => {
     await navigator.clipboard.writeText(profileUrl);

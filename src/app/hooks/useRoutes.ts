@@ -77,9 +77,9 @@ const useRoutes = () => {
       },
       {
         label: 'Dashboard',
-        href: '/dashboard',
+        href: '/anonymous/dashboard',
         icon: HiInboxStack,
-        active: pathname === '/dashboard',
+        active: pathname === '/anonymous/dashboard',
         position: 'middle'
       },
     ],
