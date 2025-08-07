@@ -1,0 +1,16 @@
+{
+  "name": "omegle-server",
+  "version": "1.0.0",
+  "description": "WebSocket server for Omegle-style video chat",
+  "main": "omegle-server.js",
+  "scripts": {
+    "start": "node omegle-server.js",
+    "dev": "nodemon omegle-server.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
