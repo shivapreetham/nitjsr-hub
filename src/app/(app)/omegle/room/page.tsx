@@ -21,7 +21,6 @@ export default function OmegleRoomPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roomId = searchParams.get("roomId");
-  const initiator = searchParams.get("initiator") === "1";
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -33,7 +32,67 @@ export default function OmegleRoomPage() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState("Connecting...");
+  const [isInitiator, setIsInitiator] = useState(false);
+  const [userRole, setUserRole] = useState("");
   const [hasReceivedOffer, setHasReceivedOffer] = useState(false);
+  const [isRoomAssigned, setIsRoomAssigned] = useState(false);
+
+  const handleSocketMessage = useCallback(async (data: { 
+    type: string; 
+    offer?: RTCSessionDescriptionInit; 
+    answer?: RTCSessionDescriptionInit; 
+    candidate?: RTCIceCandidateInit;
+    initiator?: boolean;
+    role?: string;
+    room?: string;
+  }) => {
+    const pc = pcRef.current;
+    if (!pc) return;
+
+    console.log("Received message:", data.type);
+
+    if (data.type === "room_assigned") {
+      console.log("Room assigned with role:", data.role);
+      setIsInitiator(data.initiator ?? false);
+      setUserRole(data.role ?? "Unknown");
+      setIsRoomAssigned(true);
+      setConnectionStatus("Room assigned - " + (data.role ?? "Unknown"));
+    } else if (data.type === "offer" && data.offer) {
+      console.log("Received offer, creating answer");
+      setHasReceivedOffer(true);
+      
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socketRef.current?.send(
+          JSON.stringify({ type: "answer", answer, room: roomId })
+        );
+        console.log("Answer sent");
+      } catch (error) {
+        console.error("Error handling offer:", error);
+      }
+    } else if (data.type === "answer" && data.answer) {
+      console.log("Received answer");
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+      } catch (error) {
+        console.error("Error setting remote description:", error);
+      }
+    } else if (data.type === "candidate" && data.candidate) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+      } catch (error) {
+        console.error("Error adding ICE candidate:", error);
+      }
+    } else if (data.type === "partner_skipped") {
+      setConnectionStatus("Partner skipped");
+      setIsConnected(false);
+    } else if (data.type === "partner_disconnected") {
+      setConnectionStatus("Partner disconnected");
+      setIsConnected(false);
+    }
+  }, [roomId]);
 
   // Initialize WebSocket connection and join room
   useEffect(() => {
@@ -64,11 +123,11 @@ export default function OmegleRoomPage() {
     return () => {
       socket.close();
     };
-  }, [roomId]); // Only depend on roomId
+  }, [roomId, handleSocketMessage]);
 
   // Initialize PeerConnection and local media stream
   useEffect(() => {
-    if (!socketRef.current || !roomId) return;
+    if (!socketRef.current || !roomId || !isRoomAssigned) return;
 
     const pc = new RTCPeerConnection({
       iceServers: [
@@ -96,6 +155,21 @@ export default function OmegleRoomPage() {
         setIsConnected(true);
         setConnectionStatus("Connected to stranger");
       } else if (pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed") {
+        setIsConnected(false);
+        setConnectionStatus("Disconnected from stranger");
+      } else if (pc.iceConnectionState === "checking") {
+        setConnectionStatus("Establishing connection...");
+      } else if (pc.iceConnectionState === "new") {
+        setConnectionStatus("Initializing connection...");
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      console.log("Connection state:", pc.connectionState);
+      if (pc.connectionState === "connected") {
+        setIsConnected(true);
+        setConnectionStatus("Connected to stranger");
+      } else if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
         setIsConnected(false);
         setConnectionStatus("Disconnected from stranger");
       }
@@ -126,7 +200,7 @@ export default function OmegleRoomPage() {
         });
 
         // Only the initiator should create and send the offer
-        if (initiator && !hasReceivedOffer) {
+        if (isInitiator && !hasReceivedOffer) {
           console.log("Creating offer as initiator");
           createAndSendOffer(pc, roomId);
         }
@@ -139,7 +213,7 @@ export default function OmegleRoomPage() {
     return () => {
       pc.close();
     };
-  }, [roomId, initiator, hasReceivedOffer]); // Depend on roomId, initiator, and hasReceivedOffer
+  }, [roomId, isInitiator, hasReceivedOffer, isRoomAssigned]);
 
   const createAndSendOffer = useCallback(async (pc: RTCPeerConnection, roomId: string) => {
     try {
@@ -153,43 +227,6 @@ export default function OmegleRoomPage() {
       console.error("Error creating offer:", error);
     }
   }, []);
-
-  const handleSocketMessage = useCallback(async (data: { type: string; offer?: RTCSessionDescriptionInit; answer?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit; }) => {
-    const pc = pcRef.current;
-    if (!pc) return;
-
-    console.log("Received message:", data.type);
-
-    if (data.type === "offer" && data.offer) {
-      console.log("Received offer, creating answer");
-      setHasReceivedOffer(true);
-      
-      try {
-        await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        socketRef.current?.send(
-          JSON.stringify({ type: "answer", answer, room: roomId })
-        );
-        console.log("Answer sent");
-      } catch (error) {
-        console.error("Error handling offer:", error);
-      }
-    } else if (data.type === "answer" && data.answer) {
-      console.log("Received answer");
-      try {
-        await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-      } catch (error) {
-        console.error("Error setting remote description:", error);
-      }
-    } else if (data.type === "candidate" && data.candidate) {
-      try {
-        await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-      } catch (error) {
-        console.error("Error adding ICE candidate:", error);
-      }
-    }
-  }, [roomId]);
 
   const toggleAudio = useCallback(() => {
     if (localStreamRef.current) {
@@ -249,7 +286,7 @@ export default function OmegleRoomPage() {
               Room: {roomId}
             </Badge>
             <Badge variant="outline" className="text-muted-foreground">
-              {initiator ? "Initiator" : "Responder"}
+              {userRole || "Unknown"}
             </Badge>
           </div>
         </div>
