@@ -127,6 +127,22 @@ export default function OmegleRoomPage() {
 
     socket.addEventListener('message', handleMessage);
     
+    // Check if we were already assigned to this room (from main page)
+    const savedRoom = sessionStorage.getItem("omegle_room");
+    if (savedRoom) {
+      const { room: savedRoomId, initiator, role } = JSON.parse(savedRoom);
+      if (savedRoomId === roomId) {
+        console.log("[CLIENT] Already assigned to this room, setting state from sessionStorage");
+        setIsInitiator(initiator ?? false);
+        setUserRole(role ?? "Unknown");
+        setIsRoomAssigned(true);
+        setConnectionStatus("Room assigned - " + (role ?? "Unknown"));
+        return () => {
+          socket.removeEventListener('message', handleMessage);
+        };
+      }
+    }
+    
     // Join the room with token if available
     console.log("[CLIENT] Sending join message for room:", roomId);
     send({ type: "join", room: roomId, token: token || undefined });

@@ -147,8 +147,8 @@ wss.on('connection', (ws) => {
             });
 
             // store roomId in tokenToUser
-            tokenToUser.get(user1.socket.token).roomId = roomId;
-            tokenToUser.get(user2.socket.token).roomId = roomId;
+            tokenToUser.get(roles.initiator === userId ? ws.token : partnerData.socket.token).roomId = roomId;
+            tokenToUser.get(roles.responder === userId ? ws.token : partnerData.socket.token).roomId = roomId;
             
             // Notify both users with their roles
             const initiatorSocket = roles.initiator === userId ? ws : partnerData.socket;
@@ -172,13 +172,14 @@ wss.on('connection', (ws) => {
             
             console.log(`[SERVER] Room ${roomId} created with ${roles.initiator} (initiator) and ${roles.responder} (responder)`);
           } else {
-            // Add user to waiting list with join time
-            waitingUsers.set(userId, {
-              socket: ws,
-              audioEnabled,
-              videoEnabled,
-              joinTime: Date.now()
-            });
+                         // Add user to waiting list with join time
+             waitingUsers.set(userId, {
+               socket: ws,
+               audioEnabled,
+               videoEnabled,
+               joinTime: Date.now(),
+               token: ws.token
+             });
             
             console.log(`[SERVER] User ${userId} added to waiting list. Total waiting: ${waitingUsers.size}`);
           }
@@ -234,19 +235,21 @@ wss.on('connection', (ws) => {
             // Close the room
             activeRooms.delete(roomId);
             
-            // Add both users back to waiting list with new join times
-            waitingUsers.set(userId, { 
-              socket: ws, 
-              audioEnabled: true, 
-              videoEnabled: true, 
-              joinTime: Date.now() 
-            });
-            waitingUsers.set(otherUser.id, { 
-              socket: otherUser.socket, 
-              audioEnabled: true, 
-              videoEnabled: true, 
-              joinTime: Date.now() 
-            });
+                         // Add both users back to waiting list with new join times
+             waitingUsers.set(userId, { 
+               socket: ws, 
+               audioEnabled: true, 
+               videoEnabled: true, 
+               joinTime: Date.now(),
+               token: ws.token
+             });
+             waitingUsers.set(otherUser.id, { 
+               socket: otherUser.socket, 
+               audioEnabled: true, 
+               videoEnabled: true, 
+               joinTime: Date.now(),
+               token: otherUser.socket.token
+             });
             
             console.log(`[SERVER] Room ${roomId} closed due to skip. Users back in waiting list.`);
           } else {
@@ -297,13 +300,14 @@ wss.on('connection', (ws) => {
           type: 'partner_disconnected'
         }));
         
-        // Add other user back to waiting list with new join time
-        waitingUsers.set(otherUser.id, { 
-          socket: otherUser.socket, 
-          audioEnabled: true, 
-          videoEnabled: true, 
-          joinTime: Date.now() 
-        });
+                 // Add other user back to waiting list with new join time
+         waitingUsers.set(otherUser.id, { 
+           socket: otherUser.socket, 
+           audioEnabled: true, 
+           videoEnabled: true, 
+           joinTime: Date.now(),
+           token: otherUser.socket.token
+         });
         
         // Remove room
         activeRooms.delete(roomId);

@@ -40,6 +40,12 @@ export default function OmeglePage() {
         } else if (data.type === "room_assigned" && data.room) {
           console.log('[MAIN] Room assigned, navigating to room:', data.room);
           setIsSearching(false);
+          // Store room assignment in sessionStorage
+          sessionStorage.setItem("omegle_room", JSON.stringify({
+            room: data.room,
+            initiator: data.initiator,
+            role: data.role
+          }));
           router.push(`/omegle/room?roomId=${data.room}`);
         }
       } catch (error) {
