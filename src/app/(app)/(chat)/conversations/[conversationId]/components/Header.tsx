@@ -1,6 +1,6 @@
 'use client'
 
-import Avatar from '@/components/chat/Avatar';
+import Avatar from '@/components/status&sidebar/Avatar';
 import useOtherUser from '@/app/hooks/useOtherUser';
 import { Conversation, User } from '@prisma/client';
 import Link from 'next/link';
@@ -9,10 +9,10 @@ import { HiChevronLeft } from 'react-icons/hi';
 import { HiEllipsisHorizontal } from 'react-icons/hi2';
 import { Phone, Video } from 'lucide-react';
 import ProfileDrawer from './ProfileDrawer';
-import AvatarGroup from '@/components/chat/AvatarGroup';
+import AvatarGroup from '@/components/status&sidebar/AvatarGroup';
 import useActiveList from '@/app/hooks/useActiveList';
 import { useSession } from 'next-auth/react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/app/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useStreamVideoClient } from '@stream-io/video-react-sdk';

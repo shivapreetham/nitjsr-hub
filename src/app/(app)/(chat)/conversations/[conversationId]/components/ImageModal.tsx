@@ -1,6 +1,6 @@
 'use client';
 
-import Modal from '@/components/chat/Modal';
+import Modal from '@/app/(app)/(chat)/(comp)/components/Modal';
 import Image from 'next/image';
 
 interface ImageModalProps {

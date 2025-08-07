@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Avatar from '@/components/chat/Avatar';
-import { FullMessageType } from '@/types';
+import Avatar from '@/components/status&sidebar/Avatar';
+import { FullMessageType } from '@/shared/types';
 
 // Type for optimistic messages that have tempId instead of id
 type OptimisticMessageType = Omit<FullMessageType, 'id'> & { tempId: string };

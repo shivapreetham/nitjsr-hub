@@ -1,4 +1,4 @@
-import EmptyState from '@/components/chat/EmptyState';
+import EmptyState from '@/app/(app)/(chat)/(comp)/components/EmptyState';
 
 const Users = () => {
   return (

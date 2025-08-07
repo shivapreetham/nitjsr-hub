@@ -4,12 +4,12 @@ import {
   Search, Filter, RefreshCw, Download, Share2, X, Trophy, Award, Calendar, BookOpen
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import useLeaderboardData from './hooks/useLeaderboardData';
-import { exportToCSV, shareLeaderboard } from './utils/leaderboardHelpers';
-import LeaderboardHeader from './components/LeaderboardHeader';
-import LeaderboardTable from './components/LeaderboardTable';
+import useLeaderboardData from './(comp)/hooks/useLeaderboardData';
+import { exportToCSV, shareLeaderboard } from './(comp)/utils/leaderboardHelpers';
+import LeaderboardHeader from './(comp)/components/LeaderboardHeader';
+import LeaderboardTable from './(comp)/components/LeaderboardTable';
 
-export default function LeaderboardPage() {
+export default function LeaderboardPage() { 
   const {
     leaderboardData,
     filteredUsers,

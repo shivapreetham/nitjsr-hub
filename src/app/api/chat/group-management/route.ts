@@ -1,4 +1,4 @@
-import prisma from '@/lib/prismadb';
+import prisma from '@/app/lib/prismadb';
 import { NextResponse } from 'next/server';
 
 async function addUserToGroups(email: string, userId: string) {

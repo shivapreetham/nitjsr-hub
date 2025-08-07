@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import { IoClose } from 'react-icons/io5';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
-import Select from '@/components/chat/input/Select';
+import Select from '@/app/(app)/(chat)/(comp)/components/input/Select';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
