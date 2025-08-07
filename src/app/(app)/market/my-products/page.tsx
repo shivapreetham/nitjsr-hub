@@ -56,9 +56,9 @@ export default function MyProductsPage() {
   }
 
   return (
-    <div className="container py-6">
+    <div className="container py-6 bg-background">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">My Products</h1>
+        <h1 className="text-2xl font-bold text-foreground">My Products</h1>
         <Link href="/market/new">
           <Button>
             <PlusCircle className="mr-2 h-4 w-4" />
@@ -78,7 +78,7 @@ export default function MyProductsPage() {
         <TabsContent value="all" className="mt-4">
           {products.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">You haven mot listed any products yet</p>
+              <p className="text-muted-foreground">You haven't listed any products yet</p>
               <Link href="/market/new">
                 <Button variant="link">List something?</Button>
               </Link>

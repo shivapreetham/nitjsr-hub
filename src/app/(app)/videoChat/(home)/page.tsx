@@ -7,6 +7,7 @@ import { useToast } from '@/app/hooks/use-toast';
 import { useCurrentUserContext } from '@/context/CurrentUserProvider';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 import { Video, Calendar, Clock, Users } from 'lucide-react';
 
 const Home = () => {
@@ -47,23 +48,23 @@ const Home = () => {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">Please log in to access video chat.</p>
+          <p className="text-muted-foreground">Please log in to access video chat.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-card border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Video Chat</h1>
-              <p className="text-gray-600 mt-1">{time} • {date}</p>
+              <h1 className="text-2xl font-bold text-foreground">Video Chat</h1>
+              <p className="text-muted-foreground mt-1">{time} • {date}</p>
             </div>
           </div>
         </div>
@@ -99,8 +100,8 @@ const Home = () => {
           {/* Meeting options section */}
           <TabsContent value="meetings" className="mt-0">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Start or join a meeting</h2>
-              <p className="text-gray-600">Create a new meeting or join an existing one</p>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Start or join a meeting</h2>
+              <p className="text-muted-foreground">Create a new meeting or join an existing one</p>
             </div>
             <MeetingTypeList />
           </TabsContent>
@@ -108,61 +109,63 @@ const Home = () => {
           {/* Personal Room Section */}
           <TabsContent value="personal" className="mt-0">
             <div className="max-w-2xl mx-auto">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-                <div className="text-center mb-8">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Users size={24} className="text-blue-600" />
+              <Card>
+                <CardContent className="p-8">
+                  <div className="text-center mb-8">
+                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Users size={24} className="text-primary" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-foreground mb-2">Your Personal Meeting Room</h2>
+                    <p className="text-muted-foreground">A dedicated space for your meetings</p>
                   </div>
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">Your Personal Meeting Room</h2>
-                  <p className="text-gray-600">A dedicated space for your meetings</p>
-                </div>
-                
-                <div className="space-y-4 mb-8">
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Meeting Name</p>
-                      <p className="text-gray-900">{`${currentUser?.username}'s Meeting Room`}</p>
+                  
+                  <div className="space-y-4 mb-8">
+                    <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Meeting Name</p>
+                        <p className="text-foreground">{`${currentUser?.username}'s Meeting Room`}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Meeting ID</p>
+                        <p className="text-foreground font-mono">{meetingId}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-muted-foreground">Invite Link</p>
+                        <p className="text-foreground text-sm truncate">{meetingLink}</p>
+                      </div>
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        onClick={copyLink}
+                      >
+                        Copy
+                      </Button>
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Meeting ID</p>
-                      <p className="text-gray-900 font-mono">{meetingId}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-700">Invite Link</p>
-                      <p className="text-gray-900 text-sm truncate">{meetingLink}</p>
-                    </div>
+                  <div className="flex gap-4">
                     <Button 
+                      onClick={startPersonalRoom}
+                      className="flex-1"
+                    >
+                      <Video size={16} className="mr-2" />
+                      Start Meeting
+                    </Button>
+                    <Button
                       variant="outline"
-                      size="sm"
                       onClick={copyLink}
                     >
-                      Copy
+                      Copy Invitation
                     </Button>
                   </div>
-                </div>
-                
-                <div className="flex gap-4">
-                  <Button 
-                    onClick={startPersonalRoom}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Video size={16} className="mr-2" />
-                    Start Meeting
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={copyLink}
-                  >
-                    Copy Invitation
-                  </Button>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
@@ -172,25 +175,29 @@ const Home = () => {
               {/* Upcoming Meetings */}
               <div>
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-gray-900">Upcoming Meetings</h2>
+                  <h2 className="text-xl font-semibold text-foreground">Upcoming Meetings</h2>
                 </div>
                 
-                <div className="bg-white rounded-lg p-8 text-center border border-gray-200">
-                  <Calendar size={48} className="text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">No upcoming meetings scheduled</p>
-                </div>
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <Calendar size={48} className="text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No upcoming meetings scheduled</p>
+                  </CardContent>
+                </Card>
               </div>
               
               {/* Previous Meetings */}
               <div>
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-gray-900">Previous Meetings</h2>
+                  <h2 className="text-xl font-semibold text-foreground">Previous Meetings</h2>
                 </div>
                 
-                <div className="bg-white rounded-lg p-8 text-center border border-gray-200">
-                  <Clock size={48} className="text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">No previous meetings found</p>
-                </div>
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <Clock size={48} className="text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No previous meetings found</p>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </TabsContent>
@@ -198,13 +205,15 @@ const Home = () => {
           {/* Recordings Section */}
           <TabsContent value="recordings" className="mt-0">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Meeting Recordings</h2>
-              <p className="text-gray-600">Access and review all your recorded meetings</p>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Your Meeting Recordings</h2>
+              <p className="text-muted-foreground">Access and review all your recorded meetings</p>
             </div>
-            <div className="bg-white rounded-lg p-8 text-center border border-gray-200">
-              <Clock size={48} className="text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No recordings available</p>
-            </div>
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Clock size={48} className="text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No recordings available</p>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

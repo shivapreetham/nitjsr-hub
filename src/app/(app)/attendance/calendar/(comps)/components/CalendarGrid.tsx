@@ -21,9 +21,9 @@ export default function CalendarGrid({
 }: CalendarGridProps) {
   if (loading) {
     return (
-      <div className="grid grid-cols-7 gap-px bg-gray-100 rounded-lg overflow-hidden">
+      <div className="grid grid-cols-7 gap-px bg-muted rounded-lg overflow-hidden">
         {Array.from({ length: 7 }).map((_, i) => (
-          <div key={`header-${i}`} className="bg-white font-medium text-center py-2 text-xs text-gray-500">
+          <div key={`header-${i}`} className="bg-card font-medium text-center py-2 text-xs text-muted-foreground">
             {weekDays[i]}
           </div>
         ))}
@@ -37,17 +37,17 @@ export default function CalendarGrid({
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-60 text-center p-4">
-        <div className="text-red-500 mb-2 text-sm">{error}</div>
-        <p className="text-gray-500 text-sm">Please try selecting another month or refreshing the page.</p>
+        <div className="text-destructive mb-2 text-sm">{error}</div>
+        <p className="text-muted-foreground text-sm">Please try selecting another month or refreshing the page.</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-7 gap-px bg-gray-100 rounded-lg overflow-hidden">
+    <div className="grid grid-cols-7 gap-px bg-muted rounded-lg overflow-hidden">
       {/* Week days header */}
       {weekDays.map((day) => (
-        <div key={day} className="bg-white font-medium text-center py-2 text-xs text-gray-500">
+        <div key={day} className="bg-card font-medium text-center py-2 text-xs text-muted-foreground">
           {day}
         </div>
       ))}
@@ -65,14 +65,14 @@ export default function CalendarGrid({
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  className={`bg-white h-10 relative flex flex-col items-center justify-start
-                    ${!day.isCurrentMonth ? 'text-gray-300' : 'text-gray-800'}
-                    ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}
-                    ${isTodayDate ? 'ring-1 ring-inset ring-blue-300' : ''}
+                  className={`bg-card h-10 relative flex flex-col items-center justify-start
+                    ${!day.isCurrentMonth ? 'text-muted-foreground/50' : 'text-foreground'}
+                    ${isSelected ? 'bg-primary/10' : 'hover:bg-muted'}
+                    ${isTodayDate ? 'ring-1 ring-inset ring-primary' : ''}
                   `}
                   onClick={() => onDayClick(day)}
                 >
-                  <span className={`text-xs font-medium mt-1 ${isTodayDate ? 'text-blue-500' : ''}`}>
+                  <span className={`text-xs font-medium mt-1 ${isTodayDate ? 'text-primary' : ''}`}>
                     {day.date.getDate()}
                   </span>
                   
@@ -91,7 +91,7 @@ export default function CalendarGrid({
                   
                   {/* Class count indicator - only show if has classes */}
                   {hasClasses && (
-                    <span className="absolute bottom-0 right-0 text-xxs bg-blue-100 text-blue-700 px-1 rounded-tl text-center" style={{ fontSize: '0.6rem' }}>
+                    <span className="absolute bottom-0 right-0 text-xxs bg-primary/10 text-primary px-1 rounded-tl text-center" style={{ fontSize: '0.6rem' }}>
                       {classCount}
                     </span>
                   )}

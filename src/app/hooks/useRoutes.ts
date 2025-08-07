@@ -11,7 +11,8 @@ import {
   HiCalendar,
   HiChartBar,
   HiClipboardDocumentCheck,
-  HiInboxStack
+  HiInboxStack,
+  HiOutlineSparkles
 } from 'react-icons/hi2';
 import { IconType } from 'react-icons';
 
@@ -66,6 +67,13 @@ const useRoutes = () => {
         href: '/conversations',
         icon: HiChat,
         active: pathname === '/conversations' || !!conversationId,
+        position: 'middle'
+      },
+      {
+        label: 'Omegle',
+        href: '/omegle',
+        icon: HiOutlineSparkles,
+        active: pathname === '/omegle' || pathname?.startsWith('/omegle/'),
         position: 'middle'
       },
       {

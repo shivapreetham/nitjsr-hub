@@ -17,7 +17,7 @@ interface ProductCardProps {
 
 export const ProductCard = ({ product, onInterest, isInterested }: ProductCardProps) => {
   return (
-    <Card className="group h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02] border-0 bg-white/80 backdrop-blur-sm">
+    <Card className="group h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02] border-0 bg-card/80 backdrop-blur-sm">
       <div className="relative aspect-square w-full overflow-hidden">
         <Image
           src={product.mainImage}
@@ -35,7 +35,7 @@ export const ProductCard = ({ product, onInterest, isInterested }: ProductCardPr
         
         {/* Category Badge */}
         <div className="absolute top-2 left-2">
-          <Badge variant="secondary" className="bg-white/90 text-gray-700 text-xs">
+          <Badge variant="secondary" className="bg-card/90 text-foreground text-xs">
             {product.category}
           </Badge>
         </div>
@@ -65,21 +65,21 @@ export const ProductCard = ({ product, onInterest, isInterested }: ProductCardPr
       
       <CardHeader className="p-4 pb-2">
         <div className="flex items-start justify-between">
-          <h3 className="font-semibold text-gray-900 line-clamp-2 leading-tight">
+          <h3 className="font-semibold text-foreground line-clamp-2 leading-tight">
             {product.title}
           </h3>
-          <p className="font-bold text-lg text-blue-600 ml-2">
+          <p className="font-bold text-lg text-primary ml-2">
             {formatPrice(product.price)}
           </p>
         </div>
       </CardHeader>
       
       <CardContent className="p-4 pt-0 pb-2">
-        <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+        <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
           {product.description}
         </p>
         
-        <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{product.hostel || "Campus"}</span>
           <span>{formatDistanceToNow(new Date(product.createdAt), { addSuffix: true })}</span>
         </div>
@@ -87,10 +87,10 @@ export const ProductCard = ({ product, onInterest, isInterested }: ProductCardPr
       
       <CardFooter className="p-4 pt-0">
         <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             {product.interestedUserIds.length > 0 && (
               <span className="flex items-center gap-1">
-                <Heart className="h-3 w-3 text-red-500" />
+                <Heart className="h-3 w-3 text-destructive" />
                 {product.interestedUserIds.length} interested
               </span>
             )}
@@ -100,7 +100,7 @@ export const ProductCard = ({ product, onInterest, isInterested }: ProductCardPr
             <Button 
               variant="outline" 
               size="sm" 
-              className="w-full rounded-lg border-blue-200 text-blue-700 hover:bg-blue-50"
+              className="w-full rounded-lg border-primary/20 text-primary hover:bg-primary/10"
             >
               <MessageCircle className="h-3 w-3 mr-1" />
               View Details
