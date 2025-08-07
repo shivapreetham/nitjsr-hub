@@ -5,13 +5,30 @@ const server = http.createServer();
 const wss = new WebSocket.Server({ server });
 
 // Store active users and rooms
-const waitingUsers = new Map(); // userId -> { socket, audioEnabled, videoEnabled }
+const waitingUsers = new Map(); // userId -> { socket, audioEnabled, videoEnabled, joinTime }
 const activeRooms = new Map(); // roomId -> { user1, user2 }
 const userCount = { count: 0 };
 
 // Generate unique IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
 const generateRoomId = () => Math.random().toString(36).substr(2, 12);
+
+// Determine initiator based on deterministic criteria
+const determineInitiator = (user1Id, user1Data, user2Id, user2Data) => {
+  // Method 1: Use join time (first to join becomes initiator)
+  if (user1Data.joinTime < user2Data.joinTime) {
+    return { initiator: user1Id, responder: user2Id };
+  } else if (user2Data.joinTime < user1Data.joinTime) {
+    return { initiator: user2Id, responder: user1Id };
+  }
+  
+  // Method 2: If join times are the same, use alphabetical order of user IDs
+  if (user1Id < user2Id) {
+    return { initiator: user1Id, responder: user2Id };
+  } else {
+    return { initiator: user2Id, responder: user1Id };
+  }
+};
 
 // Broadcast user count to all connected clients
 const broadcastUserCount = () => {
@@ -65,32 +82,49 @@ wss.on('connection', (ws) => {
             waitingUsers.delete(partner.userId);
             waitingUsers.delete(userId);
             
-            // Create room
+            // Determine initiator and responder
+            const roles = determineInitiator(userId, { joinTime: Date.now() }, partner.userId, partnerData);
+            
+            // Create room with proper roles
             activeRooms.set(roomId, {
-              user1: { id: userId, socket: ws, initiator: true },
-              user2: { id: partner.userId, socket: partnerData.socket, initiator: false }
+              user1: { 
+                id: roles.initiator, 
+                socket: roles.initiator === userId ? ws : partnerData.socket, 
+                initiator: true 
+              },
+              user2: { 
+                id: roles.responder, 
+                socket: roles.responder === userId ? ws : partnerData.socket, 
+                initiator: false 
+              }
             });
             
-            // Notify both users
-            ws.send(JSON.stringify({
+            // Notify both users with their roles
+            const initiatorSocket = roles.initiator === userId ? ws : partnerData.socket;
+            const responderSocket = roles.responder === userId ? ws : partnerData.socket;
+            
+            initiatorSocket.send(JSON.stringify({
               type: 'room_assigned',
               room: roomId,
-              initiator: true
+              initiator: true,
+              role: 'initiator'
             }));
             
-            partnerData.socket.send(JSON.stringify({
+            responderSocket.send(JSON.stringify({
               type: 'room_assigned',
               room: roomId,
-              initiator: false
+              initiator: false,
+              role: 'responder'
             }));
             
-            console.log(`Room ${roomId} created with users ${userId} and ${partner.userId}`);
+            console.log(`Room ${roomId} created with ${roles.initiator} (initiator) and ${roles.responder} (responder)`);
           } else {
-            // Add user to waiting list
+            // Add user to waiting list with join time
             waitingUsers.set(userId, {
               socket: ws,
               audioEnabled,
-              videoEnabled
+              videoEnabled,
+              joinTime: Date.now()
             });
             
             console.log(`User ${userId} added to waiting list`);
@@ -123,9 +157,19 @@ wss.on('connection', (ws) => {
             // Close the room
             activeRooms.delete(roomId);
             
-            // Add both users back to waiting list
-            waitingUsers.set(userId, { socket: ws, audioEnabled: true, videoEnabled: true });
-            waitingUsers.set(otherUser.id, { socket: otherUser.socket, audioEnabled: true, videoEnabled: true });
+            // Add both users back to waiting list with new join times
+            waitingUsers.set(userId, { 
+              socket: ws, 
+              audioEnabled: true, 
+              videoEnabled: true, 
+              joinTime: Date.now() 
+            });
+            waitingUsers.set(otherUser.id, { 
+              socket: otherUser.socket, 
+              audioEnabled: true, 
+              videoEnabled: true, 
+              joinTime: Date.now() 
+            });
             
             console.log(`User ${userId} skipped in room ${roomId}`);
           }
@@ -164,8 +208,13 @@ wss.on('connection', (ws) => {
           type: 'partner_disconnected'
         }));
         
-        // Add other user back to waiting list
-        waitingUsers.set(otherUser.id, { socket: otherUser.socket, audioEnabled: true, videoEnabled: true });
+        // Add other user back to waiting list with new join time
+        waitingUsers.set(otherUser.id, { 
+          socket: otherUser.socket, 
+          audioEnabled: true, 
+          videoEnabled: true, 
+          joinTime: Date.now() 
+        });
         
         // Remove room
         activeRooms.delete(roomId);
@@ -198,6 +247,6 @@ setInterval(() => {
   for (const [roomId, roomData] of activeRooms.entries()) {
     // You could add timestamp tracking to remove old rooms
     // For now, we'll just log active rooms
-    console.log(`Active room: ${roomId} with users ${roomData.user1.id} and ${roomData.user2.id}`);
+    console.log(`Active room: ${roomId} with ${roomData.user1.id} (${roomData.user1.initiator ? 'initiator' : 'responder'}) and ${roomData.user2.id} (${roomData.user2.initiator ? 'initiator' : 'responder'})`);
   }
 }, 30000); // Log every 30 seconds
