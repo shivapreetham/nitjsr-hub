@@ -64,15 +64,17 @@ wss.on('connection', (ws) => {
   userCount.count++;
   broadcastUserCount();
   
-  console.log(`User ${userId} connected. Total users: ${userCount.count}`);
+  console.log(`[SERVER] User ${userId} connected. Total users: ${userCount.count}`);
 
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message);
+      console.log(`[SERVER] Received message from ${userId}:`, data.type);
       
       switch (data.type) {
         case 'find_partner':
           const { audioEnabled = true, videoEnabled = true } = data;
+          console.log(`[SERVER] User ${userId} looking for partner (audio: ${audioEnabled}, video: ${videoEnabled})`);
           
           // Check if there's already a waiting user
           const partner = findPartner(userId, audioEnabled, videoEnabled);
@@ -81,6 +83,8 @@ wss.on('connection', (ws) => {
             // Create a room with both users
             const roomId = generateRoomId();
             const partnerData = partner.userData;
+            
+            console.log(`[SERVER] Found partner for ${userId}: ${partner.userId}`);
             
             // Remove both users from waiting list
             waitingUsers.delete(partner.userId);
@@ -107,6 +111,7 @@ wss.on('connection', (ws) => {
             const initiatorSocket = roles.initiator === userId ? ws : partnerData.socket;
             const responderSocket = roles.responder === userId ? ws : partnerData.socket;
             
+            console.log(`[SERVER] Sending room_assigned to initiator ${roles.initiator}`);
             initiatorSocket.send(JSON.stringify({
               type: 'room_assigned',
               room: roomId,
@@ -114,6 +119,7 @@ wss.on('connection', (ws) => {
               role: 'initiator'
             }));
             
+            console.log(`[SERVER] Sending room_assigned to responder ${roles.responder}`);
             responderSocket.send(JSON.stringify({
               type: 'room_assigned',
               room: roomId,
@@ -121,7 +127,7 @@ wss.on('connection', (ws) => {
               role: 'responder'
             }));
             
-            console.log(`Room ${roomId} created with ${roles.initiator} (initiator) and ${roles.responder} (responder)`);
+            console.log(`[SERVER] Room ${roomId} created with ${roles.initiator} (initiator) and ${roles.responder} (responder)`);
           } else {
             // Add user to waiting list with join time
             waitingUsers.set(userId, {
@@ -131,7 +137,7 @@ wss.on('connection', (ws) => {
               joinTime: Date.now()
             });
             
-            console.log(`User ${userId} added to waiting list`);
+            console.log(`[SERVER] User ${userId} added to waiting list. Total waiting: ${waitingUsers.size}`);
           }
           break;
           
@@ -139,7 +145,9 @@ wss.on('connection', (ws) => {
           // User joining an existing room
           const room = activeRooms.get(data.room);
           if (room) {
-            console.log(`User ${userId} joined room ${data.room}`);
+            console.log(`[SERVER] User ${userId} joined room ${data.room}`);
+          } else {
+            console.log(`[SERVER] User ${userId} tried to join non-existent room ${data.room}`);
           }
           break;
           
@@ -152,6 +160,8 @@ wss.on('connection', (ws) => {
           if (userRoom) {
             const [roomId, roomData] = userRoom;
             const otherUser = roomData.user1.id === userId ? roomData.user2 : roomData.user1;
+            
+            console.log(`[SERVER] User ${userId} skipping in room ${roomId}`);
             
             // Notify the other user about the skip
             otherUser.socket.send(JSON.stringify({
@@ -175,7 +185,9 @@ wss.on('connection', (ws) => {
               joinTime: Date.now() 
             });
             
-            console.log(`User ${userId} skipped in room ${roomId}`);
+            console.log(`[SERVER] Room ${roomId} closed due to skip. Users back in waiting list.`);
+          } else {
+            console.log(`[SERVER] User ${userId} tried to skip but not in any room`);
           }
           break;
           
@@ -186,19 +198,27 @@ wss.on('connection', (ws) => {
           const targetRoom = activeRooms.get(data.room);
           if (targetRoom) {
             const targetUser = targetRoom.user1.id === userId ? targetRoom.user2 : targetRoom.user1;
+            console.log(`[SERVER] Forwarding ${data.type} from ${userId} to ${targetUser.id} in room ${data.room}`);
             targetUser.socket.send(JSON.stringify({
               ...data,
               from: userId
             }));
+          } else {
+            console.log(`[SERVER] Received ${data.type} for non-existent room ${data.room} from ${userId}`);
           }
           break;
+          
+        default:
+          console.log(`[SERVER] Unknown message type from ${userId}:`, data.type);
       }
     } catch (error) {
-      console.error('Error processing message:', error);
+      console.error(`[SERVER] Error processing message from ${userId}:`, error);
     }
   });
 
   ws.on('close', () => {
+    console.log(`[SERVER] User ${userId} disconnected`);
+    
     // Remove user from waiting list
     waitingUsers.delete(userId);
     
@@ -206,6 +226,8 @@ wss.on('connection', (ws) => {
     for (const [roomId, roomData] of activeRooms.entries()) {
       if (roomData.user1.id === userId || roomData.user2.id === userId) {
         const otherUser = roomData.user1.id === userId ? roomData.user2 : roomData.user1;
+        
+        console.log(`[SERVER] Notifying ${otherUser.id} about ${userId}'s disconnection`);
         
         // Notify the other user
         otherUser.socket.send(JSON.stringify({
@@ -223,34 +245,32 @@ wss.on('connection', (ws) => {
         // Remove room
         activeRooms.delete(roomId);
         
-        console.log(`Room ${roomId} closed due to user ${userId} disconnection`);
+        console.log(`[SERVER] Room ${roomId} closed due to user ${userId} disconnection`);
         break;
       }
     }
     
     userCount.count--;
     broadcastUserCount();
-    console.log(`User ${userId} disconnected. Total users: ${userCount.count}`);
+    console.log(`[SERVER] User ${userId} disconnected. Total users: ${userCount.count}`);
   });
 
   ws.on('error', (error) => {
-    console.error(`WebSocket error for user ${userId}:`, error);
+    console.error(`[SERVER] WebSocket error for user ${userId}:`, error);
   });
 });
 
 const PORT = process.env.PORT || 3001;
 
 server.listen(PORT, () => {
-  console.log(`Omegle WebSocket server running on port ${PORT}`);
-  console.log(`WebSocket URL: ws://localhost:${PORT}`);
+  console.log(`[SERVER] Omegle WebSocket server running on port ${PORT}`);
+  console.log(`[SERVER] WebSocket URL: ws://localhost:${PORT}`);
 });
 
 // Cleanup inactive rooms periodically
 setInterval(() => {
-  const now = Date.now();
+  console.log(`[SERVER] Status - Active rooms: ${activeRooms.size}, Waiting users: ${waitingUsers.size}, Total users: ${userCount.count}`);
   for (const [roomId, roomData] of activeRooms.entries()) {
-    // You could add timestamp tracking to remove old rooms
-    // For now, we'll just log active rooms
-    console.log(`Active room: ${roomId} with ${roomData.user1.id} (${roomData.user1.initiator ? 'initiator' : 'responder'}) and ${roomData.user2.id} (${roomData.user2.initiator ? 'initiator' : 'responder'})`);
+    console.log(`[SERVER] Active room: ${roomId} with ${roomData.user1.id} (${roomData.user1.initiator ? 'initiator' : 'responder'}) and ${roomData.user2.id} (${roomData.user2.initiator ? 'initiator' : 'responder'})`);
   }
 }, 30000); // Log every 30 seconds

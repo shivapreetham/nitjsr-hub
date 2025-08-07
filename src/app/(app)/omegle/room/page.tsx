@@ -36,6 +36,7 @@ export default function OmegleRoomPage() {
   const [userRole, setUserRole] = useState("");
   const [hasReceivedOffer, setHasReceivedOffer] = useState(false);
   const [isRoomAssigned, setIsRoomAssigned] = useState(false);
+  const [localStreamReady, setLocalStreamReady] = useState(false);
 
   const handleSocketMessage = useCallback(async (data: { 
     type: string; 
@@ -47,18 +48,21 @@ export default function OmegleRoomPage() {
     room?: string;
   }) => {
     const pc = pcRef.current;
-    if (!pc) return;
+    if (!pc) {
+      console.log("[CLIENT] Received message but no PeerConnection:", data.type);
+      return;
+    }
 
-    console.log("Received message:", data.type);
+    console.log("[CLIENT] Received message:", data.type, data);
 
     if (data.type === "room_assigned") {
-      console.log("Room assigned with role:", data.role);
+      console.log("[CLIENT] Room assigned with role:", data.role);
       setIsInitiator(data.initiator ?? false);
       setUserRole(data.role ?? "Unknown");
       setIsRoomAssigned(true);
       setConnectionStatus("Room assigned - " + (data.role ?? "Unknown"));
     } else if (data.type === "offer" && data.offer) {
-      console.log("Received offer, creating answer");
+      console.log("[CLIENT] Received offer, creating answer");
       setHasReceivedOffer(true);
       
       try {
@@ -68,27 +72,30 @@ export default function OmegleRoomPage() {
         socketRef.current?.send(
           JSON.stringify({ type: "answer", answer, room: roomId })
         );
-        console.log("Answer sent");
+        console.log("[CLIENT] Answer sent");
       } catch (error) {
-        console.error("Error handling offer:", error);
+        console.error("[CLIENT] Error handling offer:", error);
       }
     } else if (data.type === "answer" && data.answer) {
-      console.log("Received answer");
+      console.log("[CLIENT] Received answer");
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
       } catch (error) {
-        console.error("Error setting remote description:", error);
+        console.error("[CLIENT] Error setting remote description:", error);
       }
     } else if (data.type === "candidate" && data.candidate) {
       try {
         await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+        console.log("[CLIENT] ICE candidate added");
       } catch (error) {
-        console.error("Error adding ICE candidate:", error);
+        console.error("[CLIENT] Error adding ICE candidate:", error);
       }
     } else if (data.type === "partner_skipped") {
+      console.log("[CLIENT] Partner skipped");
       setConnectionStatus("Partner skipped");
       setIsConnected(false);
     } else if (data.type === "partner_disconnected") {
+      console.log("[CLIENT] Partner disconnected");
       setConnectionStatus("Partner disconnected");
       setIsConnected(false);
     }
@@ -96,39 +103,60 @@ export default function OmegleRoomPage() {
 
   // Initialize WebSocket connection and join room
   useEffect(() => {
-    if (!OMEGLE_SERVER_URL || !roomId) return;
+    if (!OMEGLE_SERVER_URL || !roomId) {
+      console.log("[CLIENT] Missing OMEGLE_SERVER_URL or roomId");
+      return;
+    }
     
+    console.log("[CLIENT] Connecting to WebSocket server...");
     const socket = new WebSocket(OMEGLE_SERVER_URL.replace(/^http/, "ws"));
     socketRef.current = socket;
 
     socket.onopen = () => {
+      console.log("[CLIENT] WebSocket connected");
       setConnectionStatus("Connected to server");
       socket.send(JSON.stringify({ type: "join", room: roomId }));
     };
 
     socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      handleSocketMessage(data);
+      try {
+        const data = JSON.parse(event.data);
+        handleSocketMessage(data);
+      } catch (error) {
+        console.error("[CLIENT] Error parsing WebSocket message:", error);
+      }
     };
 
     socket.onerror = (err) => {
-      console.error("Socket error:", err);
+      console.error("[CLIENT] WebSocket error:", err);
       setConnectionStatus("Connection error");
     };
 
-    socket.onclose = () => {
+    socket.onclose = (event) => {
+      console.log("[CLIENT] WebSocket closed:", event.code, event.reason);
       setConnectionStatus("Disconnected");
     };
 
     return () => {
-      socket.close();
+      console.log("[CLIENT] Cleaning up WebSocket connection");
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.close();
+      }
     };
   }, [roomId, handleSocketMessage]);
 
   // Initialize PeerConnection and local media stream
   useEffect(() => {
-    if (!socketRef.current || !roomId || !isRoomAssigned) return;
+    if (!socketRef.current || !roomId || !isRoomAssigned) {
+      console.log("[CLIENT] Not ready to create PeerConnection:", {
+        hasSocket: !!socketRef.current,
+        hasRoomId: !!roomId,
+        isRoomAssigned
+      });
+      return;
+    }
 
+    console.log("[CLIENT] Creating PeerConnection...");
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
@@ -139,6 +167,7 @@ export default function OmegleRoomPage() {
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
+        console.log("[CLIENT] Sending ICE candidate");
         socketRef.current?.send(
           JSON.stringify({
             type: "candidate",
@@ -150,7 +179,7 @@ export default function OmegleRoomPage() {
     };
 
     pc.oniceconnectionstatechange = () => {
-      console.log("ICE connection state:", pc.iceConnectionState);
+      console.log("[CLIENT] ICE connection state:", pc.iceConnectionState);
       if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
         setIsConnected(true);
         setConnectionStatus("Connected to stranger");
@@ -165,7 +194,7 @@ export default function OmegleRoomPage() {
     };
 
     pc.onconnectionstatechange = () => {
-      console.log("Connection state:", pc.connectionState);
+      console.log("[CLIENT] Connection state:", pc.connectionState);
       if (pc.connectionState === "connected") {
         setIsConnected(true);
         setConnectionStatus("Connected to stranger");
@@ -176,22 +205,29 @@ export default function OmegleRoomPage() {
     };
 
     pc.ontrack = (event) => {
-      console.log("Received remote track:", event.streams[0]);
+      console.log("[CLIENT] Received remote track:", event.streams[0]);
       if (remoteVideoRef.current && event.streams[0]) {
         remoteVideoRef.current.srcObject = event.streams[0];
         remoteVideoRef.current.play().catch((err) => {
-          console.error("Error playing remote video:", err);
+          console.error("[CLIENT] Error playing remote video:", err);
         });
       }
     };
 
+    // Get user media
+    console.log("[CLIENT] Requesting user media...");
     navigator.mediaDevices
       .getUserMedia({ video: true, audio: true })
       .then((stream) => {
+        console.log("[CLIENT] User media obtained");
         localStreamRef.current = stream;
+        setLocalStreamReady(true);
+        
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
-          localVideoRef.current.play().catch(() => {});
+          localVideoRef.current.play().catch((err) => {
+            console.error("[CLIENT] Error playing local video:", err);
+          });
         }
         
         // Add all tracks to the peer connection
@@ -201,30 +237,32 @@ export default function OmegleRoomPage() {
 
         // Only the initiator should create and send the offer
         if (isInitiator && !hasReceivedOffer) {
-          console.log("Creating offer as initiator");
+          console.log("[CLIENT] Creating offer as initiator");
           createAndSendOffer(pc, roomId);
         }
       })
       .catch((error) => {
-        console.error("Error accessing media devices:", error);
+        console.error("[CLIENT] Error accessing media devices:", error);
         setConnectionStatus("Camera/microphone access denied");
       });
 
     return () => {
+      console.log("[CLIENT] Cleaning up PeerConnection");
       pc.close();
     };
   }, [roomId, isInitiator, hasReceivedOffer, isRoomAssigned]);
 
   const createAndSendOffer = useCallback(async (pc: RTCPeerConnection, roomId: string) => {
     try {
+      console.log("[CLIENT] Creating offer...");
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       socketRef.current?.send(
         JSON.stringify({ type: "offer", offer, room: roomId })
       );
-      console.log("Offer sent");
+      console.log("[CLIENT] Offer sent");
     } catch (error) {
-      console.error("Error creating offer:", error);
+      console.error("[CLIENT] Error creating offer:", error);
     }
   }, []);
 
@@ -234,6 +272,7 @@ export default function OmegleRoomPage() {
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
         setIsAudioEnabled(audioTrack.enabled);
+        console.log("[CLIENT] Audio toggled:", audioTrack.enabled);
       }
     }
   }, []);
@@ -244,11 +283,13 @@ export default function OmegleRoomPage() {
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
         setIsVideoEnabled(videoTrack.enabled);
+        console.log("[CLIENT] Video toggled:", videoTrack.enabled);
       }
     }
   }, []);
 
   const handleSkip = useCallback(() => {
+    console.log("[CLIENT] Skipping...");
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       socketRef.current.send(JSON.stringify({ type: "skip", room: roomId }));
     }
@@ -256,6 +297,7 @@ export default function OmegleRoomPage() {
   }, [roomId, router]);
 
   const handleStop = useCallback(() => {
+    console.log("[CLIENT] Stopping...");
     if (pcRef.current) {
       pcRef.current.close();
     }
@@ -266,6 +308,7 @@ export default function OmegleRoomPage() {
   }, [router]);
 
   const handleReconnect = useCallback(() => {
+    console.log("[CLIENT] Reconnecting...");
     router.push("/omegle");
   }, [router]);
 
@@ -307,9 +350,17 @@ export default function OmegleRoomPage() {
                   muted 
                   className="w-full aspect-video rounded-lg bg-muted"
                 />
-                {!isVideoEnabled && (
+                {!isVideoEnabled && localStreamReady && (
                   <div className="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-lg">
                     <VideoOff className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                )}
+                {!localStreamReady && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-lg">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-2"></div>
+                      <p className="text-muted-foreground">Loading camera...</p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -352,6 +403,7 @@ export default function OmegleRoomPage() {
                 size="lg"
                 onClick={toggleAudio}
                 className="flex items-center gap-2"
+                disabled={!localStreamReady}
               >
                 {isAudioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
                 {isAudioEnabled ? 'Mute' : 'Unmute'}
@@ -362,6 +414,7 @@ export default function OmegleRoomPage() {
                 size="lg"
                 onClick={toggleVideo}
                 className="flex items-center gap-2"
+                disabled={!localStreamReady}
               >
                 {isVideoEnabled ? <VideoIcon className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
                 {isVideoEnabled ? 'Stop Video' : 'Start Video'}
