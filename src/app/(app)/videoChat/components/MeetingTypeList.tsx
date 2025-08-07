@@ -73,11 +73,11 @@ const MeetingTypeList = () => {
         transition={{ duration: 0.3 }}
       >
         <HomeCard
-          icon={<Video className="text-blue-600" size={24} />}
+          icon={<Video className="text-primary" size={24} />}
           title="New Meeting"
           description="Start an instant meeting"
           handleClick={() => setMeetingState("isInstantMeeting")}
-          className="bg-white hover:shadow-lg transition-all duration-200 border border-gray-200"
+          className="bg-card hover:shadow-lg transition-all duration-200 border border-border"
         />
       </motion.div>
       
@@ -87,10 +87,10 @@ const MeetingTypeList = () => {
         transition={{ duration: 0.3, delay: 0.1 }}
       >
         <HomeCard
-          icon={<LogIn className="text-green-600" size={24} />}
+          icon={<LogIn className="text-green-500" size={24} />}
           title="Join Meeting"
           description="via invitation link"
-          className="bg-white hover:shadow-lg transition-all duration-200 border border-gray-200"
+          className="bg-card hover:shadow-lg transition-all duration-200 border border-border"
           handleClick={() => setMeetingState("isJoiningMeeting")}
         />
       </motion.div>
@@ -101,10 +101,10 @@ const MeetingTypeList = () => {
         transition={{ duration: 0.3, delay: 0.2 }}
       >
         <HomeCard
-          icon={<Calendar className="text-purple-600" size={24} />}
+          icon={<Calendar className="text-purple-500" size={24} />}
           title="Schedule Meeting"
           description="Plan your meeting"
-          className="bg-white hover:shadow-lg transition-all duration-200 border border-gray-200"
+          className="bg-card hover:shadow-lg transition-all duration-200 border border-border"
           handleClick={() => setMeetingState("isScheduleMeeting")}
         />
       </motion.div>
@@ -116,30 +116,30 @@ const MeetingTypeList = () => {
           onClose={() => setMeetingState(undefined)}
           title="Schedule Meeting"
           handleClick={createMeeting}
-          className="bg-white rounded-lg shadow-xl border border-gray-200"
+          className="bg-card rounded-lg shadow-xl border border-border"
           buttonText="Schedule Meeting"
-          buttonClassName="bg-blue-600 hover:bg-blue-700 text-white"
+          buttonClassName="bg-primary hover:bg-primary/90 text-primary-foreground"
           buttonIcon={<Calendar size={16} className="mr-2" />}
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Meeting Description
               </label>
               <Textarea
-                className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                className="w-full border-border focus:border-primary focus:ring-primary"
                 onChange={(e) => setValues({ ...values, description: e.target.value })}
                 placeholder="What is this meeting about?"
                 rows={3}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Date and Time
               </label>
               <input
                 type="datetime-local"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+                className="w-full border border-border rounded-md px-3 py-2 focus:border-primary focus:ring-primary bg-background text-foreground"
                 value={values.dateTime.toISOString().slice(0, 16)}
                 onChange={(e) => setValues({ ...values, dateTime: new Date(e.target.value) })}
               />
@@ -155,18 +155,18 @@ const MeetingTypeList = () => {
             navigator.clipboard.writeText(meetingLink);
             toast({ title: "Link Copied" });
           }}
-          icon={<div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-            <Plus className="text-green-600" size={24} />
+          icon={<div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center">
+            <Plus className="text-green-500" size={24} />
           </div>}
           buttonIcon={<Calendar size={16} className="mr-2" />}
-          className="text-center bg-white rounded-lg shadow-xl border border-gray-200"
+          className="text-center bg-card rounded-lg shadow-xl border border-border"
           buttonText="Copy Meeting Link"
-          buttonClassName="bg-blue-600 hover:bg-blue-700 text-white"
+          buttonClassName="bg-primary hover:bg-primary/90 text-primary-foreground"
         >
-          <p className="text-gray-600 mb-4">
+          <p className="text-muted-foreground mb-4">
             Your meeting has been scheduled successfully. Share the link with participants to join.
           </p>
-          <div className="bg-gray-50 p-3 rounded-md border border-gray-200 text-sm text-gray-700 break-all">
+          <div className="bg-muted p-3 rounded-md border border-border text-sm text-foreground break-all">
             {meetingLink}
           </div>
         </MeetingModal>
@@ -177,20 +177,20 @@ const MeetingTypeList = () => {
         isOpen={meetingState === "isJoiningMeeting"}
         onClose={() => setMeetingState(undefined)}
         title="Join Meeting"
-        className="bg-white rounded-lg shadow-xl border border-gray-200"
+        className="bg-card rounded-lg shadow-xl border border-border"
         buttonText="Join Meeting"
-        buttonClassName="bg-green-600 hover:bg-green-700 text-white"
+        buttonClassName="bg-green-500 hover:bg-green-600 text-white"
         buttonIcon={<LogIn size={16} className="mr-2" />}
         handleClick={() => router.push(values.link)}
       >
         <div>
-          <p className="text-gray-600 mb-4">
+          <p className="text-muted-foreground mb-4">
             Enter the meeting link you received to join the conversation.
           </p>
           <Input
             placeholder="https://meeting.link/..."
             onChange={(e) => setValues({ ...values, link: e.target.value })}
-            className="w-full border-gray-300 focus:border-green-500 focus:ring-green-500"
+            className="w-full border-border focus:border-green-500 focus:ring-green-500"
           />
         </div>
       </MeetingModal>
@@ -200,17 +200,17 @@ const MeetingTypeList = () => {
         isOpen={meetingState === "isInstantMeeting"}
         onClose={() => setMeetingState(undefined)}
         title="Start Instant Meeting"
-        className="text-center bg-white rounded-lg shadow-xl border border-gray-200"
+        className="text-center bg-card rounded-lg shadow-xl border border-border"
         buttonText="Start Meeting Now"
-        buttonClassName="bg-blue-600 hover:bg-blue-700 text-white"
+        buttonClassName="bg-primary hover:bg-primary/90 text-primary-foreground"
         buttonIcon={<Video size={16} className="mr-2" />}
         handleClick={createMeeting}
       >
         <div className="flex flex-col items-center gap-4 py-6">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-            <Video className="text-blue-600" size={32} />
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+            <Video className="text-primary" size={32} />
           </div>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Create an instant meeting and invite others to join. Your meeting will start immediately.
           </p>
         </div>

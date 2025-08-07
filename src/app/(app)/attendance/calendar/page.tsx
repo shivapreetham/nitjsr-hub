@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import useCalendarData from './(comps)/hooks/useCalendarData';
 import { formatDate } from './(comps)/utils/calendarHelpers';
 import CalendarGrid from './(comps)/components/CalendarGrid';
@@ -16,70 +17,70 @@ export default function AttendanceCalendar() {
     selectedDay,
     setSelectedDay,
     goToPreviousMonth,
-    goToNextMonth
+    goToNextMonth,
+    handleDayClick,
   } = useCalendarData();
 
-  const handleDayClick = (day: any) => {
-    setSelectedDay(day);
-  };
-
   return (
-    <div className="flex flex-col lg:flex-row gap-4 w-full">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Calendar section (left side) */}
-      <Card className="w-full lg:w-2/5 shadow-sm">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-blue-500" />
-              <CardTitle className="text-lg font-medium">Attendance Calendar</CardTitle>
-            </div>
-            <div className="flex items-center space-x-1">
-              <button
-                onClick={goToPreviousMonth}
-                className="p-1 rounded-full hover:bg-gray-100 text-gray-600"
-                aria-label="Previous month"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <div className="font-medium text-sm px-2 text-center">
-                {formatDate(currentDate)}
+      <div className="lg:col-span-2">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-foreground">Attendance Calendar</CardTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToPreviousMonth}
+                  className="p-1 rounded-full hover:bg-muted"
+                  aria-label="Previous month"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-foreground font-medium min-w-[120px] text-center">
+                  {formatDate(currentDate, 'MMMM yyyy')}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToNextMonth}
+                  className="p-1 rounded-full hover:bg-muted"
+                  aria-label="Next month"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
-              <button
-                onClick={goToNextMonth}
-                className="p-1 rounded-full hover:bg-gray-100 text-gray-600"
-                aria-label="Next month"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
             </div>
-          </div>
-          
-          {/* Calendar legend */}
-          <div className="flex justify-end gap-3 mt-2 text-xs">
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-green-500"></div>
-              <span className="text-gray-600">Full</span>
+
+            {/* Calendar legend */}
+            <div className="flex justify-end gap-3 mt-2 text-xs">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                <span className="text-muted-foreground">Full</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                <span className="text-muted-foreground">Partial</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                <span className="text-muted-foreground">Absent</span>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-              <span className="text-gray-600">Partial</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-red-500"></div>
-              <span className="text-gray-600">Absent</span>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <CalendarGrid
-            calendarDays={calendarDays}
-            loading={loading}
-            error={error}
-            selectedDay={selectedDay}
-            onDayClick={handleDayClick}
-          />
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <CalendarGrid
+              calendarDays={calendarDays}
+              loading={loading}
+              error={error}
+              selectedDay={selectedDay}
+              onDayClick={handleDayClick}
+            />
+          </CardContent>
+        </Card>
+      </div>
       
       {/* Attendance details section (right side) */}
       <AttendanceDetails

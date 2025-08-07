@@ -11,6 +11,7 @@ import ProductFilters from "./ui/ProductFilters";
 import ProductGrid from "./ui/ProductGrid";
 import EmptyState from "./ui/EmptyState";
 import LoadingState from "./ui/LoadingState";
+import { Button } from "@/components/ui/button";
 import { MarketplaceFilters } from "./types";
 
 // This component uses searchParams, so it needs to be wrapped in Suspense
@@ -58,17 +59,17 @@ export default function SearchParamsWrapper() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <div className="min-h-screen bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="glass-card p-8 text-center">
-            <h3 className="text-xl font-medium text-red-900 mb-2">Error Loading Products</h3>
-            <p className="text-red-600">{error}</p>
-            <button 
+          <div className="bg-card p-8 text-center rounded-lg shadow-sm border">
+            <h3 className="text-xl font-medium text-destructive mb-2">Error Loading Products</h3>
+            <p className="text-destructive">{error}</p>
+            <Button 
               onClick={() => window.location.reload()} 
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="mt-4"
             >
               Try Again
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -76,7 +77,7 @@ export default function SearchParamsWrapper() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <MarketplaceHeader
@@ -102,7 +103,7 @@ export default function SearchParamsWrapper() {
           <div className="flex flex-wrap gap-2 mb-6">
             {filters.category && filters.category !== "all" && (
               <div 
-                className="px-3 py-1 rounded-xl bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer text-sm"
+                className="px-3 py-1 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer text-sm"
                 onClick={() => handleCategoryChange("all")}
               >
                 {filters.category} ×
@@ -110,7 +111,7 @@ export default function SearchParamsWrapper() {
             )}
             {filters.minPrice && (
               <div 
-                className="px-3 py-1 rounded-xl bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer text-sm"
+                className="px-3 py-1 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer text-sm"
                 onClick={() => handlePriceChange("minPrice", "")}
               >
                 Min: ₹{filters.minPrice} ×
@@ -118,7 +119,7 @@ export default function SearchParamsWrapper() {
             )}
             {filters.maxPrice && (
               <div 
-                className="px-3 py-1 rounded-xl bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer text-sm"
+                className="px-3 py-1 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer text-sm"
                 onClick={() => handlePriceChange("maxPrice", "")}
               >
                 Max: ₹{filters.maxPrice} ×

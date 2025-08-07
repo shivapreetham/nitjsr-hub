@@ -124,6 +124,11 @@ export default function useCalendarData() {
     setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
 
+  // Handle day click
+  const handleDayClick = (day: CalendarDay) => {
+    setSelectedDay(day);
+  };
+
   return {
     currentDate,
     calendarDays,
@@ -133,6 +138,7 @@ export default function useCalendarData() {
     selectedDay,
     setSelectedDay,
     goToPreviousMonth,
-    goToNextMonth
+    goToNextMonth,
+    handleDayClick
   };
 } 
