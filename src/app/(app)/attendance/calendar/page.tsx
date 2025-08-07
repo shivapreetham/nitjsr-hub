@@ -40,7 +40,7 @@ export default function AttendanceCalendar() {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <span className="text-foreground font-medium min-w-[120px] text-center">
-                  {formatDate(currentDate, 'MMMM yyyy')}
+                  {formatDate(currentDate)}
                 </span>
                 <Button
                   variant="outline"
