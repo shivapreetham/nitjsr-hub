@@ -54,6 +54,12 @@ export default function OmegleRoomPage() {
       setUserRole(data.role ?? "Unknown");
       setIsRoomAssigned(true);
       setConnectionStatus("Room assigned - " + (data.role ?? "Unknown"));
+      // Update sessionStorage with the latest room assignment
+      sessionStorage.setItem("omegle_room", JSON.stringify({
+        room: data.room,
+        initiator: data.initiator,
+        role: data.role
+      }));
       return; // Don't need PeerConnection for room assignment
     }
 
@@ -67,6 +73,7 @@ export default function OmegleRoomPage() {
 
     if (data.type === "offer" && data.offer) {
       console.log("[CLIENT] Received offer, creating answer");
+      console.log("[CLIENT] Offer details:", data.offer);
       setHasReceivedOffer(true);
       
       try {
@@ -80,12 +87,14 @@ export default function OmegleRoomPage() {
       }
     } else if (data.type === "answer" && data.answer) {
       console.log("[CLIENT] Received answer");
+      console.log("[CLIENT] Answer details:", data.answer);
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
       } catch (error) {
         console.error("[CLIENT] Error setting remote description:", error);
       }
     } else if (data.type === "candidate" && data.candidate) {
+      console.log("[CLIENT] Received ICE candidate:", data.candidate);
       try {
         await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
         console.log("[CLIENT] ICE candidate added");
@@ -137,9 +146,7 @@ export default function OmegleRoomPage() {
         setUserRole(role ?? "Unknown");
         setIsRoomAssigned(true);
         setConnectionStatus("Room assigned - " + (role ?? "Unknown"));
-        return () => {
-          socket.removeEventListener('message', handleMessage);
-        };
+        // Don't return early - we still need to listen for WebSocket messages
       }
     }
     
@@ -263,7 +270,7 @@ export default function OmegleRoomPage() {
       console.log("[CLIENT] Cleaning up PeerConnection");
       pc.close();
     };
-  }, [roomId, isInitiator, hasReceivedOffer, isRoomAssigned]);
+  }, [roomId, isInitiator, hasReceivedOffer, isRoomAssigned, send]);
 
   const createAndSendOffer = useCallback(async (pc: RTCPeerConnection, roomId: string) => {
     try {

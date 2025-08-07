@@ -130,7 +130,7 @@ wss.on('connection', (ws) => {
             waitingUsers.delete(userId);
             
             // Determine initiator and responder
-            const roles = determineInitiator(userId, { joinTime: Date.now() }, partner.userId, partnerData);
+            const roles = determineInitiator(userId, { joinTime: Date.now() }, partner.userId, { joinTime: partnerData.joinTime });
             
             // Create room with proper roles
             activeRooms.set(roomId, {
