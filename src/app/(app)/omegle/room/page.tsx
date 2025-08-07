@@ -259,6 +259,9 @@ export default function OmegleRoomPage() {
         if (isInitiator && !hasReceivedOffer) {
           console.log("[CLIENT] Creating offer as initiator");
           createAndSendOffer(pc, roomId);
+        } else {
+          console.log("[CLIENT] Not initiator, waiting for offer");
+          setConnectionStatus("Waiting for connection...");
         }
       })
       .catch((error) => {

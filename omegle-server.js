@@ -79,7 +79,8 @@ wss.on('connection', (ws) => {
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message);
-      console.log(`[SERVER] Received message from ${userId}:`, data.type);
+      const curUserId = ws.userId;
+      console.log(`[SERVER] Received message from ${curUserId}:`, data.type);
       
       switch (data.type) {
         case 'reconnect': {
@@ -113,46 +114,48 @@ wss.on('connection', (ws) => {
 
         case 'find_partner':
           const { audioEnabled = true, videoEnabled = true } = data;
-          console.log(`[SERVER] User ${userId} looking for partner (audio: ${audioEnabled}, video: ${videoEnabled})`);
+          console.log(`[SERVER] User ${curUserId} looking for partner (audio: ${audioEnabled}, video: ${videoEnabled})`);
           
           // Check if there's already a waiting user
-          const partner = findPartner(userId, audioEnabled, videoEnabled);
+          const partner = findPartner(curUserId, audioEnabled, videoEnabled);
           
           if (partner) {
             // Create a room with both users
             const roomId = generateRoomId();
             const partnerData = partner.userData;
             
-            console.log(`[SERVER] Found partner for ${userId}: ${partner.userId}`);
+            console.log(`[SERVER] Found partner for ${curUserId}: ${partner.userId}`);
             
             // Remove both users from waiting list
             waitingUsers.delete(partner.userId);
             waitingUsers.delete(userId);
             
-            // Determine initiator and responder
-            const roles = determineInitiator(userId, { joinTime: Date.now() }, partner.userId, { joinTime: partnerData.joinTime });
+            // Determine initiator and responder using actual join times
+            const myJoinTime = (waitingUsers.has(curUserId) && waitingUsers.get(curUserId).joinTime) || Date.now();
+            const partnerJoinTime = partnerData.joinTime || Date.now();
+            const roles = determineInitiator(curUserId, { joinTime: myJoinTime }, partner.userId, { joinTime: partnerJoinTime });
             
             // Create room with proper roles
             activeRooms.set(roomId, {
               user1: { 
                 id: roles.initiator, 
-                socket: roles.initiator === userId ? ws : partnerData.socket, 
+                socket: roles.initiator === curUserId ? ws : partnerData.socket, 
                 initiator: true 
               },
               user2: { 
                 id: roles.responder, 
-                socket: roles.responder === userId ? ws : partnerData.socket, 
+                socket: roles.responder === curUserId ? ws : partnerData.socket, 
                 initiator: false 
               }
             });
 
             // store roomId in tokenToUser
-            tokenToUser.get(roles.initiator === userId ? ws.token : partnerData.socket.token).roomId = roomId;
-            tokenToUser.get(roles.responder === userId ? ws.token : partnerData.socket.token).roomId = roomId;
+            tokenToUser.get(roles.initiator === curUserId ? ws.token : partnerData.socket.token).roomId = roomId;
+            tokenToUser.get(roles.responder === curUserId ? ws.token : partnerData.socket.token).roomId = roomId;
             
             // Notify both users with their roles
-            const initiatorSocket = roles.initiator === userId ? ws : partnerData.socket;
-            const responderSocket = roles.responder === userId ? ws : partnerData.socket;
+            const initiatorSocket = roles.initiator === curUserId ? ws : partnerData.socket;
+            const responderSocket = roles.responder === curUserId ? ws : partnerData.socket;
             
             console.log(`[SERVER] Sending room_assigned to initiator ${roles.initiator}`);
             initiatorSocket.send(JSON.stringify({
@@ -188,7 +191,7 @@ wss.on('connection', (ws) => {
         case 'join':
           // client asks to join existing room - optionally with token
           const { room: roomToJoin, token: clientToken } = data;
-          console.log(`[SERVER] User ${userId} trying to join room ${roomToJoin} (token: ${clientToken || 'none'})`);
+          console.log(`[SERVER] User ${curUserId} trying to join room ${roomToJoin} (token: ${clientToken || 'none'})`);
           const room = activeRooms.get(roomToJoin);
           if (room) {
             // If token provided, use it to map this socket to the correct user slot
@@ -206,26 +209,40 @@ wss.on('connection', (ws) => {
                 console.log(`[SERVER] Token matched user ${entry.userId} but they are not in room ${roomToJoin}`);
               }
             }
-            // ack join
-            ws.send(JSON.stringify({ type: 'join_ok', room: roomToJoin }));
-            console.log(`[SERVER] User ${userId} joined room ${roomToJoin}`);
+            // Re-send room assignment with role information
+            const isUser1 = room.user1.id === curUserId;
+            try {
+              ws.send(JSON.stringify({
+                type: 'room_assigned',
+                room: roomToJoin,
+                initiator: isUser1 ? room.user1.initiator : room.user2.initiator,
+                role: isUser1 ? (room.user1.initiator ? 'initiator' : 'responder') : (room.user2.initiator ? 'initiator' : 'responder')
+              }));
+              console.log(`[SERVER] User ${curUserId} joined room ${roomToJoin} as ${isUser1 ? (room.user1.initiator ? 'initiator' : 'responder') : (room.user2.initiator ? 'initiator' : 'responder')}`);
+            } catch (err) {
+              console.warn('[SERVER] Error sending room_assigned on join:', err);
+            }
           } else {
-            ws.send(JSON.stringify({ type: 'join_failed', reason: 'no_room' }));
-            console.log(`[SERVER] User ${userId} tried to join non-existent room ${roomToJoin}`);
+            try {
+              ws.send(JSON.stringify({ type: 'join_failed', reason: 'no_room' }));
+            } catch (err) {
+              console.warn('[SERVER] Error sending join_failed:', err);
+            }
+            console.log(`[SERVER] User ${curUserId} tried to join non-existent room ${roomToJoin}`);
           }
           break;
           
         case 'skip':
           // Handle skip request
           const userRoom = Array.from(activeRooms.entries()).find(([_, roomData]) => 
-            roomData.user1.id === userId || roomData.user2.id === userId
+            roomData.user1.id === curUserId || roomData.user2.id === curUserId
           );
           
           if (userRoom) {
             const [roomId, roomData] = userRoom;
-            const otherUser = roomData.user1.id === userId ? roomData.user2 : roomData.user1;
+            const otherUser = roomData.user1.id === curUserId ? roomData.user2 : roomData.user1;
             
-            console.log(`[SERVER] User ${userId} skipping in room ${roomId}`);
+            console.log(`[SERVER] User ${curUserId} skipping in room ${roomId}`);
             
             // Notify the other user about the skip
             otherUser.socket.send(JSON.stringify({
@@ -263,12 +280,22 @@ wss.on('connection', (ws) => {
           // Forward WebRTC signaling messages
           const targetRoom = activeRooms.get(data.room);
           if (targetRoom) {
-            const targetUser = targetRoom.user1.id === userId ? targetRoom.user2 : targetRoom.user1;
-            console.log(`[SERVER] Forwarding ${data.type} from ${userId} to ${targetUser.id} in room ${data.room}`);
-            targetUser.socket.send(JSON.stringify({
-              ...data,
-              from: userId
-            }));
+            const targetUser = targetRoom.user1.id === curUserId ? targetRoom.user2 : targetRoom.user1;
+            const senderUser = targetRoom.user1.id === curUserId ? targetRoom.user1 : targetRoom.user2;
+            console.log(`[SERVER] Forwarding ${data.type} from ${curUserId} (${senderUser.initiator ? 'initiator' : 'responder'}) to ${targetUser.id} (${targetUser.initiator ? 'initiator' : 'responder'}) in room ${data.room}`);
+            try {
+              if (targetUser.socket && targetUser.socket.readyState === WebSocket.OPEN) {
+                targetUser.socket.send(JSON.stringify({
+                  ...data,
+                  from: curUserId,
+                  initiator: senderUser.initiator
+                }));
+              } else {
+                console.warn('[SERVER] Target socket not open when forwarding signaling');
+              }
+            } catch (err) {
+              console.warn('[SERVER] Error forwarding signaling:', err);
+            }
           } else {
             console.log(`[SERVER] Received ${data.type} for non-existent room ${data.room} from ${userId}`);
           }
@@ -283,22 +310,29 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
-    console.log(`[SERVER] User ${userId} disconnected`);
+    const curUserId = ws.userId;
+    console.log(`[SERVER] User ${curUserId} disconnected`);
     
     // Remove user from waiting list
-    waitingUsers.delete(userId);
+    waitingUsers.delete(curUserId);
     
     // Remove user from active rooms
     for (const [roomId, roomData] of activeRooms.entries()) {
-      if (roomData.user1.id === userId || roomData.user2.id === userId) {
-        const otherUser = roomData.user1.id === userId ? roomData.user2 : roomData.user1;
+      if (roomData.user1.id === curUserId || roomData.user2.id === curUserId) {
+        const otherUser = roomData.user1.id === curUserId ? roomData.user2 : roomData.user1;
         
-        console.log(`[SERVER] Notifying ${otherUser.id} about ${userId}'s disconnection`);
+        console.log(`[SERVER] Notifying ${otherUser.id} about ${curUserId}'s disconnection`);
         
         // Notify the other user
-        otherUser.socket.send(JSON.stringify({
-          type: 'partner_disconnected'
-        }));
+        try {
+          if (otherUser.socket && otherUser.socket.readyState === WebSocket.OPEN) {
+            otherUser.socket.send(JSON.stringify({
+              type: 'partner_disconnected'
+            }));
+          }
+        } catch (err) {
+          console.warn('[SERVER] Error sending disconnect notification:', err);
+        }
         
                  // Add other user back to waiting list with new join time
          waitingUsers.set(otherUser.id, { 
