@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { FullMessageType } from '@/types';
+import { FullMessageType } from '@/shared/types';
 
 interface ReplyContextType {
   replyTo: FullMessageType | null;

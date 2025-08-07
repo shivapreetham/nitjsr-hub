@@ -13,7 +13,7 @@ import { useToast } from '@/app/hooks/use-toast';
 import axios, { AxiosError } from 'axios';
 import { useState } from 'react';
 // Schema for the reset password form
-import { resetPasswordSchema } from '@/schemas/resetPasswordSchema';
+import { resetPasswordSchema } from '@/shared/schemas/resetPasswordSchema';
 
 export default function ResetPasswordForm({ params }: { params: any }) {
   const router = useRouter();

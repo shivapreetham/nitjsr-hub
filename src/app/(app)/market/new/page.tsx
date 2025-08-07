@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { PRODUCT_CATEGORIES, PRODUCT_CONDITIONS } from "@/types/products";
+import { PRODUCT_CATEGORIES, PRODUCT_CONDITIONS } from "@/shared/types/products";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -28,8 +28,8 @@ import {
 import { toast } from "@/app/hooks/use-toast";
 import { ArrowLeft, Loader2, Upload, Image as ImageIcon, Tag, MapPin, LayoutGrid } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { productSchema as formSchema } from "@/schemas/productSchema";
-import { MainImageUpload, AdditionalImagesUpload, PaymentQRUpload } from "@/app/(app)/market/components/market/imageUpload";
+import { productSchema as formSchema } from "@/shared/schemas/productSchema";
+import { MainImageUpload, AdditionalImagesUpload, PaymentQRUpload } from "@/app/(app)/market/(comp)/components/market/imageUpload";
 
 export default function NewProductPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -85,23 +85,23 @@ export default function NewProductPage() {
   };
 
   return (
-    <div className=" bg-blue-80 py-10 px-4 sm:px-6">
+    <div className="bg-background py-10 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto">
         <Button
           variant="ghost"
           onClick={() => router.back()}
-          className="mb-6 text-blue-600 hover:text-blue-800 hover:bg-blue-50/50 rounded-full flex items-center gap-2 transition-all duration-300"
+          className="mb-6 text-foreground hover:text-foreground hover:bg-muted rounded-full flex items-center gap-2 transition-all duration-300"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to marketplace
         </Button>
 
-        <Card className="overflow-hidden border-0 bg-white/60 backdrop-blur-md shadow-xl rounded-2xl">
-          <div className="h-2 bg-gradient-to-r from-blue-400 to-blue-600"></div>
+        <Card className="overflow-hidden border-0 bg-card/60 backdrop-blur-md shadow-xl rounded-2xl">
+          <div className="h-2 bg-gradient-to-r from-primary to-primary/80"></div>
           <CardContent className="p-6 sm:p-10">
             <div className="mb-8 text-center">
-              <h1 className="text-3xl font-bold text-blue-800 mb-2">List Your Product</h1>
-              <p className="text-blue-600/80">Fill in the details below to list your item in the marketplace</p>
+              <h1 className="text-3xl font-bold text-foreground mb-2">List Your Product</h1>
+              <p className="text-muted-foreground">Fill in the details below to list your item in the marketplace</p>
             </div>
 
             <Form {...form}>
@@ -111,7 +111,7 @@ export default function NewProductPage() {
                   name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-blue-700 font-medium flex items-center gap-2">
+                      <FormLabel className="text-foreground font-medium flex items-center gap-2">
                         <Tag className="h-4 w-4" />
                         Product Title
                       </FormLabel>
@@ -119,10 +119,10 @@ export default function NewProductPage() {
                         <Input
                           placeholder="What are you selling?"
                           {...field}
-                          className="border-0 bg-blue-50/50 focus:bg-blue-50/80 focus:ring-2 focus:ring-blue-400/30 h-14 rounded-xl shadow-sm transition-all duration-200"
+                          className="border-0 bg-muted/50 focus:bg-muted/80 focus:ring-2 focus:ring-primary/30 h-14 rounded-xl shadow-sm transition-all duration-200"
                         />
                       </FormControl>
-                      <FormMessage className="text-red-500" />
+                      <FormMessage className="text-destructive" />
                     </FormItem>
                   )}
                 />
@@ -133,7 +133,7 @@ export default function NewProductPage() {
                     name="price"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-blue-700 font-medium flex items-center gap-2">
+                        <FormLabel className="text-foreground font-medium flex items-center gap-2">
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z" />
                             <path d="M7 7h.01" />
@@ -145,10 +145,10 @@ export default function NewProductPage() {
                             type="number"
                             {...field}
                             value={field.value || ''}
-                            className="border-0 bg-blue-50/50 focus:bg-blue-50/80 focus:ring-2 focus:ring-blue-400/30 h-14 rounded-xl shadow-sm transition-all duration-200"
+                            className="border-0 bg-muted/50 focus:bg-muted/80 focus:ring-2 focus:ring-primary/30 h-14 rounded-xl shadow-sm transition-all duration-200"
                           />
                         </FormControl>
-                        <FormMessage className="text-red-500" />
+                        <FormMessage className="text-destructive" />
                       </FormItem>
                     )}
                   />
@@ -158,25 +158,25 @@ export default function NewProductPage() {
                     name="category"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-blue-700 font-medium flex items-center gap-2">
+                        <FormLabel className="text-foreground font-medium flex items-center gap-2">
                           <LayoutGrid className="h-4 w-4" />
                           Category
                         </FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger className="border-0 bg-blue-50/50 focus:bg-blue-50/80 focus:ring-2 focus:ring-blue-400/30 h-14 rounded-xl shadow-sm transition-all duration-200">
+                            <SelectTrigger className="border-0 bg-muted/50 focus:bg-muted/80 focus:ring-2 focus:ring-primary/30 h-14 rounded-xl shadow-sm transition-all duration-200">
                               <SelectValue placeholder="Select category" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent className="bg-white/95 backdrop-blur-md border-0 shadow-lg rounded-xl overflow-hidden">
+                          <SelectContent className="bg-card/95 backdrop-blur-md border-0 shadow-lg rounded-xl overflow-hidden">
                             {PRODUCT_CATEGORIES.map((category) => (
-                              <SelectItem key={category} value={category} className="focus:bg-blue-50">
+                              <SelectItem key={category} value={category} className="focus:bg-muted">
                                 {category}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                        <FormMessage className="text-red-500" />
+                        <FormMessage className="text-destructive" />
                       </FormItem>
                     )}
                   />
@@ -188,7 +188,7 @@ export default function NewProductPage() {
                     name="condition"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-blue-700 font-medium flex items-center gap-2">
+                        <FormLabel className="text-foreground font-medium flex items-center gap-2">
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
                             <circle cx="12" cy="12" r="3" />
@@ -197,19 +197,19 @@ export default function NewProductPage() {
                         </FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger className="border-0 bg-blue-50/50 focus:bg-blue-50/80 focus:ring-2 focus:ring-blue-400/30 h-14 rounded-xl shadow-sm transition-all duration-200">
+                            <SelectTrigger className="border-0 bg-muted/50 focus:bg-muted/80 focus:ring-2 focus:ring-primary/30 h-14 rounded-xl shadow-sm transition-all duration-200">
                               <SelectValue placeholder="Select condition" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent className="bg-white/95 backdrop-blur-md border-0 shadow-lg rounded-xl overflow-hidden">
+                          <SelectContent className="bg-card/95 backdrop-blur-md border-0 shadow-lg rounded-xl overflow-hidden">
                             {PRODUCT_CONDITIONS.map((condition) => (
-                              <SelectItem key={condition} value={condition} className="focus:bg-blue-50">
+                              <SelectItem key={condition} value={condition} className="focus:bg-muted">
                                 {condition}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                        <FormMessage className="text-red-500" />
+                        <FormMessage className="text-destructive" />
                       </FormItem>
                     )}
                   />
@@ -219,7 +219,7 @@ export default function NewProductPage() {
                     name="hostel"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-blue-700 font-medium flex items-center gap-2">
+                        <FormLabel className="text-foreground font-medium flex items-center gap-2">
                           <MapPin className="h-4 w-4" />
                           Hostel Location (Optional)
                         </FormLabel>
@@ -227,10 +227,10 @@ export default function NewProductPage() {
                           <Input
                             placeholder="Where is the item located?"
                             {...field}
-                            className="border-0 bg-blue-50/50 focus:bg-blue-50/80 focus:ring-2 focus:ring-blue-400/30 h-14 rounded-xl shadow-sm transition-all duration-200"
+                            className="border-0 bg-muted/50 focus:bg-muted/80 focus:ring-2 focus:ring-primary/30 h-14 rounded-xl shadow-sm transition-all duration-200"
                           />
                         </FormControl>
-                        <FormMessage className="text-red-500" />
+                        <FormMessage className="text-destructive" />
                       </FormItem>
                     )}
                   />
@@ -241,7 +241,7 @@ export default function NewProductPage() {
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-blue-700 font-medium flex items-center gap-2">
+                      <FormLabel className="text-foreground font-medium flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                         </svg>
@@ -250,31 +250,31 @@ export default function NewProductPage() {
                       <FormControl>
                         <Textarea
                           placeholder="Describe your item. Include details about its condition, usage, etc."
-                          className="min-h-32 border-0 bg-blue-50/50 focus:bg-blue-50/80 focus:ring-2 focus:ring-blue-400/30 rounded-xl shadow-sm transition-all duration-200"
+                          className="min-h-32 border-0 bg-muted/50 focus:bg-muted/80 focus:ring-2 focus:ring-primary/30 rounded-xl shadow-sm transition-all duration-200"
                           {...field}
                         />
                       </FormControl>
-                      <FormMessage className="text-red-500" />
+                      <FormMessage className="text-destructive" />
                     </FormItem>
                   )}
                 />
 
                 <div className="space-y-6">
-                  <div className="bg-gradient-to-r from-blue-50/70 to-blue-100/70 backdrop-blur-sm p-6 rounded-2xl border border-blue-100/50 shadow-sm">
+                  <div className="bg-gradient-to-r from-muted/70 to-muted/50 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-sm">
                     <FormField
                       control={form.control}
                       name="mainImage"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-blue-700 font-medium flex items-center gap-2">
+                          <FormLabel className="text-foreground font-medium flex items-center gap-2">
                             <ImageIcon className="h-4 w-4" />
                             Main Image
                           </FormLabel>
-                          <p className="text-sm text-blue-600/80 mb-3">
+                          <p className="text-sm text-muted-foreground mb-3">
                             This will be the primary image shown in search results
                           </p>
                           <FormControl>
-                            <div className="bg-white/70 backdrop-blur-sm p-5 rounded-xl border border-dashed border-blue-200 transition-all hover:border-blue-400 duration-300">
+                            <div className="bg-card/70 backdrop-blur-sm p-5 rounded-xl border border-dashed border-border transition-all hover:border-primary duration-300">
                               <MainImageUpload
                                 value={field.value}
                                 onChange={(value: string) => field.onChange(value)}
@@ -282,27 +282,27 @@ export default function NewProductPage() {
                               />
                             </div>
                           </FormControl>
-                          <FormMessage className="text-red-500" />
+                          <FormMessage className="text-destructive" />
                         </FormItem>
                       )}
                     />
                   </div>
 
-                  <div className="bg-gradient-to-r from-blue-50/70 to-blue-100/70 backdrop-blur-sm p-6 rounded-2xl border border-blue-100/50 shadow-sm">
+                  <div className="bg-gradient-to-r from-muted/70 to-muted/50 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-sm">
                     <FormField
                       control={form.control}
                       name="images"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-blue-700 font-medium flex items-center gap-2">
+                          <FormLabel className="text-foreground font-medium flex items-center gap-2">
                             <Upload className="h-4 w-4" />
                             Additional Images (Optional)
                           </FormLabel>
-                          <p className="text-sm text-blue-600/80 mb-3">
+                          <p className="text-sm text-muted-foreground mb-3">
                             Upload up to 5 additional images to showcase your product
                           </p>
                           <FormControl>
-                            <div className="bg-white/70 backdrop-blur-sm p-5 rounded-xl border border-dashed border-blue-200 transition-all hover:border-blue-400 duration-300">
+                            <div className="bg-card/70 backdrop-blur-sm p-5 rounded-xl border border-dashed border-border transition-all hover:border-primary duration-300">
                               <AdditionalImagesUpload
                                 value={field.value}
                                 onChange={(urls: string[]) => field.onChange(urls)}
@@ -311,7 +311,7 @@ export default function NewProductPage() {
                               {field.value && field.value.length > 0 && (
                                 <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
                                   {field.value.map((url, index) => (
-                                    <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-blue-100 shadow-sm transition-transform hover:scale-[1.02] duration-300">
+                                    <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-border shadow-sm transition-transform hover:scale-[1.02] duration-300">
                                       <Image
                                         src={url}
                                         alt={`Additional image ${index + 1}`}
@@ -321,7 +321,7 @@ export default function NewProductPage() {
                                       <button
                                         type="button"
                                         onClick={() => handleImageRemove(field, url)}
-                                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 w-7 h-7 flex items-center justify-center shadow-md hover:bg-red-600 transition-colors duration-200"
+                                        className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 w-7 h-7 flex items-center justify-center shadow-md hover:bg-destructive/90 transition-colors duration-200"
                                       >
                                         ×
                                       </button>
@@ -331,19 +331,19 @@ export default function NewProductPage() {
                               )}
                             </div>
                           </FormControl>
-                          <FormMessage className="text-red-500" />
+                          <FormMessage className="text-destructive" />
                         </FormItem>
                       )}
                     />
                   </div>
 
-                  <div className="bg-gradient-to-r from-blue-50/70 to-blue-100/70 backdrop-blur-sm p-6 rounded-2xl border border-blue-100/50 shadow-sm">
+                  <div className="bg-gradient-to-r from-muted/70 to-muted/50 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-sm">
                     <FormField
                       control={form.control}
                       name="paymentQR"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-blue-700 font-medium flex items-center gap-2">
+                          <FormLabel className="text-foreground font-medium flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <rect width="5" height="5" x="3" y="3" rx="1" />
                               <rect width="5" height="5" x="16" y="3" rx="1" />
@@ -360,11 +360,11 @@ export default function NewProductPage() {
                             </svg>
                             Payment QR Code (Optional)
                           </FormLabel>
-                          <p className="text-sm text-blue-800/80 mb-3">
+                          <p className="text-sm text-muted-foreground mb-3">
                             Upload your UPI/payment QR code for easier transactions
                           </p>
                           <FormControl>
-                            <div className="bg-white/70 backdrop-blur-sm p-5 rounded-xl border border-dashed border-blue-200 transition-all hover:border-blue-400 duration-300">
+                            <div className="bg-card/70 backdrop-blur-sm p-5 rounded-xl border border-dashed border-border transition-all hover:border-primary duration-300">
                               <PaymentQRUpload
                                 value={field.value ?? ""}
                                 onChange={(url: string) => field.onChange(url)}
@@ -372,7 +372,7 @@ export default function NewProductPage() {
                               />
                             </div>
                           </FormControl>
-                          <FormMessage className="text-red-500" />
+                          <FormMessage className="text-destructive" />
                         </FormItem>
                       )}
                     />
@@ -382,7 +382,7 @@ export default function NewProductPage() {
                 <div className="pt-4">
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-6 text-lg font-medium rounded-xl shadow-lg transition-all duration-300 hover:translate-y-px flex items-center justify-center gap-2"
+                    className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground py-6 text-lg font-medium rounded-xl shadow-lg transition-all duration-300 hover:translate-y-px flex items-center justify-center gap-2"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (

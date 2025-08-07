@@ -3,7 +3,7 @@
 import React from 'react';
 import { X, Reply } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { FullMessageType } from '@/types';
+import { FullMessageType } from '@/shared/types';
 import Image from 'next/image';
 
 interface ReplyInputProps {

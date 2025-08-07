@@ -4,7 +4,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { StreamVideoClient, StreamVideo } from '@stream-io/video-react-sdk';
 import { useCurrentUserContext } from '@/context/CurrentUserProvider';
 
-import { tokenProvider } from '@/app/actions/stream.actions';
+import { tokenProvider } from '@/app/(shared)/serverActions/stream.actions';
 import Loader from '@/app/(app)/videoChat/components/Loader';
 
 const API_KEY = process.env.NEXT_PUBLIC_STREAM_API_KEY;

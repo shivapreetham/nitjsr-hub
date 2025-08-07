@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { FullMessageType } from '@/types';
+import { FullMessageType } from '@/shared/types';
 
 // Type for optimistic messages that have tempId instead of id
 type OptimisticMessageType = Omit<FullMessageType, 'id'> & { tempId: string };

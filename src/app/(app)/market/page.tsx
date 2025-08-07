@@ -2,7 +2,7 @@
 "use client";
 
 import { Suspense } from "react";
-import SearchParamsWrapper from "./components/MarketPage";
+import SearchParamsWrapper from "./(comp)/components/MarketPage";
 
 export default function MarketPage() {
   return (

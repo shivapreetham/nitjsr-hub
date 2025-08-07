@@ -2,7 +2,7 @@ import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
 import { HiChat } from 'react-icons/hi';
 import { signOut } from 'next-auth/react';
-import useConversation from './useConversation';
+import useConversation from '../(app)/(chat)/(comp)/hooks/useConversation';
 import { 
   HiArrowLeftOnRectangle, 
   HiUsers, 
@@ -11,7 +11,8 @@ import {
   HiCalendar,
   HiChartBar,
   HiClipboardDocumentCheck,
-  HiInboxStack
+  HiInboxStack,
+  HiOutlineSparkles
 } from 'react-icons/hi2';
 import { IconType } from 'react-icons';
 
@@ -69,6 +70,13 @@ const useRoutes = () => {
         position: 'middle'
       },
       {
+        label: 'Omegle',
+        href: '/omegle',
+        icon: HiOutlineSparkles,
+        active: pathname === '/omegle' || pathname?.startsWith('/omegle/'),
+        position: 'middle'
+      },
+      {
         label: 'Users',
         href: '/users',
         icon: HiUsers,
@@ -77,9 +85,9 @@ const useRoutes = () => {
       },
       {
         label: 'Dashboard',
-        href: '/dashboard',
+        href: '/anonymous/dashboard',
         icon: HiInboxStack,
-        active: pathname === '/dashboard',
+        active: pathname === '/anonymous/dashboard',
         position: 'middle'
       },
     ],

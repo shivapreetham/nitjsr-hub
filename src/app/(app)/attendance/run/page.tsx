@@ -25,18 +25,18 @@ export default function Home() {
   };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
+    <main className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-6">
       <h2 className="text-2xl font-bold mb-4">Check GET Request</h2>
       
       <button
         onClick={handleCheckRequest}
-        className="bg-blue-500 text-white p-2 rounded"
+        className="bg-primary text-primary-foreground p-2 rounded hover:bg-primary/90 transition-colors"
         disabled={loading}
       >
         {loading ? "Checking..." : "Check Request"}
       </button>
       
-      {error && <p className="text-red-500 mt-3">{error}</p>}
+      {error && <p className="text-destructive mt-3">{error}</p>}
     </main>
   );
 }

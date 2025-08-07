@@ -1,7 +1,7 @@
-import getCurrentUser from '@/app/actions/getCurrentUser';
+import getCurrentUser from '@/app/(shared)/serverActions/getCurrentUser';
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prismadb';
-import { pusherServer } from '@/lib/pusher';
+import prisma from '@/app/lib/prismadb';
+import { pusherServer } from '@/app/lib/pusher';
 
 
 

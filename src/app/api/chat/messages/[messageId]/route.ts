@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prismadb';
-import getCurrentUser from '@/app/actions/getCurrentUser';
-import { pusherServer } from '@/lib/pusher';
+import prisma from '@/app/lib/prismadb';
+import getCurrentUser from '@/app/(shared)/serverActions/getCurrentUser';
+import { pusherServer } from '@/app/lib/pusher';
 
 export async function GET(
   request: Request,

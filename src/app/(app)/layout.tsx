@@ -1,8 +1,8 @@
-import ActiveStatus from '@/components/chat/ActiveStatus';
+import ActiveStatus from '@/components/status&sidebar/ActiveStatus';
 import { Metadata } from 'next';
 import Sidebar from '@/components/sidebar/Sidebar';
 import { CurrentUserProvider } from '@/context/CurrentUserProvider';
-import getCurrentUser from '@/app/actions/getCurrentUser';
+import getCurrentUser from '@/app/(shared)/serverActions/getCurrentUser';
 import StreamVideoProvider from '@/context/StreamClientProvider';
 
 interface RootLayoutProps {

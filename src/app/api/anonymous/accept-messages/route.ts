@@ -1,7 +1,7 @@
 // src/app/api/anonymous/accept-messages/route.ts
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/options';
-import prisma from '@/lib/prismadb';
+import { authOptions } from '@/app/api/(auth)/auth/[...nextauth]/options';
+import prisma from '@/app/lib/prismadb';
 import { NextResponse } from 'next/server';
 
 interface SessionUser {

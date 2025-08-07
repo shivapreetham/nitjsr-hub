@@ -1,7 +1,7 @@
 import Sidebar from '@/components/sidebar/Sidebar';
-import ConversationList from './components/ConversationList';
-import getConversations from '@/app/actions/getConversations';
-import getUsers from '@/app/actions/getUsers';
+import ConversationList from '../(comp)/components/ConversationList';
+import getConversations from '@/app/(app)/(chat)/(comp)/serverActions/getConversations';
+import getUsers from '@/app/(shared)/serverActions/getUsers';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {

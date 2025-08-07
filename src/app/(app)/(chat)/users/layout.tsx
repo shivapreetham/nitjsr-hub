@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import getUsers from '@/app/actions/getUsers';
+import getUsers from '@/app/(shared)/serverActions/getUsers';
 import Sidebar from '@/components/sidebar/Sidebar';
 import UserList from './components/UserList';
 
