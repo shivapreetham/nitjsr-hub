@@ -33,9 +33,13 @@ export default function OmegleRoomPage() {
   const [connectionStatus, setConnectionStatus] = useState("Connecting...");
   const [isInitiator, setIsInitiator] = useState(false);
   const [userRole, setUserRole] = useState("");
-  const [hasReceivedOffer, setHasReceivedOffer] = useState(false);
   const [isRoomAssigned, setIsRoomAssigned] = useState(false);
   const [localStreamReady, setLocalStreamReady] = useState(false);
+  const [mediaError, setMediaError] = useState("");
+  
+  // Prevent multiple peer connection attempts
+  const [peerConnectionInProgress, setPeerConnectionInProgress] = useState(false);
+  const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
 
   const handleSocketMessage = useCallback(async (data: { 
     type: string; 
@@ -53,8 +57,8 @@ export default function OmegleRoomPage() {
       setIsInitiator(data.initiator ?? false);
       setUserRole(data.role ?? "Unknown");
       setIsRoomAssigned(true);
-      setHasReceivedOffer(false); // Reset offer state for new room
       setConnectionStatus("Room assigned - " + (data.role ?? "Unknown"));
+      
       // Update sessionStorage with the latest room assignment
       sessionStorage.setItem("omegle_room", JSON.stringify({
         room: data.room,
@@ -62,8 +66,7 @@ export default function OmegleRoomPage() {
         role: data.role
       }));
       console.log("[CLIENT] Updated state - isInitiator:", data.initiator, "role:", data.role);
-      console.log("[CLIENT] My room:", sessionStorage.getItem("omegle_room"));
-      return; // Don't need PeerConnection for room assignment
+      return;
     }
 
     const pc = pcRef.current;
@@ -74,226 +77,231 @@ export default function OmegleRoomPage() {
 
     console.log("[CLIENT] Processing message with PeerConnection:", data.type);
 
-    if (data.type === "offer" && data.offer) {
-      console.log("[CLIENT] Received offer, creating answer");
-      console.log("[CLIENT] Offer details:", data.offer);
-      setHasReceivedOffer(true);
-      
-      try {
+    try {
+      if (data.type === "offer" && data.offer) {
+        console.log("[CLIENT] Received offer, creating answer");
+        
         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
+        
         const payload = { type: "answer", answer, room: roomId, token };
         console.log("[CLIENT] Sending answer:", payload);
         send(payload);
-        console.log("[CLIENT] Answer sent");
-      } catch (error) {
-        console.error("[CLIENT] Error handling offer:", error);
-      }
-    } else if (data.type === "answer" && data.answer) {
-      console.log("[CLIENT] Received answer");
-      console.log("[CLIENT] Answer details:", data.answer);
-      try {
+        console.log("[CLIENT] Answer sent successfully");
+        
+      } else if (data.type === "answer" && data.answer) {
+        console.log("[CLIENT] Received answer");
         await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-      } catch (error) {
-        console.error("[CLIENT] Error setting remote description:", error);
-      }
-    } else if (data.type === "candidate" && data.candidate) {
-      console.log("[CLIENT] Received ICE candidate:", data.candidate);
-      try {
+        console.log("[CLIENT] Answer processed successfully");
+        
+      } else if (data.type === "candidate" && data.candidate) {
+        console.log("[CLIENT] Received ICE candidate:", data.candidate);
         await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-        console.log("[CLIENT] ICE candidate added");
-      } catch (error) {
-        console.error("[CLIENT] Error adding ICE candidate:", error);
+        console.log("[CLIENT] ICE candidate added successfully");
+        
+      } else if (data.type === "partner_skipped") {
+        console.log("[CLIENT] Partner skipped");
+        setConnectionStatus("Partner skipped");
+        setIsConnected(false);
+        
+      } else if (data.type === "partner_disconnected") {
+        console.log("[CLIENT] Partner disconnected");
+        setConnectionStatus("Partner disconnected");
+        setIsConnected(false);
       }
-    } else if (data.type === "partner_skipped") {
-      console.log("[CLIENT] Partner skipped");
-      setConnectionStatus("Partner skipped");
-      setIsConnected(false);
-    } else if (data.type === "partner_disconnected") {
-      console.log("[CLIENT] Partner disconnected");
-      setConnectionStatus("Partner disconnected");
-      setIsConnected(false);
-    } else if (data.type === "user_count") {
-      console.log("[CLIENT] Received user count update:", data);
-    } else {
-      console.log("[CLIENT] Unknown message type:", data.type);
+    } catch (error) {
+      console.error("[CLIENT] Error handling socket message:", error);
+      setConnectionStatus("Connection error: " + error.message);
     }
-  }, [roomId]);
+  }, [roomId, send, token]);
+
+  // Initialize media stream first
+  const initializeMediaStream = useCallback(async () => {
+    if (localStreamRef.current || !navigator.mediaDevices) {
+      return localStreamRef.current;
+    }
+
+    console.log("[CLIENT] Requesting user media...");
+    setConnectionStatus("Requesting camera access...");
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: true, 
+        audio: true 
+      });
+      
+      console.log("[CLIENT] User media obtained successfully");
+      localStreamRef.current = stream;
+      setLocalStreamReady(true);
+      setMediaError("");
+      
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+        localVideoRef.current.play().catch((err) => {
+          console.error("[CLIENT] Error playing local video:", err);
+        });
+      }
+      
+      return stream;
+    } catch (error) {
+      console.error("[CLIENT] Error accessing media devices:", error);
+      const errorMsg = error.name === "NotAllowedError" 
+        ? "Camera/microphone access denied. Please allow access and refresh."
+        : "Failed to access camera/microphone: " + error.message;
+      setMediaError(errorMsg);
+      setConnectionStatus(errorMsg);
+      throw error;
+    }
+  }, []);
 
   // Listen for messages from shared WebSocket and join room
   useEffect(() => {
-    if (!socket || !roomId) {
-      console.log("[CLIENT] Missing socket or roomId:", { hasSocket: !!socket, roomId });
+    if (!socket || !roomId || hasJoinedRoom) {
+      console.log("[CLIENT] Skipping join:", { hasSocket: !!socket, roomId, hasJoinedRoom });
       return;
     }
 
     const handleMessage = (event: MessageEvent) => {
       try {
         console.log("[CLIENT] Raw WebSocket message received:", event.data);
-      const data = JSON.parse(event.data);
+        const data = JSON.parse(event.data);
         console.log("[CLIENT] Parsed message:", data);
-      handleSocketMessage(data);
+        handleSocketMessage(data);
       } catch (error) {
-        console.error("[CLIENT] Error parsing WebSocket message:", error, "Raw data:", event.data);
+        console.error("[CLIENT] Error parsing WebSocket message:", error);
       }
     };
 
     socket.addEventListener('message', handleMessage);
     
-    // Check if we were already assigned to this room (from main page)
-    // But don't set the state yet - wait for WebSocket message to ensure we have the latest role
-    const savedRoom = sessionStorage.getItem("omegle_room");
-    if (savedRoom) {
-      const { room: savedRoomId } = JSON.parse(savedRoom);
-      if (savedRoomId === roomId) {
-        console.log("[CLIENT] Already assigned to this room, waiting for WebSocket confirmation");
-        setIsRoomAssigned(true);
-        setConnectionStatus("Room assigned - waiting for role confirmation");
-      }
-    }
-    
-    // Join the room with token if available
+    // Join the room only once
     console.log("[CLIENT] Sending join message for room:", roomId);
     send({ type: "join", room: roomId, token: token || undefined });
-    setConnectionStatus("Connected to server");
+    setHasJoinedRoom(true);
+    setConnectionStatus("Joining room...");
 
     return () => {
       socket.removeEventListener('message', handleMessage);
     };
-  }, [socket, roomId, send, token, handleSocketMessage]);
+  }, [socket, roomId, send, token, handleSocketMessage, hasJoinedRoom]);
 
-  // Initialize PeerConnection and local media stream
+  // Initialize PeerConnection after room is assigned and media is ready
   useEffect(() => {
-    console.log("[CLIENT] PeerConnection useEffect triggered:", {
-      hasSocket: !!socket,
-      hasRoomId: !!roomId,
-      isRoomAssigned,
-      socketReadyState: socket?.readyState
-    });
-
-    if (!socket || !roomId || !isRoomAssigned) {
-      console.log("[CLIENT] Not ready to create PeerConnection:", {
+    if (!socket || !roomId || !isRoomAssigned || peerConnectionInProgress) {
+      console.log("[CLIENT] Not ready for PeerConnection:", {
         hasSocket: !!socket,
         hasRoomId: !!roomId,
-        isRoomAssigned
+        isRoomAssigned,
+        peerConnectionInProgress
       });
       return;
     }
 
-    console.log("[CLIENT] Creating PeerConnection...");
-    const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" }
-      ],
-    });
-    pcRef.current = pc;
+    let cleanup = false;
+    setPeerConnectionInProgress(true);
 
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        console.log("[CLIENT] Sending ICE candidate");
-        const payload = {
-            type: "candidate",
-            candidate: event.candidate,
-            room: roomId,
-            token
-        };
-        console.log("[CLIENT] Sending ICE candidate:", payload);
-        send(payload);
-      }
-    };
-
-    pc.oniceconnectionstatechange = () => {
-      console.log("[CLIENT] ICE connection state:", pc.iceConnectionState);
-      if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
-        setIsConnected(true);
-        setConnectionStatus("Connected to stranger");
-      } else if (pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed") {
-        setIsConnected(false);
-        setConnectionStatus("Disconnected from stranger");
-      } else if (pc.iceConnectionState === "checking") {
-        setConnectionStatus("Establishing connection...");
-      } else if (pc.iceConnectionState === "new") {
-        setConnectionStatus("Initializing connection...");
-      }
-    };
-
-    pc.onconnectionstatechange = () => {
-      console.log("[CLIENT] Connection state:", pc.connectionState);
-      if (pc.connectionState === "connected") {
-        setIsConnected(true);
-        setConnectionStatus("Connected to stranger");
-      } else if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
-        setIsConnected(false);
-        setConnectionStatus("Disconnected from stranger");
-      }
-    };
-
-    pc.ontrack = (event) => {
-      console.log("[CLIENT] Received remote track:", event.streams[0]);
-      if (remoteVideoRef.current && event.streams[0]) {
-        remoteVideoRef.current.srcObject = event.streams[0];
-        remoteVideoRef.current.play().catch((err) => {
-          console.error("[CLIENT] Error playing remote video:", err);
-        });
-      }
-    };
-
-    // Get user media
-    console.log("[CLIENT] Requesting user media...");
-    navigator.mediaDevices
-      .getUserMedia({ video: true, audio: true })
-      .then((stream) => {
-        console.log("[CLIENT] User media obtained successfully");
-        localStreamRef.current = stream;
-        setLocalStreamReady(true);
+    const initializePeerConnection = async () => {
+      try {
+        console.log("[CLIENT] Initializing PeerConnection...");
         
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-          localVideoRef.current.play().catch((err) => {
-            console.error("[CLIENT] Error playing local video:", err);
+        // Get media stream first
+        const stream = await initializeMediaStream();
+        if (cleanup) return;
+
+        // Clean up any existing peer connection
+        if (pcRef.current) {
+          console.log("[CLIENT] Cleaning up existing PeerConnection");
+          pcRef.current.close();
+        }
+
+        // Create new peer connection
+        const pc = new RTCPeerConnection({
+          iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:stun1.l.google.com:19302" }
+          ],
+        });
+        pcRef.current = pc;
+
+        // Set up event handlers
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            console.log("[CLIENT] Sending ICE candidate");
+            const payload = {
+              type: "candidate",
+              candidate: event.candidate,
+              room: roomId,
+              token
+            };
+            send(payload);
+          }
+        };
+
+        pc.oniceconnectionstatechange = () => {
+          console.log("[CLIENT] ICE connection state:", pc.iceConnectionState);
+          if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
+            setIsConnected(true);
+            setConnectionStatus("Connected to stranger");
+          } else if (pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed") {
+            setIsConnected(false);
+            setConnectionStatus("Connection failed");
+          } else if (pc.iceConnectionState === "checking") {
+            setConnectionStatus("Establishing connection...");
+          }
+        };
+
+        pc.ontrack = (event) => {
+          console.log("[CLIENT] Received remote track:", event.streams[0]);
+          if (remoteVideoRef.current && event.streams[0]) {
+            remoteVideoRef.current.srcObject = event.streams[0];
+            remoteVideoRef.current.play().catch((err) => {
+              console.error("[CLIENT] Error playing remote video:", err);
+            });
+          }
+        };
+
+        // Add local stream tracks
+        if (stream) {
+          stream.getTracks().forEach((track) => {
+            pc.addTrack(track, stream);
           });
         }
-        
-        // Add all tracks to the peer connection
-        stream.getTracks().forEach((track) => {
-          pc.addTrack(track, stream);
-        });
 
-        // Only the initiator should create and send the offer
-        if (isInitiator && !hasReceivedOffer) {
+        // Create offer if initiator
+        if (isInitiator) {
           console.log("[CLIENT] Creating offer as initiator");
-          createAndSendOffer(pc, roomId);
+          setConnectionStatus("Creating offer...");
+          
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          
+          const payload = { type: "offer", offer, room: roomId, token };
+          console.log("[CLIENT] Sending offer");
+          send(payload);
+          setConnectionStatus("Offer sent, waiting for answer...");
         } else {
-          console.log("[CLIENT] Not initiator, waiting for offer");
-          setConnectionStatus("Waiting for connection...");
+          console.log("[CLIENT] Waiting for offer as responder");
+          setConnectionStatus("Waiting for offer...");
         }
-      })
-      .catch((error) => {
-        console.error("[CLIENT] Error accessing media devices:", error);
-        setConnectionStatus("Camera/microphone access denied");
-      });
+
+      } catch (error) {
+        console.error("[CLIENT] Error initializing PeerConnection:", error);
+        setConnectionStatus("Failed to initialize: " + error.message);
+      } finally {
+        if (!cleanup) {
+          setPeerConnectionInProgress(false);
+        }
+      }
+    };
+
+    initializePeerConnection();
 
     return () => {
-      console.log("[CLIENT] Cleaning up PeerConnection");
-      pc.close();
+      cleanup = true;
+      setPeerConnectionInProgress(false);
     };
-  }, [roomId, isInitiator, hasReceivedOffer, isRoomAssigned, send]);
-
-  const createAndSendOffer = useCallback(async (pc: RTCPeerConnection, roomId: string) => {
-    try {
-      console.log("[CLIENT] Creating offer...");
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      const payload = { type: "offer", offer, room: roomId, token };
-      console.log("[CLIENT] Sending offer:", payload);
-      send(payload);
-      console.log("[CLIENT] Offer sent");
-    } catch (error) {
-      console.error("[CLIENT] Error creating offer:", error);
-    }
-  }, [send, token]);
+  }, [roomId, isInitiator, isRoomAssigned, send, token, initializeMediaStream]);
 
   const toggleAudio = useCallback(() => {
     if (localStreamRef.current) {
@@ -322,6 +330,14 @@ export default function OmegleRoomPage() {
     if (socket && socket.readyState === WebSocket.OPEN) {
       send({ type: "skip", room: roomId });
     }
+    // Clean up resources
+    if (pcRef.current) {
+      pcRef.current.close();
+    }
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+    }
     router.push("/omegle");
   }, [roomId, router, socket, send]);
 
@@ -332,12 +348,20 @@ export default function OmegleRoomPage() {
     }
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
     }
     router.push("/omegle");
   }, [router]);
 
   const handleReconnect = useCallback(() => {
     console.log("[CLIENT] Reconnecting...");
+    if (pcRef.current) {
+      pcRef.current.close();
+    }
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+    }
     router.push("/omegle");
   }, [router]);
 
@@ -347,7 +371,7 @@ export default function OmegleRoomPage() {
         {/* Header */}
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-foreground mb-2">Random Video Chat</h1>
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex items-center justify-center gap-4 flex-wrap">
             <Badge 
               variant={isConnected ? "default" : "secondary"}
               className={isConnected ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300"}
@@ -361,6 +385,11 @@ export default function OmegleRoomPage() {
               {userRole || "Unknown"}
             </Badge>
           </div>
+          {mediaError && (
+            <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300 rounded text-sm">
+              {mediaError}
+            </div>
+          )}
         </div>
 
         {/* Video Grid */}
@@ -384,11 +413,20 @@ export default function OmegleRoomPage() {
                     <VideoOff className="h-12 w-12 text-muted-foreground" />
                   </div>
                 )}
-                {!localStreamReady && (
+                {(!localStreamReady || mediaError) && (
                   <div className="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-lg">
                     <div className="text-center">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-2"></div>
-                      <p className="text-muted-foreground">Loading camera...</p>
+                      {mediaError ? (
+                        <>
+                          <VideoOff className="h-12 w-12 text-red-500 mx-auto mb-2" />
+                          <p className="text-red-500 text-sm">Media access failed</p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-2"></div>
+                          <p className="text-muted-foreground">Loading camera...</p>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
@@ -401,7 +439,7 @@ export default function OmegleRoomPage() {
             <CardContent className="p-4">
               <div className="text-center mb-2">
                 <h3 className="text-foreground font-semibold">Stranger</h3>
-        </div>
+              </div>
               <div className="relative">
                 <video 
                   ref={remoteVideoRef} 
@@ -414,8 +452,8 @@ export default function OmegleRoomPage() {
                     <div className="text-center">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-2"></div>
                       <p className="text-muted-foreground">Waiting for stranger...</p>
-        </div>
-      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             </CardContent>
@@ -432,7 +470,7 @@ export default function OmegleRoomPage() {
                 size="lg"
                 onClick={toggleAudio}
                 className="flex items-center gap-2"
-                disabled={!localStreamReady}
+                disabled={!localStreamReady || !!mediaError}
               >
                 {isAudioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
                 {isAudioEnabled ? 'Mute' : 'Unmute'}
@@ -443,7 +481,7 @@ export default function OmegleRoomPage() {
                 size="lg"
                 onClick={toggleVideo}
                 className="flex items-center gap-2"
-                disabled={!localStreamReady}
+                disabled={!localStreamReady || !!mediaError}
               >
                 {isVideoEnabled ? <VideoIcon className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
                 {isVideoEnabled ? 'Stop Video' : 'Start Video'}
@@ -494,6 +532,7 @@ export default function OmegleRoomPage() {
               <p>User Role: {userRole}</p>
               <p>Local Stream Ready: {localStreamReady ? 'Yes' : 'No'}</p>
               <p>Connection Status: {connectionStatus}</p>
+              <p>Media Error: {mediaError || 'None'}</p>
             </div>
           </CardContent>
         </Card>
