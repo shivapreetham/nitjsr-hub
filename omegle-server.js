@@ -128,7 +128,7 @@ wss.on('connection', (ws) => {
             
             // Remove both users from waiting list
             waitingUsers.delete(partner.userId);
-            waitingUsers.delete(userId);
+            waitingUsers.delete(curUserId);
             
             // Determine initiator and responder using actual join times
             const myJoinTime = (waitingUsers.has(curUserId) && waitingUsers.get(curUserId).joinTime) || Date.now();
@@ -176,7 +176,7 @@ wss.on('connection', (ws) => {
             console.log(`[SERVER] Room ${roomId} created with ${roles.initiator} (initiator) and ${roles.responder} (responder)`);
           } else {
                          // Add user to waiting list with join time
-             waitingUsers.set(userId, {
+             waitingUsers.set(curUserId, {
                socket: ws,
                audioEnabled,
                videoEnabled,
@@ -184,7 +184,7 @@ wss.on('connection', (ws) => {
                token: ws.token
              });
             
-            console.log(`[SERVER] User ${userId} added to waiting list. Total waiting: ${waitingUsers.size}`);
+            console.log(`[SERVER] User ${curUserId} added to waiting list. Total waiting: ${waitingUsers.size}`);
           }
           break;
           
