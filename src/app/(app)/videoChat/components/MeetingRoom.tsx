@@ -1,13 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
 import {
-  CallParticipantsList,
   CallStatsButton,
   CallingState,
   PaginatedGridLayout,
   SpeakerLayout,
   useCallStateHooks,
   useCall,
+  StreamVideoParticipant,
 } from '@stream-io/video-react-sdk';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
@@ -17,7 +17,6 @@ import {
   MicOff, 
   Video, 
   VideoOff, 
-  Phone, 
   PhoneOff,
   Settings,
   MessageSquare,
@@ -32,7 +31,9 @@ import {
   X,
   Mic as MicIcon,
   Video as VideoIcon,
-  Crown
+  Grid3X3,
+  Users2,
+  Maximize
 } from 'lucide-react';
 
 import {
@@ -49,7 +50,7 @@ import Loader from './Loader';
 import EndCallButton from './EndCallButton';
 import { cn } from '@/app/lib/utils';
 
-type CallLayoutType = 'grid' | 'speaker-left' | 'speaker-right';
+type CallLayoutType = 'grid' | 'speaker-left' | 'speaker-right' | 'speaker-bottom';
 type ViewMode = 'fullscreen' | 'normal';
 
 const MeetingRoom = () => {
@@ -63,15 +64,24 @@ const MeetingRoom = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('normal');
   const [meetingTime, setMeetingTime] = useState(0);
   
-  const { useCallCallingState } = useCallStateHooks();
+  const { 
+    useCallCallingState, 
+    useParticipants, 
+    useHasOngoingScreenShare,
+    useMicrophoneState,
+    useCameraState,
+    useScreenShareState
+  } = useCallStateHooks();
+  
   const call = useCall();
-
+  const participants = useParticipants();
+  const hasOngoingScreenShare = useHasOngoingScreenShare();
   const callingState = useCallCallingState();
 
-  // Get call state for mic/video
-  const { useMicrophoneState, useCameraState } = useCallStateHooks();
+  // Get call state for mic/video using proper hooks
   const { microphone, isMute } = useMicrophoneState();
-  const { camera, isEnabled: isVideoEnabled } = useCameraState();
+  const { camera, isMute: isVideoMuted } = useCameraState();
+  const { screenShare } = useScreenShareState();
 
   // Meeting timer
   useEffect(() => {
@@ -82,6 +92,13 @@ const MeetingRoom = () => {
       return () => clearInterval(interval);
     }
   }, [callingState]);
+
+  // Auto switch to speaker view when screen sharing starts
+  useEffect(() => {
+    if (hasOngoingScreenShare && layout === 'grid') {
+      setLayout('speaker-left');
+    }
+  }, [hasOngoingScreenShare, layout]);
 
   // Format meeting time
   const formatTime = (seconds: number) => {
@@ -97,20 +114,34 @@ const MeetingRoom = () => {
 
   if (callingState !== CallingState.JOINED) return <Loader />;
 
-  const toggleMic = () => {
-    if (microphone) {
-      microphone.toggle();
+  const toggleMic = async () => {
+    try {
+      await microphone.toggle();
+    } catch (error) {
+      console.error('Error toggling microphone:', error);
     }
   };
 
-  const toggleVideo = () => {
-    if (camera) {
-      camera.toggle();
+  const toggleVideo = async () => {
+    try {
+      await camera.toggle();
+    } catch (error) {
+      console.error('Error toggling camera:', error);
+    }
+  };
+
+  const toggleScreenShare = async () => {
+    try {
+      await screenShare.toggle();
+    } catch (error) {
+      console.error('Error toggling screen share:', error);
     }
   };
 
   const toggleHandRaise = () => {
     setIsHandRaised(!isHandRaised);
+    // You can implement custom hand raise logic here
+    // call?.sendCustomEvent({ type: 'hand-raised', raised: !isHandRaised });
   };
 
   const toggleFullscreen = () => {
@@ -123,36 +154,127 @@ const MeetingRoom = () => {
     }
   };
 
+  // Custom Video Placeholder Component
+  const VideoPlaceholder = ({ participant }: { participant: StreamVideoParticipant }) => (
+    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg flex items-center justify-center h-full relative border border-gray-700/50">
+      <div className="text-center">
+        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+          <span className="text-white font-bold text-lg">
+            {participant.name ? participant.name.charAt(0).toUpperCase() : 'U'}
+          </span>
+        </div>
+        <p className="text-white text-sm font-medium">{participant.name || 'Unknown User'}</p>
+        <div className="flex items-center justify-center gap-2 mt-2">
+          {!participant.publishedTracks.includes('audioTrack') && (
+            <div className="bg-red-500/80 p-1 rounded-full">
+              <MicOff size={10} className="text-white" />
+            </div>
+          )}
+          {!participant.publishedTracks.includes('videoTrack') && (
+            <div className="bg-red-500/80 p-1 rounded-full">
+              <VideoOff size={10} className="text-white" />
+            </div>
+          )}
+        </div>
+      </div>
+      {participant.isDominantSpeaker && (
+        <div className="absolute top-2 left-2 bg-green-500/90 px-2 py-1 rounded-full text-xs text-white font-medium">
+          Speaking
+        </div>
+      )}
+    </div>
+  );
+
+  // Custom layout rendering with proper Stream.io integration
+  const renderLayout = () => {
+    const commonProps = {
+      VideoPlaceholder,
+    };
+
+    switch (layout) {
+      case 'grid':
+        return (
+          <div className="h-full w-full">
+            <PaginatedGridLayout 
+              {...commonProps}
+              groupSize={9}
+            />
+          </div>
+        );
+      case 'speaker-right':
+        return (
+          <div className="h-full w-full">
+            <SpeakerLayout 
+              {...commonProps}
+              participantsBarPosition="left"
+              participantsBarLimit={6}
+            />
+          </div>
+        );
+      case 'speaker-bottom':
+        return (
+          <div className="h-full w-full">
+            <SpeakerLayout 
+              {...commonProps}
+              participantsBarPosition="bottom"
+              participantsBarLimit={8}
+            />
+          </div>
+        );
+      default: // speaker-left
+        return (
+          <div className="h-full w-full">
+            <SpeakerLayout 
+              {...commonProps}
+              participantsBarPosition="right"
+              participantsBarLimit={6}
+            />
+          </div>
+        );
+    }
+  };
+
   // Get participants count
-  const participantsCount = call?.state.participants?.length || 1;
+  const participantsCount = participants?.length || 1;
 
   return (
     <TooltipProvider>
-      <div className="relative h-screen w-full bg-black overflow-hidden">
+      <div className="relative h-screen w-full bg-gradient-to-br from-gray-900 via-black to-gray-800 overflow-hidden">
         {/* Header */}
-        <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/60 to-transparent backdrop-blur-sm">
+        <div className="absolute top-0 left-0 right-0 z-30 bg-gradient-to-b from-black/80 via-black/40 to-transparent backdrop-blur-md border-b border-white/10">
           <div className="flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                <h1 className="text-white font-medium text-lg">Meeting</h1>
-                <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
+                <div className="relative">
+                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                  <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-75"></div>
+                </div>
+                <h1 className="text-white font-semibold text-lg">Meeting Room</h1>
+                <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/50 font-medium">
                   Live
                 </Badge>
+                {hasOngoingScreenShare && (
+                  <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-blue-500/50 font-medium">
+                    Screen Sharing
+                  </Badge>
+                )}
               </div>
-              <div className="flex items-center gap-2 text-white/70 text-sm">
+              <div className="flex items-center gap-2 text-white/80 text-sm bg-black/20 px-3 py-1 rounded-full">
                 <Clock size={14} />
-                <span>{formatTime(meetingTime)}</span>
+                <span className="font-mono">{formatTime(meetingTime)}</span>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-white hover:bg-white/10 rounded-full w-10 h-10"
+                    className={cn(
+                      "text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200",
+                      showParticipants && "bg-white/20"
+                    )}
                     onClick={() => setShowParticipants(!showParticipants)}
                   >
                     <Users size={18} />
@@ -166,7 +288,10 @@ const MeetingRoom = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-white hover:bg-white/10 rounded-full w-10 h-10"
+                    className={cn(
+                      "text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200",
+                      showChat && "bg-white/20"
+                    )}
                     onClick={() => setShowChat(!showChat)}
                   >
                     <MessageSquare size={18} />
@@ -180,12 +305,12 @@ const MeetingRoom = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-white hover:bg-white/10 rounded-full w-10 h-10"
+                    className="text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200"
                   >
                     <Share size={18} />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Share</TooltipContent>
+                <TooltipContent>Share meeting link</TooltipContent>
               </Tooltip>
 
               <Tooltip>
@@ -193,28 +318,28 @@ const MeetingRoom = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-white hover:bg-white/10 rounded-full w-10 h-10"
+                    className="text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200"
                     onClick={toggleFullscreen}
                   >
                     {viewMode === 'normal' ? <Maximize2 size={18} /> : <Minimize2 size={18} />}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>{viewMode === 'normal' ? 'Fullscreen' : 'Exit Fullscreen'}</TooltipContent>
+                <TooltipContent>{viewMode === 'normal' ? 'Enter fullscreen' : 'Exit fullscreen'}</TooltipContent>
               </Tooltip>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 rounded-full w-10 h-10">
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200">
                     <MoreHorizontal size={18} />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-gray-800 border-gray-700 text-white">
-                  <DropdownMenuItem className="hover:bg-gray-700">
+                <DropdownMenuContent className="bg-gray-900/95 backdrop-blur-md border-gray-700 text-white">
+                  <DropdownMenuItem className="hover:bg-gray-800 focus:bg-gray-800">
                     <Settings size={16} className="mr-2" />
                     Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-gray-700" />
-                  <DropdownMenuItem className="hover:bg-gray-700">
+                  <DropdownMenuItem className="hover:bg-gray-800 focus:bg-gray-800">
                     <CallStatsButton />
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -224,57 +349,51 @@ const MeetingRoom = () => {
         </div>
 
         {/* Main Content */}
-        <div className="flex h-full">
+        <div className="flex h-full pt-20 pb-24">
           {/* Video Area */}
-          <div className="flex-1 relative">
-            <div className="h-full w-full">
-              {layout === 'grid' ? (
-                <PaginatedGridLayout />
-              ) : layout === 'speaker-right' ? (
-                <SpeakerLayout participantsBarPosition="left" />
-              ) : (
-                <SpeakerLayout participantsBarPosition="right" />
-              )}
+          <div className="flex-1 relative p-4">
+            <div className="h-full w-full rounded-xl overflow-hidden bg-gray-800/20 backdrop-blur-sm border border-white/10">
+              {renderLayout()}
             </div>
           </div>
 
           {/* Sidebar */}
           {(showParticipants || showChat) && (
-            <div className="w-80 bg-gray-900/95 backdrop-blur-sm border-l border-white/10">
+            <div className="w-80 bg-gray-900/95 backdrop-blur-md border-l border-white/20 p-4">
               {showParticipants && (
                 <div className="h-full flex flex-col">
-                  <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                  <div className="pb-4 border-b border-white/20 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Users size={20} className="text-white" />
-                      <h3 className="text-white font-medium">Participants</h3>
-                      <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">
+                      <h3 className="text-white font-semibold">Participants</h3>
+                      <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-blue-500/50 text-xs font-medium">
                         {participantsCount}
                       </Badge>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-white hover:bg-white/10 rounded-full w-8 h-8"
+                      className="text-white hover:bg-white/20 rounded-full w-8 h-8"
                       onClick={() => setShowParticipants(false)}
                     >
                       <X size={16} />
                     </Button>
                   </div>
-                  <div className="flex-1 overflow-y-auto p-4">
+                  <div className="flex-1 overflow-y-auto py-4">
                     <div className="space-y-3">
-                      {call?.state.participants?.map((participant) => (
+                      {participants?.map((participant) => (
                         <div
                           key={participant.sessionId}
-                          className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50 hover:bg-gray-800/70 transition-colors"
+                          className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-xl border border-gray-700/50 hover:bg-gray-800/70 transition-all duration-200"
                         >
                           <div className="relative">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                              <span className="text-white font-medium text-sm">
+                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
+                              <span className="text-white font-semibold text-sm">
                                 {participant.name ? participant.name.charAt(0).toUpperCase() : 'U'}
                               </span>
                             </div>
                             {participant.isLocalParticipant && (
-                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900"></div>
+                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900 shadow-sm"></div>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -283,26 +402,23 @@ const MeetingRoom = () => {
                                 {participant.name || 'Unknown User'}
                               </span>
                               {participant.isLocalParticipant && (
-                                <span className="text-xs text-gray-400">(You)</span>
-                              )}
-                              {participant.roles?.includes('admin') && (
-                                <Crown size={12} className="text-yellow-500" />
+                                <span className="text-xs text-gray-400 font-medium">(You)</span>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 mt-1">
+                            <div className="flex items-center gap-3 mt-2">
                               <div className={cn(
-                                "flex items-center gap-1 text-xs",
-                                participant.audioLevel > 0 ? "text-green-400" : "text-gray-400"
+                                "flex items-center gap-1 text-xs px-2 py-1 rounded-full",
+                                participant.publishedTracks.includes('audioTrack') ? "text-green-400 bg-green-500/10" : "text-red-400 bg-red-500/10"
                               )}>
-                                {participant.audioLevel > 0 ? <MicIcon size={10} /> : <MicOff size={10} />}
-                                <span>{participant.audioLevel > 0 ? 'Speaking' : 'Muted'}</span>
+                                {participant.publishedTracks.includes('audioTrack') ? <MicIcon size={10} /> : <MicOff size={10} />}
+                                <span>{participant.publishedTracks.includes('audioTrack') ? 'Unmuted' : 'Muted'}</span>
                               </div>
                               <div className={cn(
-                                "flex items-center gap-1 text-xs",
-                                participant.videoStream ? "text-green-400" : "text-gray-400"
+                                "flex items-center gap-1 text-xs px-2 py-1 rounded-full",
+                                participant.publishedTracks.includes('videoTrack') ? "text-green-400 bg-green-500/10" : "text-red-400 bg-red-500/10"
                               )}>
-                                {participant.videoStream ? <VideoIcon size={10} /> : <VideoOff size={10} />}
-                                <span>{participant.videoStream ? 'Video On' : 'Video Off'}</span>
+                                {participant.publishedTracks.includes('videoTrack') ? <VideoIcon size={10} /> : <VideoOff size={10} />}
+                                <span>{participant.publishedTracks.includes('videoTrack') ? 'Video On' : 'Video Off'}</span>
                               </div>
                             </div>
                           </div>
@@ -315,24 +431,25 @@ const MeetingRoom = () => {
               
               {showChat && (
                 <div className="h-full flex flex-col">
-                  <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                  <div className="pb-4 border-b border-white/20 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <MessageSquare size={20} className="text-white" />
-                      <h3 className="text-white font-medium">Chat</h3>
+                      <h3 className="text-white font-semibold">Chat</h3>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-white hover:bg-white/10 rounded-full w-8 h-8"
+                      className="text-white hover:bg-white/20 rounded-full w-8 h-8"
                       onClick={() => setShowChat(false)}
                     >
                       <X size={16} />
                     </Button>
                   </div>
-                  <div className="flex-1 p-4">
+                  <div className="flex-1 py-4 flex items-center justify-center">
                     <div className="text-center text-gray-400">
                       <MessageSquare size={48} className="mx-auto mb-4 opacity-50" />
-                      <p>Chat feature coming soon</p>
+                      <p className="font-medium">Chat feature coming soon</p>
+                      <p className="text-sm mt-1">Stay tuned for updates</p>
                     </div>
                   </div>
                 </div>
@@ -342,40 +459,50 @@ const MeetingRoom = () => {
         </div>
 
         {/* Bottom Controls */}
-        <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/60 to-transparent backdrop-blur-sm">
-          <div className="flex items-center justify-center gap-3 p-6">
+        <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 via-black/40 to-transparent backdrop-blur-md border-t border-white/10">
+          <div className="flex items-center justify-center gap-2 p-6">
             {/* Layout Controls */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="lg" className="text-white hover:bg-white/10 rounded-full w-12 h-12">
+                    <Button variant="ghost" size="lg" className="text-white hover:bg-white/20 rounded-full w-12 h-12 transition-all duration-200">
                       <LayoutGrid size={20} />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="bg-gray-800 border-gray-700 text-white">
+                  <DropdownMenuContent className="bg-gray-900/95 backdrop-blur-md border-gray-700 text-white">
                     <DropdownMenuItem 
                       onClick={() => setLayout('grid')}
-                      className="hover:bg-gray-700"
+                      className="hover:bg-gray-800 focus:bg-gray-800"
                     >
+                      <Grid3X3 size={16} className="mr-2" />
                       Grid View
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => setLayout('speaker-left')}
-                      className="hover:bg-gray-700"
+                      className="hover:bg-gray-800 focus:bg-gray-800"
                     >
+                      <Users2 size={16} className="mr-2" />
                       Speaker Left
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => setLayout('speaker-right')}
-                      className="hover:bg-gray-700"
+                      className="hover:bg-gray-800 focus:bg-gray-800"
                     >
+                      <Users2 size={16} className="mr-2" />
                       Speaker Right
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => setLayout('speaker-bottom')}
+                      className="hover:bg-gray-800 focus:bg-gray-800"
+                    >
+                      <Maximize size={16} className="mr-2" />
+                      Speaker Bottom
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TooltipTrigger>
-              <TooltipContent>Layout</TooltipContent>
+              <TooltipContent>Change layout</TooltipContent>
             </Tooltip>
 
             {/* Main Controls */}
@@ -385,17 +512,17 @@ const MeetingRoom = () => {
                   variant="ghost"
                   size="lg"
                   className={cn(
-                    "rounded-full w-14 h-14",
+                    "rounded-full w-14 h-14 transition-all duration-200 shadow-lg",
                     !isMute 
-                      ? "text-white hover:bg-white/10" 
-                      : "bg-red-500 text-white hover:bg-red-600"
+                      ? "text-white hover:bg-white/20 ring-2 ring-white/20" 
+                      : "bg-red-500/90 text-white hover:bg-red-600 ring-2 ring-red-400/50"
                   )}
                   onClick={toggleMic}
                 >
                   {!isMute ? <Mic size={24} /> : <MicOff size={24} />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{!isMute ? 'Mute' : 'Unmute'}</TooltipContent>
+              <TooltipContent>{!isMute ? 'Mute microphone' : 'Unmute microphone'}</TooltipContent>
             </Tooltip>
 
             <Tooltip>
@@ -404,31 +531,17 @@ const MeetingRoom = () => {
                   variant="ghost"
                   size="lg"
                   className={cn(
-                    "rounded-full w-14 h-14",
-                    isVideoEnabled 
-                      ? "text-white hover:bg-white/10" 
-                      : "bg-red-500 text-white hover:bg-red-600"
+                    "rounded-full w-14 h-14 transition-all duration-200 shadow-lg",
+                    !isVideoMuted 
+                      ? "text-white hover:bg-white/20 ring-2 ring-white/20" 
+                      : "bg-red-500/90 text-white hover:bg-red-600 ring-2 ring-red-400/50"
                   )}
                   onClick={toggleVideo}
                 >
-                  {isVideoEnabled ? <Video size={24} /> : <VideoOff size={24} />}
+                  {!isVideoMuted ? <Video size={24} /> : <VideoOff size={24} />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{isVideoEnabled ? 'Turn off camera' : 'Turn on camera'}</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="lg"
-                  className="rounded-full w-14 h-14 text-white hover:bg-white/10"
-                  disabled
-                >
-                  <Monitor size={24} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Screen share (coming soon)</TooltipContent>
+              <TooltipContent>{!isVideoMuted ? 'Turn off camera' : 'Turn on camera'}</TooltipContent>
             </Tooltip>
 
             <Tooltip>
@@ -437,10 +550,29 @@ const MeetingRoom = () => {
                   variant="ghost"
                   size="lg"
                   className={cn(
-                    "rounded-full w-14 h-14",
+                    "rounded-full w-14 h-14 transition-all duration-200 shadow-lg",
+                    hasOngoingScreenShare 
+                      ? "bg-blue-500/90 text-white hover:bg-blue-600 ring-2 ring-blue-400/50" 
+                      : "text-white hover:bg-white/20 ring-2 ring-white/20"
+                  )}
+                  onClick={toggleScreenShare}
+                >
+                  {hasOngoingScreenShare ? <MonitorOff size={24} /> : <Monitor size={24} />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{hasOngoingScreenShare ? 'Stop screen share' : 'Share screen'}</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  className={cn(
+                    "rounded-full w-14 h-14 transition-all duration-200 shadow-lg",
                     isHandRaised 
-                      ? "bg-yellow-500 text-white hover:bg-yellow-600" 
-                      : "text-white hover:bg-white/10"
+                      ? "bg-yellow-500/90 text-white hover:bg-yellow-600 ring-2 ring-yellow-400/50" 
+                      : "text-white hover:bg-white/20 ring-2 ring-white/20"
                   )}
                   onClick={toggleHandRaise}
                 >
@@ -456,7 +588,7 @@ const MeetingRoom = () => {
                 <Button
                   variant="destructive"
                   size="lg"
-                  className="rounded-full w-16 h-16 bg-red-500 hover:bg-red-600"
+                  className="rounded-full w-16 h-16 bg-red-500/90 hover:bg-red-600 transition-all duration-200 shadow-lg ring-2 ring-red-400/50"
                   onClick={() => router.push('/videoChat')}
                 >
                   <PhoneOff size={24} />
