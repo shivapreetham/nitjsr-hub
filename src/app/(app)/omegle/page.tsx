@@ -1,256 +1,133 @@
+// app/omegle/page.tsx
 "use client";
 
-import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import {
-  Users,
-  Video,
-  SkipForward,
-  Search,
-  StopCircle,
-  Mic,
-  MicOff,
-  VideoOff,
-  VideoIcon,
-  Wifi,
-  WifiOff
-} from 'lucide-react';
-import { useSocket } from '@/context/SocketProvider';
+import React, { useRef, useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Users, Video, SkipForward, Search, StopCircle, Mic, MicOff, VideoOff, VideoIcon, Wifi, WifiOff } from "lucide-react";
+import { useSocket } from "@/context/SocketProvider";
 
-export default function SocketOmeglePage() {
+export default function OmegleMain() {
   const router = useRouter();
   const { socket, emit, isConnected } = useSocket();
-
   const [isSearching, setIsSearching] = useState(false);
   const [userCount, setUserCount] = useState(0);
   const [searchTime, setSearchTime] = useState(0);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState("Connecting...");
-  const searchIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const searchIntervalRef = useRef<number | null>(null);
 
-  // connection status
-  useEffect(() => {
-    setConnectionStatus(isConnected ? "Connected" : "Connecting...");
-  }, [isConnected]);
+  useEffect(() => { setConnectionStatus(isConnected ? "Connected" : "Connecting..."); }, [isConnected]);
 
-  // socket listeners
   useEffect(() => {
     if (!socket) return;
-
-    const handleUserCount = (data: { count: number }) => {
-      setUserCount(data.count);
-    };
-
-    const handleRoomAssigned = (data: any) => {
-      console.log('[MAIN] Room assigned:', data.room, 'Role:', data.role);
+    const u = (d: any) => setUserCount(d.count || 0);
+    const onRoom = (data: any) => {
+      console.log("[MAIN] room_assigned", data);
       setIsSearching(false);
       if (typeof window !== 'undefined') {
-        sessionStorage.setItem("omegle_room", JSON.stringify({
-          room: data.room,
-          initiator: data.initiator,
-          role: data.role,
-          partnerId: data.partnerId,
-          timestamp: Date.now()
-        }));
+        sessionStorage.setItem("omegle_room", JSON.stringify({ room: data.room, initiator: data.initiator, role: data.role, partnerId: data.partnerId, timestamp: Date.now() }));
       }
-      router.push(`/omegle/room?roomId=${data.room}`);
+      router.push(`/omegle/room/${data.room}`);
     };
+    const onPartnerSkipped = () => { setIsSearching(false); setConnectionStatus("Partner skipped"); };
+    const onPartnerDisconnected = () => { setIsSearching(false); setConnectionStatus("Partner disconnected"); };
 
-    const handlePartnerSkipped = () => {
-      console.log('[MAIN] Partner skipped');
-      setIsSearching(false);
-      setConnectionStatus("Partner skipped");
-    };
-
-    const handlePartnerDisconnected = () => {
-      console.log('[MAIN] Partner disconnected');
-      setIsSearching(false);
-      setConnectionStatus("Partner disconnected");
-    };
-
-    socket.on('user_count', handleUserCount);
-    socket.on('room_assigned', handleRoomAssigned);
-    socket.on('partner_skipped', handlePartnerSkipped);
-    socket.on('partner_disconnected', handlePartnerDisconnected);
+    socket.on("user_count", u);
+    socket.on("room_assigned", onRoom);
+    socket.on("partner_skipped", onPartnerSkipped);
+    socket.on("partner_disconnected", onPartnerDisconnected);
 
     return () => {
-      socket.off('user_count', handleUserCount);
-      socket.off('room_assigned', handleRoomAssigned);
-      socket.off('partner_skipped', handlePartnerSkipped);
-      socket.off('partner_disconnected', handlePartnerDisconnected);
+      socket.off("user_count", u);
+      socket.off("room_assigned", onRoom);
+      socket.off("partner_skipped", onPartnerSkipped);
+      socket.off("partner_disconnected", onPartnerDisconnected);
     };
   }, [socket, router]);
 
-  // search timer
   useEffect(() => {
     if (isSearching) {
-      if (searchIntervalRef.current) clearInterval(searchIntervalRef.current);
-      const interval = setInterval(() => setSearchTime(prev => prev + 1), 1000);
-      searchIntervalRef.current = interval;
+      if (searchIntervalRef.current) window.clearInterval(searchIntervalRef.current);
+      searchIntervalRef.current = window.setInterval(() => setSearchTime(s => s + 1), 1000);
     } else {
-      if (searchIntervalRef.current) { clearInterval(searchIntervalRef.current); searchIntervalRef.current = null; }
+      if (searchIntervalRef.current) { window.clearInterval(searchIntervalRef.current); searchIntervalRef.current = null; }
       setSearchTime(0);
     }
-    return () => { if (searchIntervalRef.current) { clearInterval(searchIntervalRef.current); } };
+    return () => { if (searchIntervalRef.current) { window.clearInterval(searchIntervalRef.current); } };
   }, [isSearching]);
 
-  const formatTime = useCallback((seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const formatTime = useCallback((secs: number) => {
+    const m = Math.floor(secs/60); const s = secs % 60; return `${m}:${s.toString().padStart(2,'0')}`;
   }, []);
 
   const handleStart = useCallback(() => {
-    if (!isConnected) {
-      setConnectionStatus('Not connected to server');
-      return;
-    }
-    console.log('[MAIN] Starting search for partner...');
+    if (!isConnected) { setConnectionStatus("Not connected to server"); return; }
     setIsSearching(true);
     setConnectionStatus("Searching for partner...");
-    // emit will include token automatically from SocketProvider
-    emit('find_partner', { audioEnabled, videoEnabled });
+    emit("find_partner", { audioEnabled, videoEnabled });
   }, [emit, audioEnabled, videoEnabled, isConnected]);
 
-  const handleStop = useCallback(() => {
-    console.log('[MAIN] Stopping search');
-    setIsSearching(false);
-    setConnectionStatus("Search stopped");
-  }, []);
-
-  const handleSkip = useCallback(() => {
-    console.log('[MAIN] Skipping current search');
-    if (isConnected) emit('skip');
-    setIsSearching(false);
-  }, [emit, isConnected]);
+  const handleStop = useCallback(() => { setIsSearching(false); setConnectionStatus("Search stopped"); }, []);
+  const handleSkip = useCallback(() => { if (isConnected) emit("skip"); setIsSearching(false); }, [emit, isConnected]);
 
   return (
     <div className="min-h-screen bg-background p-4 flex flex-col items-center">
       <div className="w-full max-w-2xl">
         <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">Random Video Chat</h1>
-          <p className="text-muted-foreground text-lg">Connect with strangers anonymously</p>
+          <h1 className="text-4xl font-bold mb-2">Random Video Chat</h1>
+          <p className="text-muted-foreground text-lg">Connect anonymously</p>
         </div>
 
-        <Card className="mb-6 glass-card">
+        <Card className="mb-6">
           <CardContent className="p-4">
             <div className="flex items-center justify-center gap-3">
-              {isConnected ? <Wifi className="h-5 w-5 text-green-500" /> : <WifiOff className="h-5 w-5 text-red-500" />}
-              <span className="text-sm text-muted-foreground">{connectionStatus}</span>
-              <Badge variant={isConnected ? "default" : "secondary"}>
-                {isConnected ? "Online" : "Offline"}
-              </Badge>
+              {isConnected ? <Wifi /> : <WifiOff />}
+              <span>{connectionStatus}</span>
+              <Badge>{isConnected ? "Online" : "Offline"}</Badge>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="mb-6 glass-card">
+        <Card className="mb-6">
           <CardContent className="p-6">
             <div className="flex items-center justify-center gap-3">
-              <Users className="h-6 w-6 text-primary" />
-              <span className="text-foreground text-lg"><span className="font-bold text-primary">{userCount}</span> people online</span>
-              <Badge variant="secondary">Live</Badge>
+              <Users />
+              <span><strong>{userCount}</strong> people online</span>
+              <Badge>Live</Badge>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
+        <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-foreground">
-              {isSearching ? 'Looking for someone...' : 'Start a Random Chat'}
-            </CardTitle>
-            {isSearching && <div className="text-primary text-lg font-mono">{formatTime(searchTime)}</div>}
+            <CardTitle>{isSearching ? "Looking for someone..." : "Start a Random Chat"}</CardTitle>
+            {isSearching && <div className="font-mono">{formatTime(searchTime)}</div>}
           </CardHeader>
-
           <CardContent className="p-6">
             {!isSearching ? (
-              <div className="space-y-6">
-                <div className="flex justify-center gap-4">
-                  <Button
-                    variant={audioEnabled ? "default" : "secondary"}
-                    size="sm"
-                    onClick={() => setAudioEnabled(!audioEnabled)}
-                    className="flex items-center gap-2"
-                    disabled={!isConnected}
-                  >
-                    {audioEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-                    {audioEnabled ? 'Audio On' : 'Audio Off'}
-                  </Button>
-
-                  <Button
-                    variant={videoEnabled ? "default" : "secondary"}
-                    size="sm"
-                    onClick={() => setVideoEnabled(!videoEnabled)}
-                    className="flex items-center gap-2"
-                    disabled={!isConnected}
-                  >
-                    {videoEnabled ? <VideoIcon className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-                    {videoEnabled ? 'Video On' : 'Video Off'}
-                  </Button>
+              <>
+                <div className="flex justify-center gap-4 mb-4">
+                  <Button onClick={() => setAudioEnabled(a => !a)} disabled={!isConnected}>{audioEnabled ? <Mic/> : <MicOff/>}{audioEnabled ? "Audio On": "Audio Off"}</Button>
+                  <Button onClick={() => setVideoEnabled(v => !v)} disabled={!isConnected}>{videoEnabled ? <VideoIcon/> : <VideoOff/>}{videoEnabled ? "Video On" : "Video Off"}</Button>
                 </div>
-
-                <Button
-                  onClick={handleStart}
-                  size="lg"
-                  className="w-full text-lg py-6"
-                  disabled={!isConnected}
-                >
-                  <Search className="h-5 w-5 mr-2" />
-                  {isConnected ? 'Start Chatting' : 'Connecting...'}
-                </Button>
-
-                {!isConnected && (
-                  <div className="text-center text-sm text-muted-foreground">
-                    Please wait while we connect to the server...
-                  </div>
-                )}
-              </div>
+                <Button onClick={handleStart} disabled={!isConnected} className="w-full py-6"><Search/> Start Chatting</Button>
+              </>
             ) : (
-              <div className="space-y-6">
-                <div className="flex justify-center">
-                  <div className="animate-pulse"><Video className="h-16 w-16 text-primary" /></div>
-                </div>
-
-                <div className="text-center">
-                  <p className="text-muted-foreground mb-2">Searching for a partner...</p>
-                  <p className="text-sm text-muted-foreground">
-                    Audio: {audioEnabled ? 'Enabled' : 'Disabled'} |
-                    Video: {videoEnabled ? 'Enabled' : 'Disabled'}
-                  </p>
-                </div>
-
+              <>
+                <div className="flex justify-center mb-4"><Video/></div>
+                <div className="text-center mb-4">Searching for a partner...</div>
                 <div className="flex gap-4">
-                  <Button onClick={handleSkip} variant="outline" className="flex-1" disabled={!isConnected}>
-                    <SkipForward className="h-4 w-4 mr-2" /> Skip
-                  </Button>
-                  <Button onClick={handleStop} variant="destructive" className="flex-1">
-                    <StopCircle className="h-4 w-4 mr-2" /> Stop
-                  </Button>
+                  <Button onClick={handleSkip}>Skip</Button>
+                  <Button onClick={handleStop}>Stop</Button>
                 </div>
-              </div>
+              </>
             )}
           </CardContent>
         </Card>
-
-        <Card className="mt-6 glass-card">
-          <CardContent className="p-4">
-            <div className="text-center text-sm text-muted-foreground space-y-1">
-              <p>💡 <strong>Tips:</strong></p>
-              <p>• Be respectful and follow community guidelines</p>
-              <p>• You can skip to find a new partner anytime</p>
-              <p>• Make sure your camera and microphone are working</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="text-center mt-8 text-muted-foreground text-sm">
-          <p>⚠️ You are responsible for your own safety</p>
-          <p className="mt-1">Report inappropriate behavior immediately</p>
-        </div>
       </div>
     </div>
   );
