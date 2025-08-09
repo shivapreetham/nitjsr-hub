@@ -300,7 +300,7 @@ export default function RoomPage({ params }: { params: any }) {
         }
       } catch (e) {
         console.error("[ROOM] setup error", e);
-        setConnectionStatus("Setup failed: " + (e?.message || e));
+        setConnectionStatus("Setup failed: " +  (e));
       }
     };
     setup();
