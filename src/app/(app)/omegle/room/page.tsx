@@ -39,13 +39,11 @@ export default function SocketRoomPage() {
   const [roomJoined, setRoomJoined] = useState(false);
   const [partnerId, setPartnerId] = useState("");
 
-  // Buffers for offers/candidates that arrive before pc exists
   const pendingOffersRef = useRef<any[]>([]);
   const pendingCandidatesRef = useRef<any[]>([]);
 
   const initializeMediaStream = useCallback(async () => {
     if (localStreamRef.current) return localStreamRef.current;
-
     setConnectionStatus("Requesting camera access...");
     try {
       const constraints = { 
@@ -102,7 +100,7 @@ export default function SocketRoomPage() {
         case "failed":
           setIsVideoCallConnected(false);
           setConnectionStatus("Connection failed");
-          setTimeout(() => { if (pc.iceConnectionState === 'failed') { pc.restartIce(); } }, 2000);
+          setTimeout(() => { if (pc.iceConnectionState === 'failed') { try { pc.restartIce(); } catch(e){console.warn(e);} } }, 2000);
           break;
         case "checking":
           setConnectionStatus("Establishing connection...");
@@ -119,7 +117,7 @@ export default function SocketRoomPage() {
       console.log("[ROOM] Received remote track");
       if (remoteVideoRef.current && event.streams && event.streams[0]) {
         remoteVideoRef.current.srcObject = event.streams[0];
-        remoteVideoRef.current.play().catch((err)=>{ console.error("[ROOM] play remote error", err); });
+        remoteVideoRef.current.play().catch(()=>{});
       }
     };
 
@@ -137,9 +135,7 @@ export default function SocketRoomPage() {
       setRoomJoined(true);
       setConnectionStatus(`Joined as ${data.role || "Unknown"}`);
       if (typeof window !== 'undefined') {
-        sessionStorage.setItem("omegle_room", JSON.stringify({
-          room: data.room || roomId, initiator: data.initiator, role: data.role, partnerId: data.partnerId, timestamp: Date.now()
-        }));
+        sessionStorage.setItem("omegle_room", JSON.stringify({ room: data.room || roomId, initiator: data.initiator, role: data.role, partnerId: data.partnerId, timestamp: Date.now() }));
       }
     };
 
@@ -153,10 +149,8 @@ export default function SocketRoomPage() {
     };
 
     const handleOffer = async (data: any) => {
-      // If pc not ready, buffer the offer
       if (!pcRef.current) {
         pendingOffersRef.current.push(data);
-        console.warn("[ROOM] Offer received before PC ready — buffered");
         return;
       }
       try {
@@ -173,10 +167,7 @@ export default function SocketRoomPage() {
     };
 
     const handleAnswer = async (data: any) => {
-      if (!pcRef.current) {
-        console.warn("[ROOM] Received answer but no PeerConnection");
-        return;
-      }
+      if (!pcRef.current) return;
       try {
         await pcRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
         setConnectionStatus("Answer processed, establishing connection...");
@@ -188,9 +179,7 @@ export default function SocketRoomPage() {
 
     const handleIceCandidate = async (data: any) => {
       if (!pcRef.current) {
-        // buffer
         pendingCandidatesRef.current.push(data);
-        console.warn("[ROOM] Candidate buffered (pc not ready)");
         return;
       }
       try {
@@ -213,6 +202,25 @@ export default function SocketRoomPage() {
       setIsVideoCallConnected(false);
     };
 
+    const handlePartnerReconnected = async (data: any) => {
+      console.log("[ROOM] Partner reconnected", data);
+      // If we're the initiator, proactively restart ICE / create new offer
+      if (isInitiator && pcRef.current && roomId) {
+        try {
+          setConnectionStatus("Partner reconnected — restarting handshake (initiator)");
+          const offer = await pcRef.current.createOffer({ iceRestart: true });
+          await pcRef.current.setLocalDescription(offer);
+          emit('offer', { room: roomId, offer });
+          console.log("[ROOM] Re-offer (iceRestart) sent by initiator");
+        } catch (err) {
+          console.error("[ROOM] Error creating/sending re-offer:", err);
+        }
+      } else {
+        // If responder: wait for offer from initiator
+        setConnectionStatus("Partner reconnected — waiting for offer");
+      }
+    };
+
     const handleJoinFailed = (data: any) => {
       console.error("[ROOM] Failed to join room:", data.reason);
       setConnectionStatus(`Failed to join room: ${data.reason}`);
@@ -226,6 +234,7 @@ export default function SocketRoomPage() {
     socket.on('ice-candidate', handleIceCandidate);
     socket.on('partner_skipped', handlePartnerSkipped);
     socket.on('partner_disconnected', handlePartnerDisconnected);
+    socket.on('partner_reconnected', handlePartnerReconnected);
     socket.on('join_failed', handleJoinFailed);
 
     return () => {
@@ -236,20 +245,18 @@ export default function SocketRoomPage() {
       socket.off('ice-candidate', handleIceCandidate);
       socket.off('partner_skipped', handlePartnerSkipped);
       socket.off('partner_disconnected', handlePartnerDisconnected);
+      socket.off('partner_reconnected', handlePartnerReconnected);
       socket.off('join_failed', handleJoinFailed);
     };
-  }, [socket, roomId, emit, router]);
+  }, [socket, roomId, emit, router, isInitiator]);
 
-  // Join room after socket connected
   useEffect(() => {
     if (!socket || !roomId || !isConnected || roomJoined) return;
     console.log("[ROOM] Attempting to join room:", roomId);
     setConnectionStatus("Joining room...");
-    // emit will attach token from provider
     emit('join_room', { room: roomId });
   }, [socket, roomId, isConnected, emit, roomJoined]);
 
-  // Setup PeerConnection when room joined
   useEffect(() => {
     if (!roomJoined || !isConnected || pcRef.current) return;
     let cleanup = false;
@@ -270,17 +277,15 @@ export default function SocketRoomPage() {
           });
         }
 
-        console.log("[ROOM] PeerConnection setup complete. Initiator:", isInitiator);
-
-        // process buffered candidates/offers (if any)
+        // Add any buffered candidates
         if (pendingCandidatesRef.current.length > 0) {
           for (const cand of pendingCandidatesRef.current) {
-            try {
-              await pc.addIceCandidate(new RTCIceCandidate(cand.candidate));
-            } catch (e) { console.warn("[ROOM] error adding buffered candidate", e); }
+            try { await pc.addIceCandidate(new RTCIceCandidate(cand.candidate)); } catch(e){ console.warn(e); }
           }
           pendingCandidatesRef.current = [];
         }
+
+        console.log("[ROOM] PeerConnection setup complete. Initiator:", isInitiator);
 
         if (isInitiator) {
           console.log("[ROOM] Creating offer as initiator");
@@ -289,7 +294,6 @@ export default function SocketRoomPage() {
             const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
             await pc.setLocalDescription(offer);
             emit('offer', { room: roomId, offer: offer });
-            console.log("[ROOM] Offer sent successfully");
             setConnectionStatus("Offer sent, waiting for answer...");
           } catch (error: any) {
             console.error("[ROOM] Error creating/sending offer:", error);
@@ -299,7 +303,6 @@ export default function SocketRoomPage() {
           console.log("[ROOM] Waiting for offer as responder");
           setConnectionStatus("Waiting for partner's offer...");
 
-          // If offers were buffered before PC creation, process them now
           if (pendingOffersRef.current.length > 0) {
             for (const pending of pendingOffersRef.current) {
               try {
@@ -324,28 +327,20 @@ export default function SocketRoomPage() {
 
     setupPeerConnection();
 
-    return () => {
-      cleanup = true;
-    };
+    return () => { cleanup = true; };
   }, [roomJoined, isConnected, isInitiator, roomId, emit, initializeMediaStream, createPeerConnection]);
 
   const toggleAudio = useCallback(() => {
     if (localStreamRef.current) {
       const audioTrack = localStreamRef.current.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsAudioEnabled(audioTrack.enabled);
-      }
+      if (audioTrack) { audioTrack.enabled = !audioTrack.enabled; setIsAudioEnabled(audioTrack.enabled); }
     }
   }, []);
 
   const toggleVideo = useCallback(() => {
     if (localStreamRef.current) {
       const videoTrack = localStreamRef.current.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        setIsVideoEnabled(videoTrack.enabled);
-      }
+      if (videoTrack) { videoTrack.enabled = !videoTrack.enabled; setIsVideoEnabled(videoTrack.enabled); }
     }
   }, []);
 
@@ -359,27 +354,22 @@ export default function SocketRoomPage() {
   }, []);
 
   const handleSkip = useCallback(() => {
-    console.log("[ROOM] User initiated skip");
     if (socket && isConnected && roomId) emit('skip');
     cleanupAll();
     router.push("/omegle");
   }, [socket, isConnected, roomId, emit, cleanupAll, router]);
 
   const handleStop = useCallback(() => {
-    console.log("[ROOM] User stopped chat");
     cleanupAll();
     router.push("/omegle");
   }, [cleanupAll, router]);
 
   const handleNewChat = useCallback(() => {
-    console.log("[ROOM] Starting new chat");
     cleanupAll();
     router.push("/omegle");
   }, [cleanupAll, router]);
 
-  useEffect(() => {
-    return () => { cleanupAll(); };
-  }, [cleanupAll]);
+  useEffect(() => { return () => { cleanupAll(); }; }, [cleanupAll]);
 
   if (!roomId) {
     return (
@@ -492,32 +482,6 @@ export default function SocketRoomPage() {
             </div>
           </CardContent>
         </Card>
-
-        {process.env.NODE_ENV === 'development' && (
-          <Card className="glass-card mt-4">
-            <CardContent className="p-4">
-              <div className="text-sm text-muted-foreground">
-                <p><strong>Debug Info:</strong></p>
-                <p>Room ID: {roomId}</p>
-                <p>Socket Connected: {isConnected ? 'Yes' : 'No'}</p>
-                <p>Room Joined: {roomJoined ? 'Yes' : 'No'}</p>
-                <p>User Role: {userRole || 'Not assigned'}</p>
-                <p>Is Initiator: {isInitiator ? 'Yes' : 'No'}</p>
-                <p>Partner ID: {partnerId || 'Unknown'}</p>
-                <p>Local Stream: {localStreamReady ? 'Ready' : 'Not ready'}</p>
-                <p>Video Call: {isVideoCallConnected ? 'Connected' : 'Not connected'}</p>
-                <p>PeerConnection: {pcRef.current ? 'Created' : 'Not created'}</p>
-                <p>Connection Status: {connectionStatus}</p>
-                {mediaError && <p className="text-red-500">Media Error: {mediaError}</p>}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="text-center mt-6 text-muted-foreground text-sm">
-          <p>⚠️ Be respectful and follow community guidelines</p>
-          <p className="mt-1">You are responsible for your own safety</p>
-        </div>
       </div>
     </div>
   );

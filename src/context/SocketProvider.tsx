@@ -24,7 +24,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   const createConnection = useCallback(() => {
     const url = process.env.NEXT_PUBLIC_OMEGLE_SERVER_URL || 'http://localhost:3001';
-    console.log("[SOCKET] Creating connection to:", url);
+    // pass token in auth so server can reattach identity immediately
+    const auth = { token: token || (typeof window !== 'undefined' ? sessionStorage.getItem("omegle_token") : null) };
+    console.log("[SOCKET] Creating connection to:", url, "auth:", Boolean(auth.token));
 
     if (socketRef.current) {
       try { socketRef.current.removeAllListeners(); socketRef.current.disconnect(); } catch (e) {}
@@ -35,19 +37,16 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       timeout: 5000,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
+      auth
     });
 
     newSocket.on('connect', () => {
       console.log("[SOCKET] Connected to server");
       setIsConnected(true);
-      const savedToken = token || (typeof window !== 'undefined' ? sessionStorage.getItem("omegle_token") : null);
-      if (savedToken) {
-        console.log("[SOCKET] Attempting reconnect with token");
-        newSocket.emit('reconnect_user', { token: savedToken });
-      }
     });
 
     newSocket.on('disconnect', (reason: any) => { console.log("[SOCKET] Disconnected:", reason); setIsConnected(false); });
+
     newSocket.on('connect_error', (error: any) => { console.error("[SOCKET] Connection error:", error); setIsConnected(false); });
 
     newSocket.on('welcome', (data: any) => {
@@ -56,9 +55,16 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== 'undefined') sessionStorage.setItem("omegle_token", data.token);
     });
 
-    newSocket.on('reconnect_success', (data: any) => { console.log("[SOCKET] Reconnect successful", data); });
+    newSocket.on('reconnect_success', (data: any) => {
+      console.log("[SOCKET] Reconnect successful", data);
+      // server sends room,userId if applicable
+      if (data && data.room) {
+        // store and navigate handled by pages when observing socket events
+      }
+    });
+
     newSocket.on('reconnect_failed', () => {
-      console.log("[SOCKET] Reconnect failed, starting fresh");
+      console.log("[SOCKET] Reconnect failed, clearing token");
       setToken(null);
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem("omegle_token");
@@ -82,11 +88,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   const reconnect = useCallback(() => {
     console.log("[SOCKET] Manual reconnect triggered");
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current.removeAllListeners();
-      socketRef.current = null;
-    }
+    if (socketRef.current) { socketRef.current.disconnect(); socketRef.current.removeAllListeners(); socketRef.current = null; }
     createConnection();
   }, [createConnection]);
 
@@ -96,9 +98,11 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       return false;
     }
     try {
+      // token is sent in connection auth; but include for older server compatibility
       const payload = { ...(data || {}) };
       if (!payload.token && token) payload.token = token;
       socketRef.current.emit(event, payload);
+      // debug log
       console.log("[SOCKET] Emitted:", event, payload);
       return true;
     } catch (err) {
