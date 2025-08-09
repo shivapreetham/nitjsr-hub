@@ -1,24 +1,27 @@
 'use client';
-import { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   CallStatsButton,
   CallingState,
   PaginatedGridLayout,
   SpeakerLayout,
+  ParticipantView,
   useCallStateHooks,
   useCall,
+  useParticipantViewContext,
+  type VideoPlaceholderProps,
   StreamVideoParticipant,
   hasAudio,
   hasVideo,
 } from '@stream-io/video-react-sdk';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { 
-  Users, 
-  LayoutGrid, 
-  Mic, 
-  MicOff, 
-  Video, 
-  VideoOff, 
+import {
+  Users,
+  LayoutGrid,
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
   PhoneOff,
   Settings,
   MessageSquare,
@@ -35,7 +38,7 @@ import {
   Video as VideoIcon,
   Grid3X3,
   Users2,
-  Maximize
+  Maximize,
 } from 'lucide-react';
 
 import {
@@ -55,7 +58,7 @@ import { cn } from '@/app/lib/utils';
 type CallLayoutType = 'grid' | 'speaker-left' | 'speaker-right' | 'speaker-bottom';
 type ViewMode = 'fullscreen' | 'normal';
 
-const MeetingRoom = () => {
+const MeetingRoom: React.FC = () => {
   const searchParams = useSearchParams();
   const isPersonalRoom = !!searchParams.get('personal');
   const router = useRouter();
@@ -65,189 +68,200 @@ const MeetingRoom = () => {
   const [isHandRaised, setIsHandRaised] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('normal');
   const [meetingTime, setMeetingTime] = useState(0);
-  
-  const { 
-    useCallCallingState, 
-    useParticipants, 
+
+  // stream hooks
+  const {
+    useCallCallingState,
+    useParticipants,
     useHasOngoingScreenShare,
     useMicrophoneState,
     useCameraState,
-    useScreenShareState
+    useScreenShareState,
   } = useCallStateHooks();
-  
+
   const call = useCall();
   const participants = useParticipants();
   const hasOngoingScreenShare = useHasOngoingScreenShare();
   const callingState = useCallCallingState();
 
-  // Get call state for mic/video using proper hooks
   const { microphone, isMute } = useMicrophoneState();
   const { camera, isMute: isVideoMuted } = useCameraState();
   const { screenShare } = useScreenShareState();
 
-  // Meeting timer
+  // timer
   useEffect(() => {
     if (callingState === CallingState.JOINED) {
-      const interval = setInterval(() => {
-        setMeetingTime(prev => prev + 1);
-      }, 1000);
+      const interval = setInterval(() => setMeetingTime((p) => p + 1), 1000);
       return () => clearInterval(interval);
     }
   }, [callingState]);
 
-  // Auto switch to speaker view when screen sharing starts
   useEffect(() => {
-    if (hasOngoingScreenShare && layout === 'grid') {
-      setLayout('speaker-left');
-    }
+    if (hasOngoingScreenShare && layout === 'grid') setLayout('speaker-left');
   }, [hasOngoingScreenShare, layout]);
 
-  // Format meeting time
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
+    if (hours > 0) return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (callingState !== CallingState.JOINED) return <Loader />;
 
   const toggleMic = async () => {
-    try {
-      await microphone.toggle();
-    } catch (error) {
-      console.error('Error toggling microphone:', error);
-    }
+    try { await microphone.toggle(); } catch (e) { console.error('Error toggling mic', e); }
   };
-
   const toggleVideo = async () => {
-    try {
-      await camera.toggle();
-    } catch (error) {
-      console.error('Error toggling camera:', error);
-    }
+    try { await camera.toggle(); } catch (e) { console.error('Error toggling camera', e); }
   };
-
   const toggleScreenShare = async () => {
-    try {
-      await screenShare.toggle();
-    } catch (error) {
-      console.error('Error toggling screen share:', error);
-    }
+    try { await screenShare.toggle(); } catch (e) { console.error('Error toggling screenshare', e); }
   };
 
   const toggleHandRaise = () => {
     const newRaised = !isHandRaised;
     setIsHandRaised(newRaised);
-    // Emit a custom event so other participants / server can react
-    // (keeps `call` variable used and useful)
-    try {
-      call?.sendCustomEvent?.({ type: 'hand-raised', raised: newRaised });
-    } catch (err) {
-      console.warn('Could not send hand-raise custom event', err);
-    }
+    try { call?.sendCustomEvent?.({ type: 'hand-raised', raised: newRaised }); } catch (err) { console.warn('Could not send hand-raise', err); }
   };
 
   const toggleFullscreen = () => {
     if (viewMode === 'normal') {
-      document.documentElement.requestFullscreen();
+      document.documentElement.requestFullscreen?.();
       setViewMode('fullscreen');
     } else {
-      document.exitFullscreen();
+      document.exitFullscreen?.();
       setViewMode('normal');
     }
   };
 
-  // Custom Video Placeholder Component
-  const VideoPlaceholder = ({ participant }: { participant: StreamVideoParticipant }) => (
-    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg flex items-center justify-center h-full relative border border-gray-700/50">
-      <div className="text-center">
-        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
-          <span className="text-white font-bold text-lg">
-            {participant.name ? participant.name.charAt(0).toUpperCase() : 'U'}
-          </span>
-        </div>
-        <p className="text-white text-sm font-medium">{participant.name || 'Unknown User'}</p>
-        <div className="flex items-center justify-center gap-2 mt-2">
-          {!hasAudio(participant) && (
-            <div className="bg-red-500/80 p-1 rounded-full">
-              <MicOff size={10} className="text-white" />
-            </div>
-          )}
-          {!hasVideo(participant) && (
-            <div className="bg-red-500/80 p-1 rounded-full">
-              <VideoOff size={10} className="text-white" />
-            </div>
-          )}
+  /* -------- Participant UI helpers (used by layouts) -------- */
+  const VideoPlaceholder = ({ style }: VideoPlaceholderProps) => {
+    const { participant } = useParticipantViewContext();
+    return (
+      <div style={style} className="flex items-center justify-center h-full w-full bg-gradient-to-br from-gray-800 to-gray-900 rounded">
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-2 shadow">
+            <span className="text-white font-bold">{participant?.name?.charAt(0)?.toUpperCase() ?? 'U'}</span>
+          </div>
+          <div className="text-white text-sm">{participant?.name ?? 'Unknown'}</div>
         </div>
       </div>
-      {participant.isDominantSpeaker && (
-        <div className="absolute top-2 left-2 bg-green-500/90 px-2 py-1 rounded-full text-xs text-white font-medium">
-          Speaking
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
-  // Custom layout rendering with proper Stream.io integration
+  const ParticipantOverlayUI = ({ children }: { children?: React.ReactNode }) => {
+    return <div className="participant-overlay-ui w-full h-full">{children}</div>;
+  };
+
+  const commonProps = {
+    VideoPlaceholder,
+    ParticipantViewUI: <ParticipantOverlayUI />,
+  };
+
   const renderLayout = () => {
-    const commonProps = {
-      VideoPlaceholder,
-    };
-
     switch (layout) {
       case 'grid':
         return (
-          <div className="h-full w-full">
-            <PaginatedGridLayout 
-              {...commonProps}
-              groupSize={9}
-            />
+          <div className="h-full w-full meeting-layout">
+            <PaginatedGridLayout {...commonProps} groupSize={9} mirrorLocalParticipantVideo={true} />
           </div>
         );
       case 'speaker-right':
         return (
-          <div className="h-full w-full">
-            <SpeakerLayout 
+          <div className="h-full w-full meeting-layout">
+            <SpeakerLayout
               {...commonProps}
               participantsBarPosition="left"
               participantsBarLimit={6}
+              ParticipantViewUISpotlight={<ParticipantOverlayUI />}
+              ParticipantViewUIBar={<ParticipantOverlayUI />}
+              mirrorLocalParticipantVideo={true}
             />
           </div>
         );
       case 'speaker-bottom':
         return (
-          <div className="h-full w-full">
-            <SpeakerLayout 
+          <div className="h-full w-full meeting-layout">
+            <SpeakerLayout
               {...commonProps}
               participantsBarPosition="bottom"
               participantsBarLimit={8}
+              ParticipantViewUISpotlight={<ParticipantOverlayUI />}
+              ParticipantViewUIBar={<ParticipantOverlayUI />}
+              mirrorLocalParticipantVideo={true}
             />
           </div>
         );
-      default: // speaker-left
+      default:
         return (
-          <div className="h-full w-full">
-            <SpeakerLayout 
+          <div className="h-full w-full meeting-layout">
+            <SpeakerLayout
               {...commonProps}
               participantsBarPosition="right"
               participantsBarLimit={6}
+              ParticipantViewUISpotlight={<ParticipantOverlayUI />}
+              ParticipantViewUIBar={<ParticipantOverlayUI />}
+              mirrorLocalParticipantVideo={true}
             />
           </div>
         );
     }
   };
 
-  // Get participants count
   const participantsCount = participants?.length || 1;
 
   return (
     <TooltipProvider>
-      <div className="relative h-screen w-full bg-gradient-to-br from-gray-900 via-black to-gray-800 overflow-hidden">
+      <div className="relative h-screen w-full bg-gradient-to-br from-gray-900 via-black to-gray-800 overflow-hidden meeting-room-root">
+        <style>{`
+          .meeting-room-root .participant-tile {
+            width: 100%;
+            max-width: 560px;
+            aspect-ratio: 16/9;
+            background: #0b1020;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: stretch;
+            justify-content: stretch;
+          }
+          .meeting-room-root .participant-view-inner, 
+          .meeting-room-root .participant-tile > div {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+          }
+          .meeting-room-root video {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            display: block;
+          }
+          .meeting-room-root .dominant-badge {
+            position: absolute;
+            left: 8px;
+            top: 8px;
+            background: rgba(16,185,129,0.95);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 40;
+          }
+          .meeting-room-root .meeting-layout [data-participant] {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          @media (max-width: 640px) {
+            .meeting-room-root .participant-tile { max-width: 320px; border-radius: 10px; }
+          }
+        `}</style>
+
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 z-30 bg-gradient-to-b from-black/80 via-black/40 to-transparent backdrop-blur-md border-b border-white/10">
           <div className="flex items-center justify-between px-6 py-4">
@@ -258,33 +272,20 @@ const MeetingRoom = () => {
                   <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-75"></div>
                 </div>
                 <h1 className="text-white font-semibold text-lg">Meeting Room</h1>
-                <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/50 font-medium">
-                  Live
-                </Badge>
-                {hasOngoingScreenShare && (
-                  <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-blue-500/50 font-medium">
-                    Screen Sharing
-                  </Badge>
-                )}
+                <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/50 font-medium">Live</Badge>
+                {hasOngoingScreenShare && <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-blue-500/50 font-medium">Screen Sharing</Badge>}
               </div>
+
               <div className="flex items-center gap-2 text-white/80 text-sm bg-black/20 px-3 py-1 rounded-full">
                 <Clock size={14} />
                 <span className="font-mono">{formatTime(meetingTime)}</span>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-1">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200",
-                      showParticipants && "bg-white/20"
-                    )}
-                    onClick={() => setShowParticipants(!showParticipants)}
-                  >
+                  <Button variant="ghost" size="sm" className={cn("text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200", showParticipants && "bg-white/20")} onClick={() => setShowParticipants((s) => !s)}>
                     <Users size={18} />
                   </Button>
                 </TooltipTrigger>
@@ -293,15 +294,7 @@ const MeetingRoom = () => {
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200",
-                      showChat && "bg-white/20"
-                    )}
-                    onClick={() => setShowChat(!showChat)}
-                  >
+                  <Button variant="ghost" size="sm" className={cn("text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200", showChat && "bg-white/20")} onClick={() => setShowChat((s) => !s)}>
                     <MessageSquare size={18} />
                   </Button>
                 </TooltipTrigger>
@@ -310,11 +303,7 @@ const MeetingRoom = () => {
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200"
-                  >
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200">
                     <Share size={18} />
                   </Button>
                 </TooltipTrigger>
@@ -323,12 +312,7 @@ const MeetingRoom = () => {
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200"
-                    onClick={toggleFullscreen}
-                  >
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200" onClick={toggleFullscreen}>
                     {viewMode === 'normal' ? <Maximize2 size={18} /> : <Minimize2 size={18} />}
                   </Button>
                 </TooltipTrigger>
@@ -356,16 +340,15 @@ const MeetingRoom = () => {
           </div>
         </div>
 
-        {/* Main Content */}
+        {/* main content */}
         <div className="flex h-full pt-20 pb-24">
-          {/* Video Area */}
           <div className="flex-1 relative p-4">
             <div className="h-full w-full rounded-xl overflow-hidden bg-gray-800/20 backdrop-blur-sm border border-white/10">
               {renderLayout()}
             </div>
           </div>
 
-          {/* Sidebar */}
+          {/* sidebar */}
           {(showParticipants || showChat) && (
             <div className="w-80 bg-gray-900/95 backdrop-blur-md border-l border-white/20 p-4">
               {showParticipants && (
@@ -374,59 +357,37 @@ const MeetingRoom = () => {
                     <div className="flex items-center gap-2">
                       <Users size={20} className="text-white" />
                       <h3 className="text-white font-semibold">Participants</h3>
-                      <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-blue-500/50 text-xs font-medium">
-                        {participantsCount}
-                      </Badge>
+                      <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-blue-500/50 text-xs font-medium">{participantsCount}</Badge>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-white hover:bg-white/20 rounded-full w-8 h-8"
-                      onClick={() => setShowParticipants(false)}
-                    >
-                      <X size={16} />
-                    </Button>
+                    <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 rounded-full w-8 h-8" onClick={() => setShowParticipants(false)}><X size={16} /></Button>
                   </div>
+
                   <div className="flex-1 overflow-y-auto py-4">
                     <div className="space-y-3">
-                      {participants?.map((participant) => (
-                        <div
-                          key={participant.sessionId}
-                          className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-xl border border-gray-700/50 hover:bg-gray-800/70 transition-all duration-200"
-                        >
+                      {participants?.map((p) => (
+                        <div key={p.sessionId} className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-xl border border-gray-700/50 hover:bg-gray-800/70 transition-all duration-200">
                           <div className="relative">
                             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
-                              <span className="text-white font-semibold text-sm">
-                                {participant.name ? participant.name.charAt(0).toUpperCase() : 'U'}
-                              </span>
+                              <span className="text-white font-semibold text-sm">{p.name ? p.name.charAt(0).toUpperCase() : 'U'}</span>
                             </div>
-                            {participant.isLocalParticipant && (
-                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900 shadow-sm"></div>
-                            )}
+                            {p.isLocalParticipant && <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900 shadow-sm"></div>}
                           </div>
+
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-white font-medium text-sm truncate">
-                                {participant.name || 'Unknown User'}
-                              </span>
-                              {participant.isLocalParticipant && (
-                                <span className="text-xs text-gray-400 font-medium">(You)</span>
-                              )}
+                              <span className="text-white font-medium text-sm truncate">{p.name || 'Unknown User'}</span>
+                              {p.isLocalParticipant && <span className="text-xs text-gray-400 font-medium">(You)</span>}
                             </div>
+
                             <div className="flex items-center gap-3 mt-2">
-                              <div className={cn(
-                                "flex items-center gap-1 text-xs px-2 py-1 rounded-full",
-                                hasAudio(participant) ? "text-green-400 bg-green-500/10" : "text-red-400 bg-red-500/10"
-                              )}>
-                                {hasAudio(participant) ? <MicIcon size={10} /> : <MicOff size={10} />}
-                                <span>{hasAudio(participant) ? 'Unmuted' : 'Muted'}</span>
+                              <div className={cn("flex items-center gap-1 text-xs px-2 py-1 rounded-full", hasAudio(p) ? "text-green-400 bg-green-500/10" : "text-red-400 bg-red-500/10")}>
+                                {hasAudio(p) ? <MicIcon size={10} /> : <MicOff size={10} />}
+                                <span>{hasAudio(p) ? 'Unmuted' : 'Muted'}</span>
                               </div>
-                              <div className={cn(
-                                "flex items-center gap-1 text-xs px-2 py-1 rounded-full",
-                                hasVideo(participant) ? "text-green-400 bg-green-500/10" : "text-red-400 bg-red-500/10"
-                              )}>
-                                {hasVideo(participant) ? <VideoIcon size={10} /> : <VideoOff size={10} />}
-                                <span>{hasVideo(participant) ? 'Video On' : 'Video Off'}</span>
+
+                              <div className={cn("flex items-center gap-1 text-xs px-2 py-1 rounded-full", hasVideo(p) ? "text-green-400 bg-green-500/10" : "text-red-400 bg-red-500/10")}>
+                                {hasVideo(p) ? <VideoIcon size={10} /> : <VideoOff size={10} />}
+                                <span>{hasVideo(p) ? 'Video On' : 'Video Off'}</span>
                               </div>
                             </div>
                           </div>
@@ -436,7 +397,7 @@ const MeetingRoom = () => {
                   </div>
                 </div>
               )}
-              
+
               {showChat && (
                 <div className="h-full flex flex-col">
                   <div className="pb-4 border-b border-white/20 flex items-center justify-between">
@@ -444,15 +405,9 @@ const MeetingRoom = () => {
                       <MessageSquare size={20} className="text-white" />
                       <h3 className="text-white font-semibold">Chat</h3>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-white hover:bg-white/20 rounded-full w-8 h-8"
-                      onClick={() => setShowChat(false)}
-                    >
-                      <X size={16} />
-                    </Button>
+                    <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 rounded-full w-8 h-8" onClick={() => setShowChat(false)}><X size={16} /></Button>
                   </div>
+
                   <div className="flex-1 py-4 flex items-center justify-center">
                     <div className="text-center text-gray-400">
                       <MessageSquare size={48} className="mx-auto mb-4 opacity-50" />
@@ -466,67 +421,31 @@ const MeetingRoom = () => {
           )}
         </div>
 
-        {/* Bottom Controls */}
+        {/* bottom controls */}
         <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 via-black/40 to-transparent backdrop-blur-md border-t border-white/10">
           <div className="flex items-center justify-center gap-2 p-6">
-            {/* Layout Controls */}
+            {/* layout controls */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="lg" className="text-white hover:bg-white/20 rounded-full w-12 h-12 transition-all duration-200">
-                      <LayoutGrid size={20} />
-                    </Button>
+                    <Button variant="ghost" size="lg" className="text-white hover:bg-white/20 rounded-full w-12 h-12 transition-all duration-200"><LayoutGrid size={20} /></Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="bg-gray-900/95 backdrop-blur-md border-gray-700 text-white">
-                    <DropdownMenuItem 
-                      onClick={() => setLayout('grid')}
-                      className="hover:bg-gray-800 focus:bg-gray-800"
-                    >
-                      <Grid3X3 size={16} className="mr-2" />
-                      Grid View
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => setLayout('speaker-left')}
-                      className="hover:bg-gray-800 focus:bg-gray-800"
-                    >
-                      <Users2 size={16} className="mr-2" />
-                      Speaker Left
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => setLayout('speaker-right')}
-                      className="hover:bg-gray-800 focus:bg-gray-800"
-                    >
-                      <Users2 size={16} className="mr-2" />
-                      Speaker Right
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => setLayout('speaker-bottom')}
-                      className="hover:bg-gray-800 focus:bg-gray-800"
-                    >
-                      <Maximize size={16} className="mr-2" />
-                      Speaker Bottom
-                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLayout('grid')} className="hover:bg-gray-800 focus:bg-gray-800"><Grid3X3 size={16} className="mr-2" />Grid View</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLayout('speaker-left')} className="hover:bg-gray-800 focus:bg-gray-800"><Users2 size={16} className="mr-2" />Speaker Left</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLayout('speaker-right')} className="hover:bg-gray-800 focus:bg-gray-800"><Users2 size={16} className="mr-2" />Speaker Right</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLayout('speaker-bottom')} className="hover:bg-gray-800 focus:bg-gray-800"><Maximize size={16} className="mr-2" />Speaker Bottom</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TooltipTrigger>
               <TooltipContent>Change layout</TooltipContent>
             </Tooltip>
 
-            {/* Main Controls */}
+            {/* main controls */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="lg"
-                  className={cn(
-                    "rounded-full w-14 h-14 transition-all duration-200 shadow-lg",
-                    !isMute 
-                      ? "text-white hover:bg-white/20 ring-2 ring-white/20" 
-                      : "bg-red-500/90 text-white hover:bg-red-600 ring-2 ring-red-400/50"
-                  )}
-                  onClick={toggleMic}
-                >
+                <Button variant="ghost" size="lg" className={cn("rounded-full w-14 h-14 transition-all duration-200 shadow-lg", !isMute ? "text-white hover:bg-white/20 ring-2 ring-white/20" : "bg-red-500/90 text-white hover:bg-red-600 ring-2 ring-red-400/50")} onClick={toggleMic}>
                   {!isMute ? <Mic size={24} /> : <MicOff size={24} />}
                 </Button>
               </TooltipTrigger>
@@ -535,17 +454,7 @@ const MeetingRoom = () => {
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="lg"
-                  className={cn(
-                    "rounded-full w-14 h-14 transition-all duration-200 shadow-lg",
-                    !isVideoMuted 
-                      ? "text-white hover:bg-white/20 ring-2 ring-white/20" 
-                      : "bg-red-500/90 text-white hover:bg-red-600 ring-2 ring-red-400/50"
-                  )}
-                  onClick={toggleVideo}
-                >
+                <Button variant="ghost" size="lg" className={cn("rounded-full w-14 h-14 transition-all duration-200 shadow-lg", !isVideoMuted ? "text-white hover:bg-white/20 ring-2 ring-white/20" : "bg-red-500/90 text-white hover:bg-red-600 ring-2 ring-red-400/50")} onClick={toggleVideo}>
                   {!isVideoMuted ? <Video size={24} /> : <VideoOff size={24} />}
                 </Button>
               </TooltipTrigger>
@@ -554,17 +463,7 @@ const MeetingRoom = () => {
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="lg"
-                  className={cn(
-                    "rounded-full w-14 h-14 transition-all duration-200 shadow-lg",
-                    hasOngoingScreenShare 
-                      ? "bg-blue-500/90 text-white hover:bg-blue-600 ring-2 ring-blue-400/50" 
-                      : "text-white hover:bg-white/20 ring-2 ring-white/20"
-                  )}
-                  onClick={toggleScreenShare}
-                >
+                <Button variant="ghost" size="lg" className={cn("rounded-full w-14 h-14 transition-all duration-200 shadow-lg", hasOngoingScreenShare ? "bg-blue-500/90 text-white hover:bg-blue-600 ring-2 ring-blue-400/50" : "text-white hover:bg-white/20 ring-2 ring-white/20")} onClick={toggleScreenShare}>
                   {hasOngoingScreenShare ? <MonitorOff size={24} /> : <Monitor size={24} />}
                 </Button>
               </TooltipTrigger>
@@ -573,32 +472,16 @@ const MeetingRoom = () => {
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="lg"
-                  className={cn(
-                    "rounded-full w-14 h-14 transition-all duration-200 shadow-lg",
-                    isHandRaised 
-                      ? "bg-yellow-500/90 text-white hover:bg-yellow-600 ring-2 ring-yellow-400/50" 
-                      : "text-white hover:bg-white/20 ring-2 ring-white/20"
-                  )}
-                  onClick={toggleHandRaise}
-                >
+                <Button variant="ghost" size="lg" className={cn("rounded-full w-14 h-14 transition-all duration-200 shadow-lg", isHandRaised ? "bg-yellow-500/90 text-white hover:bg-yellow-600 ring-2 ring-yellow-400/50" : "text-white hover:bg-white/20 ring-2 ring-white/20")} onClick={toggleHandRaise}>
                   <Hand size={24} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{isHandRaised ? 'Lower hand' : 'Raise hand'}</TooltipContent>
             </Tooltip>
 
-            {/* End Call Button */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="destructive"
-                  size="lg"
-                  className="rounded-full w-16 h-16 bg-red-500/90 hover:bg-red-600 transition-all duration-200 shadow-lg ring-2 ring-red-400/50"
-                  onClick={() => router.push('/videoChat')}
-                >
+                <Button variant="destructive" size="lg" className="rounded-full w-16 h-16 bg-red-500/90 hover:bg-red-600 transition-all duration-200 shadow-lg ring-2 ring-red-400/50" onClick={() => router.push('/videoChat')}>
                   <PhoneOff size={24} />
                 </Button>
               </TooltipTrigger>
