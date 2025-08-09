@@ -1,10 +1,10 @@
 "use client";
-import { WebSocketProvider } from "@/context/WebSocketProvider";
+import { SocketProvider } from "@/context/SocketProvider";
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
   return (
-    <WebSocketProvider>
+    <SocketProvider>
       {children}
-    </WebSocketProvider>
+    </SocketProvider>
   );
 }

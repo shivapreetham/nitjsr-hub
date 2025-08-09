@@ -18,11 +18,11 @@ import {
   Wifi,
   WifiOff
 } from 'lucide-react';
-import { useWebSocket } from '@/context/WebSocketProvider';
+import { useSocket } from '@/context/SocketProvider';
 
-export default function OmeglePage() {
+export default function SocketOmeglePage() {
   const router = useRouter();
-  const { socket, send, isConnected } = useWebSocket();
+  const { socket, emit, isConnected } = useSocket();
   const [isSearching, setIsSearching] = useState(false);
   const [userCount, setUserCount] = useState(0);
   const [searchTime, setSearchTime] = useState(0);
@@ -30,7 +30,6 @@ export default function OmeglePage() {
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState("Connecting...");
   const searchIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const messageHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
 
   // Update connection status
   useEffect(() => {
@@ -41,58 +40,56 @@ export default function OmeglePage() {
     }
   }, [isConnected]);
 
-  // Listen for messages from shared WebSocket
+  // Setup Socket.IO event listeners
   useEffect(() => {
     if (!socket) return;
 
-    // Clean up previous handler
-    if (messageHandlerRef.current) {
-      socket.removeEventListener('message', messageHandlerRef.current);
-    }
-
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('[MAIN] Received message:', data.type);
-        
-        if (data.type === "user_count") {
-          setUserCount(data.count);
-        } else if (data.type === "room_assigned" && data.room) {
-          console.log('[MAIN] Room assigned:', data.room, 'Role:', data.role);
-          setIsSearching(false);
-          
-          // Store room assignment in sessionStorage
-          const roomData = {
-            room: data.room,
-            initiator: data.initiator,
-            role: data.role,
-            partnerId: data.partnerId,
-            timestamp: Date.now()
-          };
-          
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem("omegle_room", JSON.stringify(roomData));
-          }
-          
-          console.log('[MAIN] Navigating to room:', data.room);
-          router.push(`/omegle/room?roomId=${data.room}`);
-        } else if (data.type === "partner_skipped" || data.type === "partner_disconnected") {
-          console.log('[MAIN] Partner left:', data.type);
-          setIsSearching(false);
-          setConnectionStatus(data.type === "partner_skipped" ? "Partner skipped" : "Partner disconnected");
-        }
-      } catch (error) {
-        console.error('[MAIN] Error parsing message:', error);
-      }
+    const handleUserCount = (data: { count: number }) => {
+      setUserCount(data.count);
     };
 
-    messageHandlerRef.current = handleMessage;
-    socket.addEventListener('message', handleMessage);
+    const handleRoomAssigned = (data: any) => {
+      console.log('[MAIN] Room assigned:', data.room, 'Role:', data.role);
+      setIsSearching(false);
+      
+      // Store room assignment in sessionStorage
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem("omegle_room", JSON.stringify({
+          room: data.room,
+          initiator: data.initiator,
+          role: data.role,
+          partnerId: data.partnerId,
+          timestamp: Date.now()
+        }));
+      }
+      
+      console.log('[MAIN] Navigating to room:', data.room);
+      router.push(`/omegle/room?roomId=${data.room}`);
+    };
+
+    const handlePartnerSkipped = () => {
+      console.log('[MAIN] Partner skipped');
+      setIsSearching(false);
+      setConnectionStatus("Partner skipped");
+    };
+
+    const handlePartnerDisconnected = () => {
+      console.log('[MAIN] Partner disconnected');
+      setIsSearching(false);
+      setConnectionStatus("Partner disconnected");
+    };
+
+    // Register event listeners
+    socket.on('user_count', handleUserCount);
+    socket.on('room_assigned', handleRoomAssigned);
+    socket.on('partner_skipped', handlePartnerSkipped);
+    socket.on('partner_disconnected', handlePartnerDisconnected);
 
     return () => {
-      if (messageHandlerRef.current) {
-        socket.removeEventListener('message', messageHandlerRef.current);
-      }
+      socket.off('user_count', handleUserCount);
+      socket.off('room_assigned', handleRoomAssigned);
+      socket.off('partner_skipped', handlePartnerSkipped);
+      socket.off('partner_disconnected', handlePartnerDisconnected);
     };
   }, [socket, router]);
 
@@ -124,7 +121,7 @@ export default function OmeglePage() {
         clearInterval(searchIntervalRef.current);
       }
     };
-  }, [isSearching]); // Only depend on isSearching
+  }, [isSearching]);
 
   const formatTime = useCallback((seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -133,27 +130,20 @@ export default function OmeglePage() {
   }, []);
 
   const handleStart = useCallback(() => {
-  if (!socket || !isConnected) {
-    setConnectionStatus('Not connected to server');
-    return;
-  }
+    if (!socket || !isConnected) {
+      setConnectionStatus('Not connected to server');
+      return;
+    }
 
-  console.log('[MAIN] Starting search for partner...');
-  setIsSearching(true);
-  setConnectionStatus("Searching for partner...");
-  
-  try {
-    send({ 
-      type: "find_partner",
+    console.log('[MAIN] Starting search for partner...');
+    setIsSearching(true);
+    setConnectionStatus("Searching for partner...");
+    
+    emit('find_partner', { 
       audioEnabled,
       videoEnabled
     });
-  } catch (error) {
-    setIsSearching(false);
-    setConnectionStatus("Failed to send search request");
-    console.error('[MAIN] Error sending search request:', error);
-  }
-}, [socket, send, audioEnabled, videoEnabled, isConnected]);
+  }, [socket, emit, audioEnabled, videoEnabled, isConnected]);
 
   const handleStop = useCallback(() => {
     console.log('[MAIN] Stopping search');
@@ -164,10 +154,10 @@ export default function OmeglePage() {
   const handleSkip = useCallback(() => {
     console.log('[MAIN] Skipping current search');
     if (socket && isConnected) {
-      send({ type: "skip" });
+      emit('skip');
     }
     setIsSearching(false);
-  }, [socket, send, isConnected]);
+  }, [socket, emit, isConnected]);
 
   return (
     <div className="min-h-screen bg-background p-4 flex flex-col items-center">
@@ -285,6 +275,15 @@ export default function OmeglePage() {
                   </div>
                 </div>
 
+                {/* Search Status */}
+                <div className="text-center">
+                  <p className="text-muted-foreground mb-2">Searching for a partner...</p>
+                  <p className="text-sm text-muted-foreground">
+                    Audio: {audioEnabled ? 'Enabled' : 'Disabled'} | 
+                    Video: {videoEnabled ? 'Enabled' : 'Disabled'}
+                  </p>
+                </div>
+
                 {/* Control Buttons */}
                 <div className="flex gap-4">
                   <Button 
@@ -310,10 +309,22 @@ export default function OmeglePage() {
           </CardContent>
         </Card>
 
+        {/* Tips Card */}
+        <Card className="mt-6 glass-card">
+          <CardContent className="p-4">
+            <div className="text-center text-sm text-muted-foreground space-y-1">
+              <p>💡 <strong>Tips:</strong></p>
+              <p>• Be respectful and follow community guidelines</p>
+              <p>• You can skip to find a new partner anytime</p>
+              <p>• Make sure your camera and microphone are working</p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Footer */}
         <div className="text-center mt-8 text-muted-foreground text-sm">
-          <p>⚠️ Be respectful and follow community guidelines</p>
-          <p className="mt-1">You are responsible for your own safety</p>
+          <p>⚠️ You are responsible for your own safety</p>
+          <p className="mt-1">Report inappropriate behavior immediately</p>
         </div>
       </div>
     </div>
