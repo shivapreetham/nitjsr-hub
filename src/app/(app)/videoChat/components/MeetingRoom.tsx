@@ -8,6 +8,8 @@ import {
   useCallStateHooks,
   useCall,
   StreamVideoParticipant,
+  hasAudio,
+  hasVideo,
 } from '@stream-io/video-react-sdk';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
@@ -139,9 +141,15 @@ const MeetingRoom = () => {
   };
 
   const toggleHandRaise = () => {
-    setIsHandRaised(!isHandRaised);
-    // You can implement custom hand raise logic here
-    // call?.sendCustomEvent({ type: 'hand-raised', raised: !isHandRaised });
+    const newRaised = !isHandRaised;
+    setIsHandRaised(newRaised);
+    // Emit a custom event so other participants / server can react
+    // (keeps `call` variable used and useful)
+    try {
+      call?.sendCustomEvent?.({ type: 'hand-raised', raised: newRaised });
+    } catch (err) {
+      console.warn('Could not send hand-raise custom event', err);
+    }
   };
 
   const toggleFullscreen = () => {
@@ -165,12 +173,12 @@ const MeetingRoom = () => {
         </div>
         <p className="text-white text-sm font-medium">{participant.name || 'Unknown User'}</p>
         <div className="flex items-center justify-center gap-2 mt-2">
-          {!participant.publishedTracks.includes('audioTrack') && (
+          {!hasAudio(participant) && (
             <div className="bg-red-500/80 p-1 rounded-full">
               <MicOff size={10} className="text-white" />
             </div>
           )}
-          {!participant.publishedTracks.includes('videoTrack') && (
+          {!hasVideo(participant) && (
             <div className="bg-red-500/80 p-1 rounded-full">
               <VideoOff size={10} className="text-white" />
             </div>
@@ -408,17 +416,17 @@ const MeetingRoom = () => {
                             <div className="flex items-center gap-3 mt-2">
                               <div className={cn(
                                 "flex items-center gap-1 text-xs px-2 py-1 rounded-full",
-                                participant.publishedTracks.includes('audioTrack') ? "text-green-400 bg-green-500/10" : "text-red-400 bg-red-500/10"
+                                hasAudio(participant) ? "text-green-400 bg-green-500/10" : "text-red-400 bg-red-500/10"
                               )}>
-                                {participant.publishedTracks.includes('audioTrack') ? <MicIcon size={10} /> : <MicOff size={10} />}
-                                <span>{participant.publishedTracks.includes('audioTrack') ? 'Unmuted' : 'Muted'}</span>
+                                {hasAudio(participant) ? <MicIcon size={10} /> : <MicOff size={10} />}
+                                <span>{hasAudio(participant) ? 'Unmuted' : 'Muted'}</span>
                               </div>
                               <div className={cn(
                                 "flex items-center gap-1 text-xs px-2 py-1 rounded-full",
-                                participant.publishedTracks.includes('videoTrack') ? "text-green-400 bg-green-500/10" : "text-red-400 bg-red-500/10"
+                                hasVideo(participant) ? "text-green-400 bg-green-500/10" : "text-red-400 bg-red-500/10"
                               )}>
-                                {participant.publishedTracks.includes('videoTrack') ? <VideoIcon size={10} /> : <VideoOff size={10} />}
-                                <span>{participant.publishedTracks.includes('videoTrack') ? 'Video On' : 'Video Off'}</span>
+                                {hasVideo(participant) ? <VideoIcon size={10} /> : <VideoOff size={10} />}
+                                <span>{hasVideo(participant) ? 'Video On' : 'Video Off'}</span>
                               </div>
                             </div>
                           </div>
