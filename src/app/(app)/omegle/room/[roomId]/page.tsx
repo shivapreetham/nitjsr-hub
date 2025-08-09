@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -14,7 +16,7 @@ import {
   Send,
   MessageCircle 
 } from 'lucide-react';
-import { useSocket } from '../SocketProvider';
+import { useSocket } from '@/context/SocketProvider';
 
 interface ChatMessage {
   message: string;
@@ -190,7 +192,7 @@ export default function RoomPage() {
 
     const handlePartnerSkipped = () => {
       setConnectionState('Partner skipped');
-      router.push('/');
+      setTimeout(() => router.push('/omegle'), 2000);
     };
 
     const handleChatMessage = (data: any) => {
@@ -204,7 +206,7 @@ export default function RoomPage() {
 
     const handleRoomError = (data: any) => {
       console.error('Room error:', data.message);
-      router.push('/');
+      router.push('/omegle');
     };
 
     socket.on('room_joined', handleRoomJoined);
@@ -296,12 +298,12 @@ export default function RoomPage() {
   const handleSkip = () => {
     emit('skip');
     cleanup();
-    router.push('/');
+    router.push('/omegle');
   };
 
   const handleGoHome = () => {
     cleanup();
-    router.push('/');
+    router.push('/omegle');
   };
 
   const cleanup = () => {
@@ -352,178 +354,171 @@ export default function RoomPage() {
 
   if (!roomId) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center">
         <p>Invalid room</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-4">
-      <div className="max-w-6xl mx-auto space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-white">Room: {roomId}</h1>
-            <Badge variant="outline" className="text-white border-white">
-              {connectionState}
-            </Badge>
-            {partnerId && (
-              <Badge variant="secondary">
-                Partner: {partnerId}
-              </Badge>
-            )}
-          </div>
-          
-          <Button
-            onClick={() => setShowChat(!showChat)}
-            variant="outline"
-            size="sm"
-          >
-            <MessageCircle className="h-4 w-4 mr-2" />
-            Chat {chatMessages.length > 0 && `(${chatMessages.length})`}
-          </Button>
+    <div className="flex-1 flex flex-col p-4 space-y-4 h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold">Room: {roomId.slice(0, 8)}</h1>
+          <Badge variant="outline">
+            {connectionState}
+          </Badge>
+        </div>
+        
+        <Button
+          onClick={() => setShowChat(!showChat)}
+          variant="outline"
+          size="sm"
+        >
+          <MessageCircle className="h-4 w-4 mr-2" />
+          Chat {chatMessages.length > 0 && `(${chatMessages.length})`}
+        </Button>
+      </div>
+
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4 min-h-0">
+        {/* Video Section */}
+        <div className={`${showChat ? 'lg:col-span-3' : 'lg:col-span-4'} space-y-4 min-h-0`}>
+          {/* Remote Video */}
+          <Card className="bg-black flex-1">
+            <CardContent className="p-0 h-full">
+              <div className="relative h-full min-h-[300px]">
+                <video
+                  ref={remoteVideoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-cover rounded-lg"
+                />
+                <div className="absolute top-2 left-2">
+                  <Badge variant="secondary">Partner</Badge>
+                </div>
+                {connectionState !== 'Connected' && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
+                    <p className="text-white text-lg">{connectionState}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Local Video */}
+          <Card className="bg-black">
+            <CardContent className="p-0">
+              <div className="relative h-48">
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover rounded-lg"
+                />
+                <div className="absolute top-2 left-2">
+                  <Badge variant="default">You</Badge>
+                </div>
+                {!videoEnabled && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 rounded-lg">
+                    <VideoOff className="h-8 w-8 text-white" />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-120px)]">
-          {/* Video Section */}
-          <div className={`${showChat ? 'lg:col-span-3' : 'lg:col-span-4'} space-y-4`}>
-            {/* Remote Video */}
-            <Card className="bg-black">
-              <CardContent className="p-0">
-                <div className="relative aspect-video">
-                  <video
-                    ref={remoteVideoRef}
-                    autoPlay
-                    playsInline
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                  <div className="absolute top-2 left-2">
-                    <Badge variant="secondary">Partner</Badge>
-                  </div>
-                  {connectionState !== 'Connected' && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
-                      <p className="text-white text-lg">{connectionState}</p>
-                    </div>
+        {/* Chat Section */}
+        {showChat && (
+          <div className="lg:col-span-1 flex">
+            <Card className="flex-1 flex flex-col min-h-0">
+              <CardContent className="p-4 flex-1 flex flex-col min-h-0">
+                <h3 className="font-semibold mb-4">Chat</h3>
+                
+                {/* Messages */}
+                <div 
+                  ref={chatContainerRef}
+                  className="flex-1 overflow-y-auto space-y-2 mb-4 min-h-0"
+                >
+                  {chatMessages.length === 0 ? (
+                    <p className="text-muted-foreground text-sm text-center">
+                      No messages yet. Start the conversation!
+                    </p>
+                  ) : (
+                    chatMessages.map((msg, index) => (
+                      <div
+                        key={index}
+                        className={`p-2 rounded-lg max-w-xs text-sm ${
+                          msg.isOwn
+                            ? 'bg-primary text-primary-foreground ml-auto'
+                            : 'bg-muted'
+                        }`}
+                      >
+                        <p>{msg.message}</p>
+                        <p className="text-xs opacity-70 mt-1">
+                          {new Date(msg.timestamp).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    ))
                   )}
+                </div>
+                
+                {/* Message Input */}
+                <div className="flex gap-2">
+                  <Input
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Type a message..."
+                    maxLength={500}
+                  />
+                  <Button onClick={sendMessage} size="sm">
+                    <Send className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-
-            {/* Local Video */}
-            <Card className="bg-black">
-              <CardContent className="p-0">
-                <div className="relative aspect-video">
-                  <video
-                    ref={localVideoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                  <div className="absolute top-2 left-2">
-                    <Badge variant="default">You</Badge>
-                  </div>
-                  {!videoEnabled && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 rounded-lg">
-                      <VideoOff className="h-12 w-12 text-white" />
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
           </div>
+        )}
+      </div>
 
-          {/* Chat Section */}
-          {showChat && (
-            <div className="lg:col-span-1">
-              <Card className="h-full flex flex-col">
-                <CardContent className="p-4 flex-1 flex flex-col">
-                  <h3 className="font-semibold mb-4">Chat</h3>
-                  
-                  {/* Messages */}
-                  <div 
-                    ref={chatContainerRef}
-                    className="flex-1 overflow-y-auto space-y-2 mb-4"
-                  >
-                    {chatMessages.length === 0 ? (
-                      <p className="text-gray-500 text-sm text-center">
-                        No messages yet. Start the conversation!
-                      </p>
-                    ) : (
-                      chatMessages.map((msg, index) => (
-                        <div
-                          key={index}
-                          className={`p-2 rounded-lg max-w-xs ${
-                            msg.isOwn
-                              ? 'bg-blue-500 text-white ml-auto'
-                              : 'bg-gray-200 text-gray-800'
-                          }`}
-                        >
-                          <p className="text-sm">{msg.message}</p>
-                          <p className="text-xs opacity-70 mt-1">
-                            {new Date(msg.timestamp).toLocaleTimeString()}
-                          </p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  
-                  {/* Message Input */}
-                  <div className="flex gap-2">
-                    <Input
-                      value={chatMessage}
-                      onChange={(e) => setChatMessage(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder="Type a message..."
-                      maxLength={500}
-                    />
-                    <Button onClick={sendMessage} size="sm">
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center justify-center gap-4">
-          <Button
-            onClick={toggleAudio}
-            variant={audioEnabled ? "default" : "destructive"}
-            size="lg"
-          >
-            {audioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
-          </Button>
-          
-          <Button
-            onClick={toggleVideo}
-            variant={videoEnabled ? "default" : "destructive"}
-            size="lg"
-          >
-            {videoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
-          </Button>
-          
-          <Button
-            onClick={handleSkip}
-            variant="outline"
-            size="lg"
-          >
-            <SkipForward className="h-5 w-5 mr-2" />
-            Next
-          </Button>
-          
-          <Button
-            onClick={handleGoHome}
-            variant="secondary"
-            size="lg"
-          >
-            <Home className="h-5 w-5 mr-2" />
-            Home
-          </Button>
-        </div>
+      {/* Controls */}
+      <div className="flex items-center justify-center gap-4 pt-4 border-t">
+        <Button
+          onClick={toggleAudio}
+          variant={audioEnabled ? "default" : "destructive"}
+          size="lg"
+        >
+          {audioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+        </Button>
+        
+        <Button
+          onClick={toggleVideo}
+          variant={videoEnabled ? "default" : "destructive"}
+          size="lg"
+        >
+          {videoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+        </Button>
+        
+        <Button
+          onClick={handleSkip}
+          variant="outline"
+          size="lg"
+        >
+          <SkipForward className="h-5 w-5 mr-2" />
+          Next
+        </Button>
+        
+        <Button
+          onClick={handleGoHome}
+          variant="secondary"
+          size="lg"
+        >
+          <Home className="h-5 w-5 mr-2" />
+          Home
+        </Button>
       </div>
     </div>
   );
