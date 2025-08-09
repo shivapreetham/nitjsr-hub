@@ -23,7 +23,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     if (initializingRef.current) return;
     initializingRef.current = true;
 
-    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:10000';
+    const serverUrl = process.env.NEXT_PUBLIC_OMEGLE_SERVER_URL || 'http://localhost:10000';
     console.log('Connecting to:', serverUrl);
 
     const newSocket = io(serverUrl, {
