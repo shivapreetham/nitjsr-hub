@@ -31,7 +31,6 @@ export default function SocketOmeglePage() {
   const [connectionStatus, setConnectionStatus] = useState("Connecting...");
   const searchIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Update connection status
   useEffect(() => {
     if (isConnected) {
       setConnectionStatus("Connected");
@@ -40,7 +39,6 @@ export default function SocketOmeglePage() {
     }
   }, [isConnected]);
 
-  // Setup Socket.IO event listeners
   useEffect(() => {
     if (!socket) return;
 
@@ -93,21 +91,14 @@ export default function SocketOmeglePage() {
     };
   }, [socket, router]);
 
-  // Update search time when searching
   useEffect(() => {
     if (isSearching) {
-      // Clear any existing interval first
-      if (searchIntervalRef.current) {
-        clearInterval(searchIntervalRef.current);
-      }
-      
+      if (searchIntervalRef.current) clearInterval(searchIntervalRef.current);
       const interval = setInterval(() => {
         setSearchTime(prev => prev + 1);
       }, 1000);
-      
       searchIntervalRef.current = interval;
     } else {
-      // Clear interval and reset time when not searching
       if (searchIntervalRef.current) {
         clearInterval(searchIntervalRef.current);
         searchIntervalRef.current = null;
@@ -115,7 +106,6 @@ export default function SocketOmeglePage() {
       setSearchTime(0);
     }
 
-    // Cleanup function
     return () => {
       if (searchIntervalRef.current) {
         clearInterval(searchIntervalRef.current);
@@ -139,6 +129,7 @@ export default function SocketOmeglePage() {
     setIsSearching(true);
     setConnectionStatus("Searching for partner...");
     
+    // emit will auto-attach token from SocketProvider
     emit('find_partner', { 
       audioEnabled,
       videoEnabled
