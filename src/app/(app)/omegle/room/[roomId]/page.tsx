@@ -30,13 +30,11 @@ export default function RoomPage() {
   const params = useParams();
   const roomId = params?.roomId as string;
   const { socket, isConnected, userId, emit } = useSocket();
-
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-
   const [partnerId, setPartnerId] = useState<string>('');
   const [isInitiator, setIsInitiator] = useState(false);
   const [connectionState, setConnectionState] = useState('Connecting...');
@@ -47,7 +45,6 @@ export default function RoomPage() {
   const [showChat, setShowChat] = useState(false);
 
   const iceCandidatesQueue = useRef<RTCIceCandidate[]>([]);
-
   // Initialize media
   const initializeMedia = useCallback(async () => {
     try {
@@ -55,12 +52,10 @@ export default function RoomPage() {
         video: true,
         audio: true
       });
-      
       localStreamRef.current = stream;
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
       }
-      
       return stream;
     } catch (error) {
       console.error('Error accessing media:', error);
@@ -94,12 +89,10 @@ export default function RoomPage() {
         remoteVideoRef.current.srcObject = event.streams[0];
       }
     };
-
     pc.oniceconnectionstatechange = () => {
       console.log('ICE connection state:', pc.iceConnectionState);
       setConnectionState(pc.iceConnectionState);
     };
-
     pc.onconnectionstatechange = () => {
       console.log('Connection state:', pc.connectionState);
       if (pc.connectionState === 'connected') {
@@ -127,7 +120,6 @@ export default function RoomPage() {
       
       try {
         await pcRef.current.setRemoteDescription(data.offer);
-        
         // Add queued ICE candidates
         while (iceCandidatesQueue.current.length > 0) {
           const candidate = iceCandidatesQueue.current.shift();
