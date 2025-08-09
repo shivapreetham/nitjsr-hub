@@ -6,16 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Mic, 
-  MicOff, 
-  Video, 
-  VideoOff, 
-  SkipForward, 
-  Home, 
-  Send,
-  MessageCircle 
-} from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, SkipForward, Home, Send, MessageCircle } from 'lucide-react';
 import { useSocket } from '@/context/SocketProvider';
 
 interface ChatMessage {
@@ -38,13 +29,13 @@ export default function RoomPage() {
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
   const [partnerId, setPartnerId] = useState<string>('');
-  const [isInitiator, setIsInitiator] = useState(false);
-  const [connectionState, setConnectionState] = useState('Connecting...');
-  const [audioEnabled, setAudioEnabled] = useState(true);
-  const [videoEnabled, setVideoEnabled] = useState(true);
-  const [chatMessage, setChatMessage] = useState('');
+  const [isInitiator, setIsInitiator] = useState<boolean>(false);
+  const [connectionState, setConnectionState] = useState<string>('Connecting...');
+  const [audioEnabled, setAudioEnabled] = useState<boolean>(true);
+  const [videoEnabled, setVideoEnabled] = useState<boolean>(true);
+  const [chatMessage, setChatMessage] = useState<string>('');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [showChat, setShowChat] = useState(false);
+  const [showChat, setShowChat] = useState<boolean>(true);
 
   const iceCandidatesQueue = useRef<RTCIceCandidateInit[]>([]);
 
@@ -57,7 +48,7 @@ export default function RoomPage() {
       setVideoEnabled(stream.getVideoTracks()[0]?.enabled ?? true);
       return stream;
     } catch (err) {
-      console.error('Media access error', err);
+      console.error('Media access error:', err);
       setConnectionState('Media access denied');
       throw err;
     }
@@ -71,7 +62,7 @@ export default function RoomPage() {
         { urls: 'stun:stun2.l.google.com:19302' },
         { urls: 'stun:stun3.l.google.com:19302' },
         { urls: 'stun:stun4.l.google.com:19302' },
-      ]
+      ],
     };
 
     const pc = new RTCPeerConnection(configuration);
@@ -94,7 +85,7 @@ export default function RoomPage() {
     };
 
     pc.onconnectionstatechange = () => {
-      console.log('conn state:', pc.connectionState);
+      console.log('Connection state:', pc.connectionState);
       if (pc.connectionState === 'connected') setConnectionState('Connected');
       if (pc.connectionState === 'failed') setConnectionState('Connection failed');
     };
@@ -105,74 +96,74 @@ export default function RoomPage() {
   useEffect(() => {
     if (!socket || !roomId) return;
 
-    const handleRoomJoined = (data: any) => {
+    const handleRoomJoined = (data: { roomId: string; partnerId: string; isInitiator: boolean }) => {
       setPartnerId(data.partnerId);
-      setIsInitiator(Boolean(data.isInitiator));
+      setIsInitiator(data.isInitiator);
       setConnectionState('Setting up connection...');
     };
 
-    const handleOffer = async (data: any) => {
+    const handleOffer = async (data: { offer: RTCSessionDescriptionInit; from: string }) => {
       if (!pcRef.current) {
         try {
           const localStream = await initializeMedia();
           const pc = createPeerConnection();
-          localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+          localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
           pcRef.current = pc;
         } catch (err) {
-          console.error('Failed to create pc on offer', err);
+          console.error('Failed to create peer connection on offer:', err);
           return;
         }
       }
 
       try {
-        await pcRef.current!.setRemoteDescription(data.offer);
+        await pcRef.current!.setRemoteDescription(new RTCSessionDescription(data.offer));
         while (iceCandidatesQueue.current.length) {
-          const c = iceCandidatesQueue.current.shift();
-          if (c) await pcRef.current!.addIceCandidate(new RTCIceCandidate(c));
+          const candidate = iceCandidatesQueue.current.shift();
+          if (candidate) await pcRef.current!.addIceCandidate(new RTCIceCandidate(candidate));
         }
 
         const answer = await pcRef.current!.createAnswer();
         await pcRef.current!.setLocalDescription(answer);
-
         emit('answer', { roomId, answer });
       } catch (err) {
-        console.error('Error handling offer', err);
+        console.error('Error handling offer:', err);
       }
     };
 
-    const handleAnswer = async (data: any) => {
+    const handleAnswer = async (data: { answer: RTCSessionDescriptionInit; from: string }) => {
       try {
         if (!pcRef.current) {
-          console.warn('Answer arrived but no pc present');
+          console.warn('Answer received but no peer connection present');
           return;
         }
-        await pcRef.current.setRemoteDescription(data.answer);
+        await pcRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
         while (iceCandidatesQueue.current.length) {
-          const c = iceCandidatesQueue.current.shift();
-          if (c) await pcRef.current.addIceCandidate(new RTCIceCandidate(c));
+          const candidate = iceCandidatesQueue.current.shift();
+          if (candidate) await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
         }
       } catch (err) {
-        console.error('Error handling answer', err);
+        console.error('Error handling answer:', err);
       }
     };
 
-    const handleIceCandidate = async (data: any) => {
-      const cand = data.candidate;
-      if (!cand) return;
+    const handleIceCandidate = async (data: { candidate: RTCIceCandidateInit; from: string }) => {
+      const candidate = data.candidate;
+      if (!candidate) return;
       try {
         if (!pcRef.current || !pcRef.current.remoteDescription) {
-          iceCandidatesQueue.current.push(cand);
+          iceCandidatesQueue.current.push(candidate);
         } else {
-          await pcRef.current.addIceCandidate(new RTCIceCandidate(cand));
+          await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
         }
       } catch (err) {
-        console.error('ICE add error', err);
+        console.error('Error adding ICE candidate:', err);
       }
     };
 
     const handlePartnerDisconnected = () => {
       setConnectionState('Partner disconnected');
       if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+      setTimeout(() => router.push('/omegle'), 1500);
     };
 
     const handlePartnerSkipped = () => {
@@ -180,17 +171,15 @@ export default function RoomPage() {
       setTimeout(() => router.push('/omegle'), 1500);
     };
 
-    const handleChatMessage = (data: any) => {
-      setChatMessages(prev => [...prev, {
-        message: data.message,
-        from: data.from,
-        timestamp: data.timestamp,
-        isOwn: false
-      }]);
+    const handleChatMessage = (data: { message: string; from: string; timestamp: number }) => {
+      setChatMessages((prev) => [
+        ...prev,
+        { message: data.message, from: data.from, timestamp: data.timestamp, isOwn: false },
+      ]);
     };
 
-    const handleRoomError = (data: any) => {
-      console.error('Room error', data);
+    const handleRoomError = (data: { message: string }) => {
+      console.error('Room error:', data);
       router.push('/omegle');
     };
 
@@ -218,14 +207,13 @@ export default function RoomPage() {
   }, [socket, roomId, emit, initializeMedia, createPeerConnection, router]);
 
   useEffect(() => {
-    if (!partnerId) return;
-    if (pcRef.current) return;
+    if (!partnerId || pcRef.current) return;
 
     const setup = async () => {
       try {
         const stream = await initializeMedia();
         const pc = createPeerConnection();
-        stream.getTracks().forEach(track => pc.addTrack(track, stream));
+        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
         pcRef.current = pc;
 
         if (isInitiator) {
@@ -234,9 +222,9 @@ export default function RoomPage() {
           emit('offer', { roomId, offer });
         }
 
-        while (iceCandidatesQueue.current.length && pcRef.current.remoteDescription) {
-          const c = iceCandidatesQueue.current.shift();
-          if (c) await pcRef.current.addIceCandidate(new RTCIceCandidate(c));
+        while (iceCandidatesQueue.current.length && pcRef.current?.remoteDescription) {
+          const candidate = iceCandidatesQueue.current.shift();
+          if (candidate) await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
         }
       } catch (err) {
         console.error('Setup error:', err);
@@ -275,7 +263,7 @@ export default function RoomPage() {
       pcRef.current = null;
     }
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(t => t.stop());
+      localStreamRef.current.getTracks().forEach((track) => track.stop());
       localStreamRef.current = null;
     }
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
@@ -294,19 +282,19 @@ export default function RoomPage() {
   };
 
   const sendMessage = () => {
-    if (!chatMessage.trim()) return;
-    const msg = {
+    if (!chatMessage.trim() || !userId) return;
+    const msg: ChatMessage = {
       message: chatMessage,
-      from: userId || '',
+      from: userId,
       timestamp: Date.now(),
-      isOwn: true
+      isOwn: true,
     };
-    setChatMessages(prev => [...prev, msg]);
+    setChatMessages((prev) => [...prev, msg]);
     emit('chat_message', { roomId, message: chatMessage });
     setChatMessage('');
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') sendMessage();
   };
 
@@ -314,7 +302,9 @@ export default function RoomPage() {
     return () => {
       cleanup();
       if (socket) {
-        try { emit('skip'); } catch {}
+        try {
+          emit('skip');
+        } catch {}
       }
     };
   }, [socket, emit]);
@@ -342,7 +332,7 @@ export default function RoomPage() {
             <CardContent className="p-0 h-full">
               <div className="relative h-full min-h-[300px]">
                 <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover rounded-lg" />
-                <div className="absolute top-2 left-2"><Badge variant="secondary">Partner</Badge></div>
+                <div className="absolute top-2 left-2"><Badge variant="secondary">Stranger</Badge></div>
                 {connectionState !== 'Connected' && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
                     <p className="text-white text-lg">{connectionState}</p>
@@ -374,10 +364,15 @@ export default function RoomPage() {
                 <h3 className="font-semibold mb-4">Chat</h3>
                 <div ref={chatContainerRef} className="flex-1 overflow-y-auto space-y-2 mb-4 min-h-0">
                   {chatMessages.length === 0 ? (
-                    <p className="text-muted-foreground text-sm text-center">No messages yet. Start the conversation!</p>
+                    <p className="text-muted-foreground text-sm text-center">No messages yet. Say hi!</p>
                   ) : (
                     chatMessages.map((msg, i) => (
-                      <div key={i} className={`p-2 rounded-lg max-w-xs text-sm ${msg.isOwn ? 'bg-primary text-primary-foreground ml-auto' : 'bg-muted'}`}>
+                      <div
+                        key={i}
+                        className={`p-2 rounded-lg max-w-xs text-sm ${
+                          msg.isOwn ? 'bg-primary text-primary-foreground ml-auto' : 'bg-muted'
+                        }`}
+                      >
                         <p>{msg.message}</p>
                         <p className="text-xs opacity-70 mt-1">{new Date(msg.timestamp).toLocaleTimeString()}</p>
                       </div>
@@ -386,8 +381,16 @@ export default function RoomPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Input value={chatMessage} onChange={(e) => setChatMessage(e.target.value)} onKeyPress={handleKeyPress} placeholder="Type a message..." maxLength={500} />
-                  <Button onClick={sendMessage} size="sm"><Send className="h-4 w-4" /></Button>
+                  <Input
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Type a message..."
+                    maxLength={500}
+                  />
+                  <Button onClick={sendMessage} size="sm">
+                    <Send className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -396,14 +399,18 @@ export default function RoomPage() {
       </div>
 
       <div className="flex items-center justify-center gap-4 pt-4 border-t">
-        <Button onClick={toggleAudio} variant={audioEnabled ? "default" : "destructive"} size="lg">
+        <Button onClick={toggleAudio} variant={audioEnabled ? 'default' : 'destructive'} size="lg">
           {audioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
         </Button>
-        <Button onClick={toggleVideo} variant={videoEnabled ? "default" : "destructive"} size="lg">
+        <Button onClick={toggleVideo} variant={videoEnabled ? 'default' : 'destructive'} size="lg">
           {videoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
         </Button>
-        <Button onClick={handleSkip} variant="outline" size="lg"><SkipForward className="h-5 w-5 mr-2" />Next</Button>
-        <Button onClick={handleGoHome} variant="secondary" size="lg"><Home className="h-5 w-5 mr-2" />Home</Button>
+        <Button onClick={handleSkip} variant="outline" size="lg">
+          <SkipForward className="h-5 w-5 mr-2" /> Next
+        </Button>
+        <Button onClick={handleGoHome} variant="secondary" size="lg">
+          <Home className="h-5 w-5 mr-2" /> Home
+        </Button>
       </div>
     </div>
   );

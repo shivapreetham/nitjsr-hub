@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 interface SocketContextType {
@@ -14,7 +14,7 @@ const SocketContext = createContext<SocketContextType | null>(null);
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const socketRef = useRef<Socket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState<boolean>(false);
   const [userId, setUserId] = useState<string | null>(null);
 
   const connect = useCallback(() => {
@@ -44,14 +44,15 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     newSocket.on('disconnect', () => {
       setIsConnected(false);
+      setUserId(null);
     });
 
     newSocket.on('init_success', (data: { userId: string }) => {
       setUserId(data.userId);
     });
 
-    newSocket.on('connect_error', (err) => {
-      console.error('Socket connect_error', err);
+    newSocket.on('connect_error', (err: Error) => {
+      console.error('Socket connect_error:', err);
       setIsConnected(false);
     });
 
@@ -75,7 +76,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         console.warn('Socket not ready to emit:', event);
       }
     } catch (err) {
-      console.error('Emit error', err);
+      console.error('Emit error:', err);
     }
   }, []);
 
@@ -89,7 +90,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>;
 }
 
-export const useSocket = () => {
+export const useSocket = (): SocketContextType => {
   const ctx = useContext(SocketContext);
   if (!ctx) throw new Error('useSocket must be used within a SocketProvider');
   return ctx;
