@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-/* IMPORT THE SDK STYLES — this is required for built-in layouts to work */
+/* IMPORTANT: SDK styles are required for the layout components to work */
 import "@stream-io/video-react-sdk/dist/css/styles.css";
 
 import {
@@ -8,7 +8,6 @@ import {
   CallingState,
   PaginatedGridLayout,
   SpeakerLayout,
-  ParticipantView,
   useCallStateHooks,
   useCall,
   useParticipantViewContext,
@@ -161,7 +160,6 @@ const MeetingRoom: React.FC = () => {
       case 'grid':
         return (
           <div className="h-full w-full meeting-layout">
-            {/* groupSize controls how many tiles per page; pageArrowsVisible shows pagination */}
             <PaginatedGridLayout {...commonProps} groupSize={9} pageArrowsVisible />
           </div>
         );
@@ -212,18 +210,14 @@ const MeetingRoom: React.FC = () => {
   return (
     <TooltipProvider>
       <div className="relative h-screen w-full bg-gradient-to-br from-gray-900 via-black to-gray-800 overflow-hidden meeting-room-root">
-        {/* NOTE: no aggressive global CSS here. Let the SDK layout the grid/tiles */}
         <style>{`
-          /* Keep styles scoped and non-invasive. Avoid selecting SDK internal classes/attributes. */
+          /* Scoped, non-invasive styles */
           .meeting-room-root .meeting-layout { height: 100%; width: 100%; padding: 0.5rem; }
           .participant-overlay-ui { pointer-events: none; }
-          /* small responsive tweak for sidebars */
-          @media (max-width: 768px) {
-            .meeting-room-root { padding-bottom: 4rem; }
-          }
+          @media (max-width: 768px) { .meeting-room-root { padding-bottom: 4rem; } }
         `}</style>
 
-        {/* Header (same as before) */}
+        {/* Header */}
         <div className="absolute top-0 left-0 right-0 z-30 bg-gradient-to-b from-black/80 via-black/40 to-transparent backdrop-blur-md border-b border-white/10">
           <div className="flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-4">
@@ -244,7 +238,6 @@ const MeetingRoom: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-1">
-              {/* ... header controls unchanged ... */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="sm" className={cn("text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200", showParticipants && "bg-white/20")} onClick={() => setShowParticipants((s) => !s)}>
@@ -253,7 +246,51 @@ const MeetingRoom: React.FC = () => {
                 </TooltipTrigger>
                 <TooltipContent>Participants ({participantsCount})</TooltipContent>
               </Tooltip>
-              {/* other header items */}
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className={cn("text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200", showChat && "bg-white/20")} onClick={() => setShowChat((s) => !s)}>
+                    <MessageSquare size={18} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Chat</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200">
+                    <Share size={18} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Share meeting link</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200" onClick={toggleFullscreen}>
+                    {viewMode === 'normal' ? <Maximize2 size={18} /> : <Minimize2 size={18} />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{viewMode === 'normal' ? 'Enter fullscreen' : 'Exit fullscreen'}</TooltipContent>
+              </Tooltip>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all duration-200">
+                    <MoreHorizontal size={18} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-gray-900/95 backdrop-blur-md border-gray-700 text-white">
+                  <DropdownMenuItem className="hover:bg-gray-800 focus:bg-gray-800">
+                    <Settings size={16} className="mr-2" />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-gray-700" />
+                  <DropdownMenuItem className="hover:bg-gray-800 focus:bg-gray-800">
+                    <CallStatsButton />
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -268,9 +305,8 @@ const MeetingRoom: React.FC = () => {
 
           {(showParticipants || showChat) && (
             <div className="w-80 bg-gray-900/95 backdrop-blur-md border-l border-white/20 p-4">
-              {/* participants / chat sidebars same as before */}
               {showParticipants && (
-                <>
+                <div className="h-full flex flex-col">
                   <div className="pb-4 border-b border-white/20 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Users size={20} className="text-white" />
@@ -313,7 +349,7 @@ const MeetingRoom: React.FC = () => {
                       ))}
                     </div>
                   </div>
-                </>
+                </div>
               )}
 
               {showChat && (
@@ -339,10 +375,10 @@ const MeetingRoom: React.FC = () => {
           )}
         </div>
 
-        {/* bottom controls (same as before) */}
+        {/* bottom controls */}
         <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 via-black/40 to-transparent backdrop-blur-md border-t border-white/10">
           <div className="flex items-center justify-center gap-2 p-6">
-            {/* layout controls, main controls, end call etc */}
+            {/* layout controls */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenu>
@@ -360,7 +396,7 @@ const MeetingRoom: React.FC = () => {
               <TooltipContent>Change layout</TooltipContent>
             </Tooltip>
 
-            {/* mic / cam / screenshare / raise / hangup */}
+            {/* main controls */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="lg" className={cn("rounded-full w-14 h-14 transition-all duration-200 shadow-lg", !isMute ? "text-white hover:bg-white/20 ring-2 ring-white/20" : "bg-red-500/90 text-white hover:bg-red-600 ring-2 ring-red-400/50")} onClick={toggleMic}>
@@ -370,7 +406,33 @@ const MeetingRoom: React.FC = () => {
               <TooltipContent>{!isMute ? 'Mute microphone' : 'Unmute microphone'}</TooltipContent>
             </Tooltip>
 
-            {/* rest of controls unchanged */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="lg" className={cn("rounded-full w-14 h-14 transition-all duration-200 shadow-lg", !isVideoMuted ? "text-white hover:bg-white/20 ring-2 ring-white/20" : "bg-red-500/90 text-white hover:bg-red-600 ring-2 ring-red-400/50")} onClick={toggleVideo}>
+                  {!isVideoMuted ? <Video size={24} /> : <VideoOff size={24} />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{!isVideoMuted ? 'Turn off camera' : 'Turn on camera'}</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="lg" className={cn("rounded-full w-14 h-14 transition-all duration-200 shadow-lg", hasOngoingScreenShare ? "bg-blue-500/90 text-white hover:bg-blue-600 ring-2 ring-blue-400/50" : "text-white hover:bg-white/20 ring-2 ring-white/20")} onClick={toggleScreenShare}>
+                  {hasOngoingScreenShare ? <MonitorOff size={24} /> : <Monitor size={24} />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{hasOngoingScreenShare ? 'Stop screen share' : 'Share screen'}</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="lg" className={cn("rounded-full w-14 h-14 transition-all duration-200 shadow-lg", isHandRaised ? "bg-yellow-500/90 text-white hover:bg-yellow-600 ring-2 ring-yellow-400/50" : "text-white hover:bg-white/20 ring-2 ring-white/20")} onClick={toggleHandRaise}>
+                  <Hand size={24} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isHandRaised ? 'Lower hand' : 'Raise hand'}</TooltipContent>
+            </Tooltip>
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="destructive" size="lg" className="rounded-full w-16 h-16 bg-red-500/90 hover:bg-red-600 transition-all duration-200 shadow-lg ring-2 ring-red-400/50" onClick={() => router.push('/videoChat')}>
@@ -381,7 +443,6 @@ const MeetingRoom: React.FC = () => {
             </Tooltip>
 
             {!isPersonalRoom && <EndCallButton />}
-
           </div>
         </div>
       </div>
