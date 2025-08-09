@@ -30,11 +30,15 @@ export default function RoomPage() {
   const params = useParams();
   const roomId = params?.roomId as string;
   const { socket, isConnected, userId, emit } = useSocket();
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+
+  // refs
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // state
   const [partnerId, setPartnerId] = useState<string>('');
   const [isInitiator, setIsInitiator] = useState(false);
   const [connectionState, setConnectionState] = useState('Connecting...');
@@ -44,8 +48,10 @@ export default function RoomPage() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [showChat, setShowChat] = useState(false);
 
-  const iceCandidatesQueue = useRef<RTCIceCandidate[]>([]);
-  // Initialize media
+  // ICE queue, store RTCIceCandidateInit objects until pc is ready
+  const iceCandidatesQueue = useRef<RTCIceCandidateInit[]>([]);
+
+  // Initialize media (ask permissions)
   const initializeMedia = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -53,9 +59,13 @@ export default function RoomPage() {
         audio: true
       });
       localStreamRef.current = stream;
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
+      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+
+      const audioTrack = stream.getAudioTracks()[0];
+      const videoTrack = stream.getVideoTracks()[0];
+      setAudioEnabled(audioTrack ? audioTrack.enabled : true);
+      setVideoEnabled(videoTrack ? videoTrack.enabled : true);
+
       return stream;
     } catch (error) {
       console.error('Error accessing media:', error);
@@ -64,9 +74,9 @@ export default function RoomPage() {
     }
   }, []);
 
-  // Create peer connection
+  // Create a new RTCPeerConnection configured and wired
   const createPeerConnection = useCallback(() => {
-    const configuration = {
+    const configuration: RTCConfiguration = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' }
@@ -75,6 +85,7 @@ export default function RoomPage() {
 
     const pc = new RTCPeerConnection(configuration);
 
+    // send ice candidates to server
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         emit('ice_candidate', {
@@ -84,53 +95,63 @@ export default function RoomPage() {
       }
     };
 
+    // attach remote stream to remote video element
     pc.ontrack = (event) => {
-      if (remoteVideoRef.current && event.streams[0]) {
+      if (remoteVideoRef.current && event.streams && event.streams[0]) {
         remoteVideoRef.current.srcObject = event.streams[0];
       }
     };
+
     pc.oniceconnectionstatechange = () => {
       console.log('ICE connection state:', pc.iceConnectionState);
       setConnectionState(pc.iceConnectionState);
     };
+
     pc.onconnectionstatechange = () => {
       console.log('Connection state:', pc.connectionState);
-      if (pc.connectionState === 'connected') {
-        setConnectionState('Connected');
-      } else if (pc.connectionState === 'failed') {
-        setConnectionState('Connection failed');
-      }
+      if (pc.connectionState === 'connected') setConnectionState('Connected');
+      else if (pc.connectionState === 'failed') setConnectionState('Connection failed');
     };
 
     return pc;
   }, [emit, roomId]);
 
-  // Socket event handlers
+  // Socket event handlers - set up once socket & roomId exist
   useEffect(() => {
     if (!socket || !roomId) return;
 
     const handleRoomJoined = (data: any) => {
       setPartnerId(data.partnerId);
-      setIsInitiator(data.isInitiator);
+      setIsInitiator(Boolean(data.isInitiator));
       setConnectionState('Setting up connection...');
     };
 
     const handleOffer = async (data: any) => {
-      if (!pcRef.current) return;
-      
+      // If pc isn't created yet (offer arrived first), create PC + local media now
+      if (!pcRef.current) {
+        try {
+          const stream = await initializeMedia();
+          const pc = createPeerConnection();
+          stream.getTracks().forEach(track => pc.addTrack(track, stream));
+          pcRef.current = pc;
+        } catch (err) {
+          console.error('Failed to prepare pc on offer', err);
+          return;
+        }
+      }
+
       try {
-        await pcRef.current.setRemoteDescription(data.offer);
-        // Add queued ICE candidates
+        await pcRef.current!.setRemoteDescription(data.offer);
+
+        // drain any queued ICE candidates
         while (iceCandidatesQueue.current.length > 0) {
           const candidate = iceCandidatesQueue.current.shift();
-          if (candidate) {
-            await pcRef.current.addIceCandidate(candidate);
-          }
+          if (candidate) await pcRef.current!.addIceCandidate(new RTCIceCandidate(candidate));
         }
-        
-        const answer = await pcRef.current.createAnswer();
-        await pcRef.current.setLocalDescription(answer);
-        
+
+        const answer = await pcRef.current!.createAnswer();
+        await pcRef.current!.setLocalDescription(answer);
+
         emit('answer', {
           roomId,
           answer: answer
@@ -141,17 +162,17 @@ export default function RoomPage() {
     };
 
     const handleAnswer = async (data: any) => {
-      if (!pcRef.current) return;
-      
+      if (!pcRef.current) {
+        console.warn('Answer received but pcRef is null');
+        return;
+      }
       try {
         await pcRef.current.setRemoteDescription(data.answer);
-        
-        // Add queued ICE candidates
+
+        // drain queued ICEs
         while (iceCandidatesQueue.current.length > 0) {
           const candidate = iceCandidatesQueue.current.shift();
-          if (candidate) {
-            await pcRef.current.addIceCandidate(candidate);
-          }
+          if (candidate) await pcRef.current!.addIceCandidate(new RTCIceCandidate(candidate));
         }
       } catch (error) {
         console.error('Error handling answer:', error);
@@ -159,17 +180,16 @@ export default function RoomPage() {
     };
 
     const handleIceCandidate = async (data: any) => {
-      if (!pcRef.current) {
-        iceCandidatesQueue.current.push(new RTCIceCandidate(data.candidate));
+      if (!data || !data.candidate) return;
+
+      // If PC isn't ready or remoteDescription not set, keep candidate in queue
+      if (!pcRef.current || !pcRef.current.remoteDescription) {
+        iceCandidatesQueue.current.push(data.candidate);
         return;
       }
-      
+
       try {
-        if (pcRef.current.remoteDescription) {
-          await pcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
-        } else {
-          iceCandidatesQueue.current.push(new RTCIceCandidate(data.candidate));
-        }
+        await pcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
       } catch (error) {
         console.error('Error handling ICE candidate:', error);
       }
@@ -177,9 +197,7 @@ export default function RoomPage() {
 
     const handlePartnerDisconnected = () => {
       setConnectionState('Partner disconnected');
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = null;
-      }
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     };
 
     const handlePartnerSkipped = () => {
@@ -210,7 +228,7 @@ export default function RoomPage() {
     socket.on('chat_message', handleChatMessage);
     socket.on('room_error', handleRoomError);
 
-    // Join room
+    // tell server we want to join this room (server will validate)
     emit('join_room', { roomId });
 
     return () => {
@@ -223,9 +241,9 @@ export default function RoomPage() {
       socket.off('chat_message', handleChatMessage);
       socket.off('room_error', handleRoomError);
     };
-  }, [socket, roomId, emit, router]);
+  }, [socket, roomId, emit, initializeMedia, createPeerConnection, router]);
 
-  // Initialize connection
+  // When partnerId set -> initialize local media + pc (if initiator createOffer)
   useEffect(() => {
     if (!partnerId || pcRef.current) return;
 
@@ -233,18 +251,15 @@ export default function RoomPage() {
       try {
         const stream = await initializeMedia();
         const pc = createPeerConnection();
-        
-        // Add local stream to peer connection
-        stream.getTracks().forEach(track => {
-          pc.addTrack(track, stream);
-        });
-        
+
+        // add local tracks to PC
+        stream.getTracks().forEach(track => pc.addTrack(track, stream));
         pcRef.current = pc;
-        
+
         if (isInitiator) {
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
-          
+
           emit('offer', {
             roomId,
             offer: offer
@@ -259,7 +274,7 @@ export default function RoomPage() {
     setupConnection();
   }, [partnerId, isInitiator, initializeMedia, createPeerConnection, emit, roomId]);
 
-  // Scroll chat to bottom
+  // Scroll chat to bottom on new message
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
@@ -287,6 +302,23 @@ export default function RoomPage() {
     }
   };
 
+  // Cleanup pc & tracks
+  const cleanup = () => {
+    if (pcRef.current) {
+      try { pcRef.current.close(); } catch (e) { /* ignore */ }
+      pcRef.current = null;
+    }
+
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+    }
+
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    iceCandidatesQueue.current = [];
+  };
+
   const handleSkip = () => {
     emit('skip');
     cleanup();
@@ -298,36 +330,16 @@ export default function RoomPage() {
     router.push('/omegle');
   };
 
-  const cleanup = () => {
-    if (pcRef.current) {
-      pcRef.current.close();
-      pcRef.current = null;
-    }
-    
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
-      localStreamRef.current = null;
-    }
-    
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = null;
-    }
-    
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.srcObject = null;
-    }
-  };
-
   const sendMessage = () => {
     if (!chatMessage.trim()) return;
-    
+
     const message = {
       message: chatMessage,
       from: userId || '',
       timestamp: Date.now(),
       isOwn: true
     };
-    
+
     setChatMessages(prev => [...prev, message]);
     emit('chat_message', { roomId, message: chatMessage });
     setChatMessage('');
@@ -339,10 +351,13 @@ export default function RoomPage() {
     }
   };
 
-  // Cleanup on unmount
+  // Cleanup on unmount (leave room)
   useEffect(() => {
-    return cleanup;
-  }, []);
+    return () => {
+      cleanup();
+      try { emit('skip'); } catch {}
+    };
+  }, [emit]);
 
   if (!roomId) {
     return (
@@ -362,7 +377,7 @@ export default function RoomPage() {
             {connectionState}
           </Badge>
         </div>
-        
+
         <Button
           onClick={() => setShowChat(!showChat)}
           variant="outline"
@@ -428,7 +443,7 @@ export default function RoomPage() {
             <Card className="flex-1 flex flex-col min-h-0">
               <CardContent className="p-4 flex-1 flex flex-col min-h-0">
                 <h3 className="font-semibold mb-4">Chat</h3>
-                
+
                 {/* Messages */}
                 <div 
                   ref={chatContainerRef}
@@ -456,7 +471,7 @@ export default function RoomPage() {
                     ))
                   )}
                 </div>
-                
+
                 {/* Message Input */}
                 <div className="flex gap-2">
                   <Input
@@ -485,7 +500,7 @@ export default function RoomPage() {
         >
           {audioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
         </Button>
-        
+
         <Button
           onClick={toggleVideo}
           variant={videoEnabled ? "default" : "destructive"}
@@ -493,7 +508,7 @@ export default function RoomPage() {
         >
           {videoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
         </Button>
-        
+
         <Button
           onClick={handleSkip}
           variant="outline"
@@ -502,7 +517,7 @@ export default function RoomPage() {
           <SkipForward className="h-5 w-5 mr-2" />
           Next
         </Button>
-        
+
         <Button
           onClick={handleGoHome}
           variant="secondary"

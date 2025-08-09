@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, Video, Search, Loader2, Wifi, WifiOff } from 'lucide-react';
+import { Users, Video, Loader2, Wifi, WifiOff } from 'lucide-react';
 import { useSocket } from '@/context/SocketProvider';
 
 export default function OmeglePage() {
@@ -57,7 +57,7 @@ export default function OmeglePage() {
 
   // Search timer
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: NodeJS.Timeout | undefined;
     if (isSearching) {
       interval = setInterval(() => {
         setSearchTime(prev => prev + 1);

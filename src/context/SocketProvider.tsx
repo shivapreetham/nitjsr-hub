@@ -13,85 +13,105 @@ interface SocketContextType {
 const SocketContext = createContext<SocketContextType | null>(null);
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
-  const [socket, setSocket] = useState<Socket | null>(null);
+  // Use ref to hold the socket so emits/listeners always reference the latest socket
+  const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const socketRef = useRef<Socket | null>(null);
 
   const connect = useCallback(() => {
     const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001';
-    
+
+    // If there is an existing socket, clean it up first
     if (socketRef.current) {
-      socketRef.current.disconnect();
+      try {
+        socketRef.current.removeAllListeners();
+        socketRef.current.disconnect();
+      } catch (err) {
+        console.warn("Error while disconnecting previous socket", err);
+      }
+      socketRef.current = null;
     }
 
-    const newSocket = io(serverUrl, {
+    const socket = io(serverUrl, {
       transports: ['websocket', 'polling'],
       timeout: 10000,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
+      autoConnect: true,
     });
 
-    newSocket.on('connect', () => {
-      console.log('Connected to server');
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      console.log('Connected to server via socket.io:', socket.id);
       setIsConnected(true);
-      // Initialize user
-      newSocket.emit('init');
+      // ask server to init the user
+      socket.emit('init');
     });
 
-    newSocket.on('disconnect', () => {
-      console.log('Disconnected from server');
+    socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
       setIsConnected(false);
     });
 
-    newSocket.on('init_success', (data) => {
-      console.log('User initialized:', data.userId);
+    socket.on('init_success', (data: { userId: string }) => {
+      console.log('init_success', data);
       setUserId(data.userId);
     });
 
-    newSocket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
+    socket.on('connect_error', (err) => {
+      console.error('Socket connect_error', err);
       setIsConnected(false);
     });
 
-    socketRef.current = newSocket;
-    setSocket(newSocket);
+    // keep a small console debug for other events if needed
+    // socket.onAny((event, ...args) => console.debug('[socket event]', event, args));
   }, []);
 
   useEffect(() => {
     connect();
-    
+    // cleanup on unmount
     return () => {
       if (socketRef.current) {
-        socketRef.current.disconnect();
+        try {
+          socketRef.current.removeAllListeners();
+          socketRef.current.disconnect();
+        } catch (err) {
+          console.warn("Socket cleanup error", err);
+        }
+        socketRef.current = null;
       }
     };
   }, [connect]);
 
+  // emit helper: always use socketRef.current (don't gate on isConnected boolean which can be stale)
   const emit = useCallback((event: string, data?: any) => {
-    if (socketRef.current && isConnected) {
-      socketRef.current.emit(event, data);
+    try {
+      if (socketRef.current && socketRef.current.connected) {
+        socketRef.current.emit(event, data);
+      } else if (socketRef.current) {
+        // If socket exists but not connected yet, try emit anyway (socket.io will queue until connected)
+        socketRef.current.emit(event, data);
+      } else {
+        console.warn('emit called but socketRef.current is null', event, data);
+      }
+    } catch (err) {
+      console.error('emit error', err);
     }
-  }, [isConnected]);
+  }, []);
 
-  const value = {
+  const value: SocketContextType = {
     socket: socketRef.current,
     isConnected,
     userId,
     emit
   };
 
-  return (
-    <SocketContext.Provider value={value}>
-      {children}
-    </SocketContext.Provider>
-  );
+  return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>;
 }
 
 export const useSocket = () => {
-  const context = useContext(SocketContext);
-  if (!context) {
-    throw new Error('useSocket must be used within a SocketProvider');
-  }
-  return context;
+  const ctx = useContext(SocketContext);
+  if (!ctx) throw new Error('useSocket must be used within a SocketProvider');
+  return ctx;
 };
