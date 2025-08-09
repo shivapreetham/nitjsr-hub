@@ -363,7 +363,7 @@ export default function OmeglePage() {
 
             {/* Feature cards */}
             {!isSearching && (
-              <>
+              <div className="items-center gap-4 grid grid-cols-2 md:grid-cols-3 mt-4">
                 <div>
                   <Card className="bg-white/70 backdrop-blur-sm border border-white/30 shadow-lg rounded-xl p-6 text-center">
                     <div className="flex flex-col items-center gap-3">
@@ -387,32 +387,6 @@ export default function OmeglePage() {
             )}
 
             {/* Safety Tips */}
-            <div className="lg:col-span-3">
-              <Card className="bg-white/60 backdrop-blur-md border border-white/30 shadow-sm rounded-2xl">
-                <CardContent className="p-6">
-                  <h4 className="text-center font-semibold mb-4">Stay Safe Online</h4>
-                  <div className="max-w-xl mx-auto space-y-2 text-xs text-gray-700">
-                    <div className="flex items-start gap-2">
-                      <div className="h-2 w-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0" />
-                      <span>Be respectful and kind to others</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="h-2 w-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0" />
-                      <span>Don't share personal information</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="h-2 w-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0" />
-                      <span>Report inappropriate behavior</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="h-2 w-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0" />
-                      <span>Use a stable internet connection</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
             {/* Debug info (development only) */}
             {process.env.NODE_ENV === "development" && (
               <div className="lg:col-span-3">
