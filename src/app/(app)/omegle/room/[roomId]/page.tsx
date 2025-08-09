@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { SkipForward, StopCircle, Mic, MicOff, VideoOff, VideoIcon, RotateCcw, AlertCircle } from "lucide-react";
 import { useSocket } from "@/context/SocketProvider";
 
-export default function RoomPage({ params }: { params: any }) {
+export default function RoomPage({ params }: { params: { roomId: string } }) {
   const router = useRouter();
   const roomId = params.roomId;
   const { socket, emit, token, isConnected } = useSocket();
@@ -24,17 +24,15 @@ export default function RoomPage({ params }: { params: any }) {
   const [connectionStatus, setConnectionStatus] = useState("Initializing...");
   const [localReady, setLocalReady] = useState(false);
   const [mediaError, setMediaError] = useState("");
-  const [isConnectedCall, setIsConnectedCall] = useState(false);
+  const [isCallConnected, setIsCallConnected] = useState(false);
   const [partnerId, setPartnerId] = useState("");
 
   const pendingOffersRef = useRef<any[]>([]);
   const pendingCandidatesRef = useRef<any[]>([]);
-  const isRoomJoinedRef = useRef(false);
+  const joinedRef = useRef(false);
 
-  // ICE restart config
-  const iceAttemptsRef = useRef(0);
   const ICE_MAX = 4;
-  const ICE_BACKOFF_MS = 2000;
+  const iceAttemptsRef = useRef(0);
 
   const buildIceServers = () => {
     const ice: RTCIceServer[] = [
@@ -51,7 +49,7 @@ export default function RoomPage({ params }: { params: any }) {
       } else {
         console.log("[ROOM] No TURN configured");
       }
-    } catch (e) { console.warn(e); }
+    } catch(e) { console.warn(e); }
     return ice;
   };
 
@@ -59,20 +57,16 @@ export default function RoomPage({ params }: { params: any }) {
     if (localStreamRef.current) return localStreamRef.current;
     setConnectionStatus("Requesting camera/microphone...");
     try {
-      const constraints = { video: true, audio: true };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      localStreamRef.current = stream;
+      const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localStreamRef.current = s;
       setLocalReady(true);
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-        await localVideoRef.current.play().catch(()=>{});
-      }
-      return stream;
-    } catch (err: any) {
-      console.error("[ROOM] getUserMedia error", err);
-      setMediaError("Camera/microphone error: " + (err?.message || err));
+      if (localVideoRef.current) localVideoRef.current.srcObject = s;
+      return s;
+    } catch (e: any) {
+      console.error("[ROOM] media error", e);
+      setMediaError("Camera/microphone error: " + (e?.message || e));
       setConnectionStatus("Media error");
-      throw err;
+      throw e;
     }
   }, []);
 
@@ -84,23 +78,19 @@ export default function RoomPage({ params }: { params: any }) {
     };
 
     pc.oniceconnectionstatechange = () => {
-      console.log("[ROOM] ICE state:", pc.iceConnectionState);
+      console.log("[ROOM] ICE state", pc.iceConnectionState);
       switch (pc.iceConnectionState) {
         case "connected":
         case "completed":
           iceAttemptsRef.current = 0;
-          setIsConnectedCall(true);
+          setIsCallConnected(true);
           setConnectionStatus("Connected");
           break;
         case "disconnected":
-          setIsConnectedCall(false);
-          setConnectionStatus("Disconnected - attempting recover...");
-          startIceRestartSequence();
-          break;
         case "failed":
-          setIsConnectedCall(false);
-          setConnectionStatus("Failed - attempting recover...");
-          startIceRestartSequence();
+          setIsCallConnected(false);
+          setConnectionStatus("Disconnected - attempting recovery...");
+          attemptIceRestart();
           break;
         case "checking":
           setConnectionStatus("Establishing...");
@@ -113,7 +103,6 @@ export default function RoomPage({ params }: { params: any }) {
     pc.ontrack = (ev) => {
       if (remoteVideoRef.current && ev.streams && ev.streams[0]) {
         remoteVideoRef.current.srcObject = ev.streams[0];
-        remoteVideoRef.current.play().catch(()=>{});
       }
     };
 
@@ -121,97 +110,86 @@ export default function RoomPage({ params }: { params: any }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, emit]);
 
-  const startIceRestartSequence = useCallback(async () => {
+  const attemptIceRestart = useCallback(async () => {
+    if (!pcRef.current) return;
     if (iceAttemptsRef.current >= ICE_MAX) {
       setConnectionStatus("Unable to recover. Try New Chat or reload.");
       return;
     }
-    iceAttemptsRef.current += 1;
-    const backoff = ICE_BACKOFF_MS * Math.pow(1.5, iceAttemptsRef.current - 1);
-    console.log(`[ROOM] scheduling ice restart attempt #${iceAttemptsRef.current} in ${Math.round(backoff)}ms`);
+    iceAttemptsRef.current++;
+    const backoff = 2000 * Math.pow(1.5, iceAttemptsRef.current - 1);
+    console.log(`[ROOM] schedule ice restart #${iceAttemptsRef.current} in ${Math.round(backoff)}ms`);
     setTimeout(async () => {
       const pc = pcRef.current;
-      if (!pc || !roomId) return;
-      try {
-        if (typeof pc.restartIce === 'function') {
-          try { pc.restartIce(); } catch(e){ console.warn(e); }
-        }
-        if (isInitiator) {
+      if (!pc) return;
+      if (typeof pc.restartIce === 'function') {
+        try { pc.restartIce(); console.log("[ROOM] pc.restartIce() called"); } catch(e) { console.warn(e); }
+      }
+      if (isInitiator) {
+        try {
           const offer = await pc.createOffer({ iceRestart: true });
           await pc.setLocalDescription(offer);
           emit("offer", { room: roomId, offer });
           setConnectionStatus("Sent re-offer (initiator)");
-        } else {
-          // ask server to ask initiator to re-offer
-          emit("request_reoffer", { room: roomId });
-          setConnectionStatus("Requested partner to re-offer");
-        }
-      } catch (err) {
-        console.error("[ROOM] iceRestart error", err);
+        } catch (e) { console.error(e); }
+      } else {
+        // ask server to request initiator to re-offer
+        emit("request_reoffer", { room: roomId });
+        setConnectionStatus("Requested partner re-offer");
       }
-      // schedule check later
+
+      // if still not connected, schedule next attempt
       setTimeout(() => {
-        const cur = pcRef.current;
-        if (!cur) return;
-        if (cur.iceConnectionState === 'connected' || cur.iceConnectionState === 'completed') {
+        const nowPc = pcRef.current;
+        if (!nowPc) return;
+        if (nowPc.iceConnectionState === 'connected' || nowPc.iceConnectionState === 'completed') {
           iceAttemptsRef.current = 0;
           return;
         } else {
-          startIceRestartSequence();
+          attemptIceRestart();
         }
       }, 3000);
     }, backoff);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInitiator, roomId]);
+  }, [isInitiator, roomId, emit]);
 
-  // Signaling handlers
   useEffect(() => {
     if (!socket || !roomId) return;
-
-    const onRoomAssigned = (data: any) => {
-      console.log("[ROOM] room_assigned", data);
-      setIsInitiator(Boolean(data.initiator));
-      setUserRole(data.role || "");
-      setPartnerId(data.partnerId || "");
-      isRoomJoinedRef.current = true;
+    const onAssigned = (d: any) => {
+      setIsInitiator(Boolean(d.initiator));
+      setUserRole(d.role || "");
+      setPartnerId(d.partnerId || "");
+      joinedRef.current = true;
     };
-    const onRoomJoined = (data: any) => {
-      console.log("[ROOM] room_joined", data);
-      setIsInitiator(Boolean(data.initiator));
-      setUserRole(data.role || "");
-      setPartnerId(data.partnerId || "");
-      isRoomJoinedRef.current = true;
+    const onJoined = (d: any) => {
+      setIsInitiator(Boolean(d.initiator));
+      setUserRole(d.role || "");
+      setPartnerId(d.partnerId || "");
+      joinedRef.current = true;
     };
-    const onOffer = async (data: any) => {
+    const onOffer = async (d: any) => {
       if (!pcRef.current) {
-        pendingOffersRef.current.push(data);
+        pendingOffersRef.current.push(d);
         return;
       }
       try {
-        await pcRef.current.setRemoteDescription(new RTCSessionDescription(data.offer));
+        await pcRef.current.setRemoteDescription(new RTCSessionDescription(d.offer));
         const answer = await pcRef.current.createAnswer();
         await pcRef.current.setLocalDescription(answer);
         emit("answer", { room: roomId, answer });
-      } catch (err) { console.error("[ROOM] process offer error", err); }
+      } catch (e) { console.error(e); }
     };
-    const onAnswer = async (data: any) => {
-      if (!pcRef.current) {
-        console.warn("[ROOM] answer arrived but no PC");
-        return;
-      }
-      try { await pcRef.current.setRemoteDescription(new RTCSessionDescription(data.answer)); } catch (e) { console.error(e); }
+    const onAnswer = async (d: any) => {
+      if (!pcRef.current) { console.warn("answer arrived but pc missing"); return; }
+      try { await pcRef.current.setRemoteDescription(new RTCSessionDescription(d.answer)); } catch(e){ console.error(e); }
     };
-    const onCandidate = async (data: any) => {
-      if (!pcRef.current) {
-        pendingCandidatesRef.current.push(data);
-        return;
-      }
-      try { await pcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch (e) { console.error(e); }
+    const onIce = async (d: any) => {
+      if (!pcRef.current) { pendingCandidatesRef.current.push(d); return; }
+      try { await pcRef.current.addIceCandidate(new RTCIceCandidate(d.candidate)); } catch(e){ console.error(e); }
     };
-    const onPartnerDisconnected = (d: any) => { setConnectionStatus("Partner disconnected"); setIsConnectedCall(false); };
-    const onPartnerReconnected = (d: any) => {
-      console.log("[ROOM] partner_reconnected", d);
-      // initiator should do iceRestart
+    const onPartnerDisconnected = (d:any) => { setConnectionStatus("Partner disconnected"); setIsCallConnected(false); };
+    const onPartnerReconnected = (d:any) => {
+      // initiator may re-offer to re-establish connection
       if (isInitiator && pcRef.current && roomId) {
         pcRef.current.createOffer({ iceRestart: true }).then(async (off) => {
           await pcRef.current?.setLocalDescription(off);
@@ -219,8 +197,7 @@ export default function RoomPage({ params }: { params: any }) {
         }).catch(console.error);
       }
     };
-    const onRequestReoffer = async (d: any) => {
-      // server asked this client (initiator) to re-offer
+    const onRequestReoffer = async (d:any) => {
       if (!isInitiator || !pcRef.current) return;
       try {
         const offer = await pcRef.current.createOffer({ iceRestart: true });
@@ -229,57 +206,58 @@ export default function RoomPage({ params }: { params: any }) {
       } catch (e) { console.error(e); }
     };
 
-    socket.on("room_assigned", onRoomAssigned);
-    socket.on("room_joined", onRoomJoined);
+    socket.on("room_assigned", onAssigned);
+    socket.on("room_joined", onJoined);
     socket.on("offer", onOffer);
     socket.on("answer", onAnswer);
-    socket.on("ice-candidate", onCandidate);
+    socket.on("ice-candidate", onIce);
     socket.on("partner_disconnected", onPartnerDisconnected);
     socket.on("partner_reconnected", onPartnerReconnected);
     socket.on("request_reoffer", onRequestReoffer);
 
     return () => {
-      socket.off("room_assigned", onRoomAssigned);
-      socket.off("room_joined", onRoomJoined);
+      socket.off("room_assigned", onAssigned);
+      socket.off("room_joined", onJoined);
       socket.off("offer", onOffer);
       socket.off("answer", onAnswer);
-      socket.off("ice-candidate", onCandidate);
+      socket.off("ice-candidate", onIce);
       socket.off("partner_disconnected", onPartnerDisconnected);
       socket.off("partner_reconnected", onPartnerReconnected);
       socket.off("request_reoffer", onRequestReoffer);
     };
   }, [socket, roomId, emit, isInitiator]);
 
-  // Join room when socket ready
+  // join room
   useEffect(() => {
-    if (!socket || !roomId || !isConnected || isRoomJoinedRef.current) return;
+    if (!socket || !roomId || !isConnected || joinedRef.current) return;
     setConnectionStatus("Joining room...");
     emit("join_room", { room: roomId });
   }, [socket, roomId, isConnected, emit]);
 
-  // Setup peer connection when room joined
+  // setup pc after join
   useEffect(() => {
-    if (!isRoomJoinedRef.current || !isConnected || pcRef.current) return;
+    if (!joinedRef.current || !isConnected || pcRef.current) return;
     let cancelled = false;
-    const setup = async () => {
+
+    (async () => {
       try {
-        setConnectionStatus("Setting up local media...");
+        setConnectionStatus("Getting media...");
         const stream = await initLocalMedia();
         if (cancelled) return;
-        setConnectionStatus("Creating PeerConnection...");
         const pc = createPC();
         pcRef.current = pc;
-        if (stream) {
-          stream.getTracks().forEach((t) => { pc.addTrack(t, stream); });
-        }
-        // add buffered candidates
+
+        // add local tracks
+        if (stream) stream.getTracks().forEach(t => pc.addTrack(t, stream));
+
+        // add buffered candidates if any
         if (pendingCandidatesRef.current.length) {
           for (const c of pendingCandidatesRef.current) {
-            await pc.addIceCandidate(new RTCIceCandidate(c.candidate)).catch(console.warn);
+            try { await pc.addIceCandidate(new RTCIceCandidate(c.candidate)); } catch(e){ console.warn(e); }
           }
           pendingCandidatesRef.current = [];
         }
-        // If initiator -> create offer
+
         if (isInitiator) {
           setConnectionStatus("Creating offer...");
           const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
@@ -290,41 +268,43 @@ export default function RoomPage({ params }: { params: any }) {
           // process pending offers
           if (pendingOffersRef.current.length) {
             for (const p of pendingOffersRef.current) {
-              await pc.setRemoteDescription(new RTCSessionDescription(p.offer));
-              const answer = await pc.createAnswer();
-              await pc.setLocalDescription(answer);
-              emit("answer", { room: roomId, answer });
+              try {
+                await pc.setRemoteDescription(new RTCSessionDescription(p.offer));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                emit("answer", { room: roomId, answer });
+              } catch(e) { console.error(e); }
             }
             pendingOffersRef.current = [];
           }
         }
       } catch (e) {
         console.error("[ROOM] setup error", e);
-        setConnectionStatus("Setup failed: " +  (e));
+        setConnectionStatus("Setup failed: " + (e?.message || e));
       }
-    };
-    setup();
+    })();
+
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isInitiator, isConnected, roomId]);
 
   const toggleAudio = useCallback(() => {
     if (localStreamRef.current) {
       const t = localStreamRef.current.getAudioTracks()[0];
-      if (t) { t.enabled = !t.enabled; }
+      if (t) t.enabled = !t.enabled;
     }
   }, []);
 
   const toggleVideo = useCallback(() => {
     if (localStreamRef.current) {
       const t = localStreamRef.current.getVideoTracks()[0];
-      if (t) { t.enabled = !t.enabled; }
+      if (t) t.enabled = !t.enabled;
     }
   }, []);
 
   const cleanup = useCallback(() => {
     if (pcRef.current) { pcRef.current.close(); pcRef.current = null; }
-    if (localStreamRef.current) { localStreamRef.current.getTracks().forEach(t => t.stop()); localStreamRef.current = null; }
+    if (localStreamRef.current) { localStreamRef.current.getTracks().forEach(t=>t.stop()); localStreamRef.current = null; }
     if (typeof window !== 'undefined') sessionStorage.removeItem("omegle_room");
   }, []);
 
@@ -339,9 +319,7 @@ export default function RoomPage({ params }: { params: any }) {
 
   useEffect(() => { return () => cleanup(); }, [cleanup]);
 
-  if (!roomId) {
-    return <div className="min-h-screen flex items-center justify-center">Invalid room</div>;
-  }
+  if (!roomId) return <div className="min-h-screen flex items-center justify-center">Invalid room</div>;
 
   return (
     <div className="min-h-screen p-4">

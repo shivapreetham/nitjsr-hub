@@ -1,5 +1,6 @@
 // context/SocketProvider.tsx
 "use client";
+
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 
@@ -24,33 +25,33 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   const createConnection = useCallback(() => {
     const url = process.env.NEXT_PUBLIC_OMEGLE_SERVER_URL || "http://localhost:3001";
-    const auth = { token: token || (typeof window !== 'undefined' ? sessionStorage.getItem("omegle_token") : null) };
-    console.log("[SOCKET] Creating connection to:", url, "auth:", Boolean(auth.token));
+    const authToken = token || (typeof window !== 'undefined' ? sessionStorage.getItem("omegle_token") : null);
+    console.log("[SOCKET] Creating connection to:", url, "auth:", Boolean(authToken));
     if (socketRef.current) {
       try { socketRef.current.disconnect(); socketRef.current.removeAllListeners(); } catch(e) {}
       socketRef.current = null;
     }
+
     const s = io(url, {
-      transports: ['websocket', 'polling'],
-      timeout: 5000,
+      transports: ['websocket','polling'],
+      auth: { token: authToken },
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
-      auth
     });
 
     s.on('connect', () => { console.log("[SOCKET] Connected"); setIsConnected(true); });
-    s.on('disconnect', (reason) => { console.log("[SOCKET] Disconnected:", reason); setIsConnected(false); });
+    s.on('disconnect', (r) => { console.log("[SOCKET] Disconnected", r); setIsConnected(false); });
     s.on('connect_error', (err) => { console.error("[SOCKET] connect_error", err); setIsConnected(false); });
 
     s.on('welcome', (data: any) => {
-      console.log("[SOCKET] welcome:", data.token);
+      console.log("[SOCKET] welcome", data.token);
       setToken(data.token);
       if (typeof window !== 'undefined') sessionStorage.setItem("omegle_token", data.token);
     });
 
     s.on('reconnect_success', (data: any) => {
       console.log("[SOCKET] reconnect_success", data);
-      // page listeners handle join/navigation
+      // UI pages handle room navigation if needed
     });
 
     s.on('reconnect_failed', () => {
@@ -69,32 +70,31 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const s = createConnection();
-    return () => {
-      if (s) { s.removeAllListeners(); s.disconnect(); }
-    };
+    return () => { if (s) { s.removeAllListeners(); s.disconnect(); } };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const reconnect = useCallback(() => {
     console.log("[SOCKET] manual reconnect");
-    if (socketRef.current) { socketRef.current.disconnect(); socketRef.current.removeAllListeners(); socketRef.current = null; }
+    if (socketRef.current) {
+      try { socketRef.current.disconnect(); socketRef.current.removeAllListeners(); } catch(e) {}
+      socketRef.current = null;
+    }
     createConnection();
   }, [createConnection]);
 
   const emit = useCallback((event: string, data?: any) => {
-    if (!socketRef.current || !socketRef.current.connected) {
-      console.warn("[SOCKET] cannot emit, not connected");
-      return false;
-    }
+    const s = socketRef.current;
+    if (!s || !s.connected) { console.warn("[SOCKET] cannot emit - not connected"); return false; }
     const payload = { ...(data || {}) };
     if (!payload.token && token) payload.token = token;
-    socketRef.current.emit(event, payload);
-    console.log("[SOCKET] emitted", event, payload);
+    s.emit(event, payload);
+    // keep log concise
+    console.log("[SOCKET] emitted:", event, payload);
     return true;
   }, [token]);
 
   const value = useMemo(() => ({ socket, token, isConnected, reconnect, emit }), [socket, token, isConnected, reconnect, emit]);
-
   return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>;
 }
 

@@ -12,6 +12,7 @@ import { useSocket } from "@/context/SocketProvider";
 export default function OmegleMain() {
   const router = useRouter();
   const { socket, emit, isConnected } = useSocket();
+
   const [isSearching, setIsSearching] = useState(false);
   const [userCount, setUserCount] = useState(0);
   const [searchTime, setSearchTime] = useState(0);
@@ -24,25 +25,25 @@ export default function OmegleMain() {
 
   useEffect(() => {
     if (!socket) return;
-    const u = (d: any) => setUserCount(d.count || 0);
-    const onRoom = (data: any) => {
-      console.log("[MAIN] room_assigned", data);
+    const onCount = (d: any) => setUserCount(d.count || 0);
+    const onRoom = (d: any) => {
+      console.log("[MAIN] room_assigned", d);
       setIsSearching(false);
       if (typeof window !== 'undefined') {
-        sessionStorage.setItem("omegle_room", JSON.stringify({ room: data.room, initiator: data.initiator, role: data.role, partnerId: data.partnerId, timestamp: Date.now() }));
+        sessionStorage.setItem("omegle_room", JSON.stringify({ room: d.room, initiator: d.initiator, role: d.role, partnerId: d.partnerId, timestamp: Date.now() }));
       }
-      router.push(`/omegle/room/${data.room}`);
+      router.push(`/omegle/room/${d.room}`);
     };
     const onPartnerSkipped = () => { setIsSearching(false); setConnectionStatus("Partner skipped"); };
     const onPartnerDisconnected = () => { setIsSearching(false); setConnectionStatus("Partner disconnected"); };
 
-    socket.on("user_count", u);
+    socket.on("user_count", onCount);
     socket.on("room_assigned", onRoom);
     socket.on("partner_skipped", onPartnerSkipped);
     socket.on("partner_disconnected", onPartnerDisconnected);
 
     return () => {
-      socket.off("user_count", u);
+      socket.off("user_count", onCount);
       socket.off("room_assigned", onRoom);
       socket.off("partner_skipped", onPartnerSkipped);
       socket.off("partner_disconnected", onPartnerDisconnected);
@@ -57,19 +58,20 @@ export default function OmegleMain() {
       if (searchIntervalRef.current) { window.clearInterval(searchIntervalRef.current); searchIntervalRef.current = null; }
       setSearchTime(0);
     }
-    return () => { if (searchIntervalRef.current) { window.clearInterval(searchIntervalRef.current); } };
+    return () => { if (searchIntervalRef.current) window.clearInterval(searchIntervalRef.current); };
   }, [isSearching]);
 
   const formatTime = useCallback((secs: number) => {
-    const m = Math.floor(secs/60); const s = secs % 60; return `${m}:${s.toString().padStart(2,'0')}`;
+    const m = Math.floor(secs / 60); const s = secs % 60; return `${m}:${s.toString().padStart(2,'0')}`;
   }, []);
 
   const handleStart = useCallback(() => {
     if (!isConnected) { setConnectionStatus("Not connected to server"); return; }
+    if (isSearching) return;
     setIsSearching(true);
     setConnectionStatus("Searching for partner...");
     emit("find_partner", { audioEnabled, videoEnabled });
-  }, [emit, audioEnabled, videoEnabled, isConnected]);
+  }, [emit, audioEnabled, videoEnabled, isConnected, isSearching]);
 
   const handleStop = useCallback(() => { setIsSearching(false); setConnectionStatus("Search stopped"); }, []);
   const handleSkip = useCallback(() => { if (isConnected) emit("skip"); setIsSearching(false); }, [emit, isConnected]);
