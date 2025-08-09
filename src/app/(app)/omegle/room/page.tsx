@@ -110,7 +110,7 @@ export default function OmegleRoomPage() {
         setConnectionStatus("Partner disconnected");
         setIsConnected(false);
       }
-    } catch (error) {
+    } catch (error : any) {
       console.error("[CLIENT] Error handling socket message:", error);
       setConnectionStatus("Connection error: " + error.message);
     }
@@ -144,7 +144,7 @@ export default function OmegleRoomPage() {
       }
       
       return stream;
-    } catch (error) {
+    } catch (error : any) {
       console.error("[CLIENT] Error accessing media devices:", error);
       const errorMsg = error.name === "NotAllowedError" 
         ? "Camera/microphone access denied. Please allow access and refresh."
@@ -285,7 +285,7 @@ export default function OmegleRoomPage() {
           setConnectionStatus("Waiting for offer...");
         }
 
-      } catch (error) {
+      } catch (error : any) {
         console.error("[CLIENT] Error initializing PeerConnection:", error);
         setConnectionStatus("Failed to initialize: " + error.message);
       } finally {
