@@ -4,7 +4,6 @@ import Sidebar from '@/components/sidebar/Sidebar';
 import { CurrentUserProvider } from '@/context/CurrentUserProvider';
 import getCurrentUser from '@/app/(shared)/serverActions/getCurrentUser';
 import StreamVideoProvider from '@/context/StreamClientProvider';
-import {SocketProvider} from '@/context/SocketProvider';
 interface RootLayoutProps {
   children: React.ReactNode;
 }
@@ -20,7 +19,6 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   return (
     <CurrentUserProvider currentUser={currentUser}>
       <StreamVideoProvider>
-        <SocketProvider>
         <Sidebar>
           <div className="flex flex-col h-screen pb-5">
             {/* <Navbar /> */}
@@ -28,7 +26,6 @@ export default async function RootLayout({ children }: RootLayoutProps) {
             <ActiveStatus />
           </div>
         </Sidebar>
-        </SocketProvider>
       </StreamVideoProvider>
     </CurrentUserProvider>
   );
