@@ -1,315 +1,528 @@
-// app/omegle/room/[roomId]/page.tsx
-"use client";
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Mic, 
+  MicOff, 
+  Video, 
+  VideoOff, 
+  SkipForward, 
+  Home, 
+  Send,
+  MessageCircle 
+} from 'lucide-react';
+import { useSocket } from '../SocketProvider';
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { SkipForward, StopCircle, Mic, VideoIcon, RotateCcw } from "lucide-react";
-import { useSocket } from "@/context/SocketProvider";
+interface ChatMessage {
+  message: string;
+  from: string;
+  timestamp: number;
+  isOwn: boolean;
+}
 
-export default function RoomPage({ params }: { params: { roomId: string } }) {
+export default function RoomPage() {
   const router = useRouter();
-  const roomId = params.roomId;
-  const { socket, emit, token, isConnected } = useSocket();
+  const params = useParams();
+  const roomId = params?.roomId as string;
+  const { socket, isConnected, userId, emit } = useSocket();
 
-  const localVideoRef = useRef<HTMLVideoElement | null>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  const [partnerId, setPartnerId] = useState<string>('');
   const [isInitiator, setIsInitiator] = useState(false);
-  const [role, setRole] = useState("");
-  const [status, setStatus] = useState("Initializing...");
-  const [mediaError, setMediaError] = useState("");
-  const [partnerId, setPartnerId] = useState("");
+  const [connectionState, setConnectionState] = useState('Connecting...');
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [videoEnabled, setVideoEnabled] = useState(true);
+  const [chatMessage, setChatMessage] = useState('');
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [showChat, setShowChat] = useState(false);
 
-  const pendingOffers = useRef<any[]>([]);
-  const pendingCandidates = useRef<any[]>([]);
-  const joined = useRef(false);
+  const iceCandidatesQueue = useRef<RTCIceCandidate[]>([]);
 
-  const ICE_MAX = 4;
-  const iceAttempts = useRef(0);
-
-  const buildIceServers = () => {
-    const ice: RTCIceServer[] = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }];
-    const turnUrl = process.env.NEXT_PUBLIC_TURN_URL;
-    const turnUser = process.env.NEXT_PUBLIC_TURN_USERNAME;
-    const turnCred = process.env.NEXT_PUBLIC_TURN_CREDENTIAL;
-    if (turnUrl && turnUser && turnCred) {
-      ice.push({ urls: turnUrl, username: turnUser, credential: turnCred });
-      console.log("[ROOM] Using TURN:", turnUrl);
-    } else {
-      console.log("[ROOM] No TURN configured");
-    }
-    return ice;
-  };
-
-  const initLocalMedia = useCallback(async () => {
-    if (localStreamRef.current) return localStreamRef.current;
-    setStatus("Requesting camera/microphone...");
+  // Initialize media
+  const initializeMedia = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+      });
+      
       localStreamRef.current = stream;
-      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+      
       return stream;
-    } catch (e: any) {
-      setMediaError("Camera/microphone error: " + (e?.message || e));
-      setStatus("Media error");
-      throw e;
+    } catch (error) {
+      console.error('Error accessing media:', error);
+      setConnectionState('Media access denied');
+      throw error;
     }
   }, []);
 
-  const createPC = useCallback(() => {
-    const pc = new RTCPeerConnection({ iceServers: buildIceServers(), iceCandidatePoolSize: 10 });
-    pc.onicecandidate = (ev) => {
-      if (ev.candidate && roomId) emit("ice-candidate", { room: roomId, candidate: ev.candidate });
+  // Create peer connection
+  const createPeerConnection = useCallback(() => {
+    const configuration = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
     };
-    pc.oniceconnectionstatechange = () => {
-      console.log("[ROOM] ICE state", pc.iceConnectionState);
-      if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
-        setStatus("Connected");
-        iceAttempts.current = 0;
-      } else if (pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed") {
-        setStatus("Disconnected - attempting recovery...");
-        attemptIceRestart();
-      } else if (pc.iceConnectionState === "checking") {
-        setStatus("Establishing...");
-      } else {
-        setStatus("Connection: " + pc.iceConnectionState);
-      }
-    };
-    pc.ontrack = (ev) => {
-      if (remoteVideoRef.current && ev.streams && ev.streams[0]) {
-        remoteVideoRef.current.srcObject = ev.streams[0];
-      }
-    };
-    return pc;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId]);
 
-  const attemptIceRestart = useCallback(async () => {
-    if (!pcRef.current) return;
-    if (iceAttempts.current >= ICE_MAX) {
-      setStatus("Unable to recover. Try New Chat or reload.");
-      return;
-    }
-    iceAttempts.current++;
-    const backoff = 2000 * Math.pow(1.5, iceAttempts.current - 1);
-    setTimeout(async () => {
-      const pc = pcRef.current;
-      if (!pc) return;
-      try { if (typeof pc.restartIce === 'function') pc.restartIce(); } catch(e) { console.warn(e); }
-      if (isInitiator) {
-        const offer = await pc.createOffer({ iceRestart: true });
-        await pc.setLocalDescription(offer);
-        emit("offer", { room: roomId, offer });
-        setStatus("Sent re-offer (initiator)");
-      } else {
-        emit("request_reoffer", { room: roomId });
-        setStatus("Requested partner to re-offer");
+    const pc = new RTCPeerConnection(configuration);
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        emit('ice_candidate', {
+          roomId,
+          candidate: event.candidate
+        });
       }
-      // check after a bit
-      setTimeout(() => {
-        const cur = pcRef.current;
-        if (!cur) return;
-        if (cur.iceConnectionState !== 'connected' && cur.iceConnectionState !== 'completed') {
-          attemptIceRestart();
-        } else {
-          iceAttempts.current = 0;
-        }
-      }, 3000);
-    }, backoff);
-  }, [emit, isInitiator, roomId]);
+    };
+
+    pc.ontrack = (event) => {
+      if (remoteVideoRef.current && event.streams[0]) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      console.log('ICE connection state:', pc.iceConnectionState);
+      setConnectionState(pc.iceConnectionState);
+    };
+
+    pc.onconnectionstatechange = () => {
+      console.log('Connection state:', pc.connectionState);
+      if (pc.connectionState === 'connected') {
+        setConnectionState('Connected');
+      } else if (pc.connectionState === 'failed') {
+        setConnectionState('Connection failed');
+      }
+    };
+
+    return pc;
+  }, [emit, roomId]);
 
   // Socket event handlers
   useEffect(() => {
     if (!socket || !roomId) return;
 
-    const onRoomAssigned = (d:any) => {
-      setIsInitiator(Boolean(d.initiator));
-      setRole(d.role || "");
-      setPartnerId(d.partnerId || "");
-      joined.current = true;
+    const handleRoomJoined = (data: any) => {
+      setPartnerId(data.partnerId);
+      setIsInitiator(data.isInitiator);
+      setConnectionState('Setting up connection...');
     };
-    const onRoomJoined = (d:any) => {
-      setIsInitiator(Boolean(d.initiator));
-      setRole(d.role || "");
-      setPartnerId(d.partnerId || "");
-      joined.current = true;
-    };
-    const onOffer = async (d:any) => {
-      if (!pcRef.current) { pendingOffers.current.push(d); return; }
+
+    const handleOffer = async (data: any) => {
+      if (!pcRef.current) return;
+      
       try {
-        await pcRef.current.setRemoteDescription(new RTCSessionDescription(d.offer));
+        await pcRef.current.setRemoteDescription(data.offer);
+        
+        // Add queued ICE candidates
+        while (iceCandidatesQueue.current.length > 0) {
+          const candidate = iceCandidatesQueue.current.shift();
+          if (candidate) {
+            await pcRef.current.addIceCandidate(candidate);
+          }
+        }
+        
         const answer = await pcRef.current.createAnswer();
         await pcRef.current.setLocalDescription(answer);
-        emit("answer", { room: roomId, answer });
-      } catch(e) { console.error(e); }
-    };
-    const onAnswer = async (d:any) => {
-      if (!pcRef.current) { console.warn("answer arrived but pc missing"); return; }
-      try { await pcRef.current.setRemoteDescription(new RTCSessionDescription(d.answer)); } catch(e) { console.error(e); }
-    };
-    const onIce = async (d:any) => {
-      if (!pcRef.current) { pendingCandidates.current.push(d); return; }
-      try { await pcRef.current.addIceCandidate(new RTCIceCandidate(d.candidate)); } catch(e) { console.error(e); }
-    };
-    const onPartnerDisconnected = (d:any) => { setStatus("Partner disconnected"); };
-    const onPartnerReconnected = (d:any) => {
-      if (isInitiator && pcRef.current) {
-        pcRef.current.createOffer({ iceRestart: true }).then(async (off) => {
-          await pcRef.current?.setLocalDescription(off);
-          emit("offer", { room: roomId, offer: off });
-        }).catch(console.error);
+        
+        emit('answer', {
+          roomId,
+          answer: answer
+        });
+      } catch (error) {
+        console.error('Error handling offer:', error);
       }
     };
-    const onRequestReoffer = async (d:any) => {
-      if (!isInitiator || !pcRef.current) return;
+
+    const handleAnswer = async (data: any) => {
+      if (!pcRef.current) return;
+      
       try {
-        const offer = await pcRef.current.createOffer({ iceRestart: true });
-        await pcRef.current.setLocalDescription(offer);
-        emit("offer", { room: roomId, offer });
-      } catch(e) { console.error(e); }
+        await pcRef.current.setRemoteDescription(data.answer);
+        
+        // Add queued ICE candidates
+        while (iceCandidatesQueue.current.length > 0) {
+          const candidate = iceCandidatesQueue.current.shift();
+          if (candidate) {
+            await pcRef.current.addIceCandidate(candidate);
+          }
+        }
+      } catch (error) {
+        console.error('Error handling answer:', error);
+      }
     };
 
-    socket.on("room_assigned", onRoomAssigned);
-    socket.on("room_joined", onRoomJoined);
-    socket.on("offer", onOffer);
-    socket.on("answer", onAnswer);
-    socket.on("ice-candidate", onIce);
-    socket.on("partner_disconnected", onPartnerDisconnected);
-    socket.on("partner_reconnected", onPartnerReconnected);
-    socket.on("request_reoffer", onRequestReoffer);
+    const handleIceCandidate = async (data: any) => {
+      if (!pcRef.current) {
+        iceCandidatesQueue.current.push(new RTCIceCandidate(data.candidate));
+        return;
+      }
+      
+      try {
+        if (pcRef.current.remoteDescription) {
+          await pcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
+        } else {
+          iceCandidatesQueue.current.push(new RTCIceCandidate(data.candidate));
+        }
+      } catch (error) {
+        console.error('Error handling ICE candidate:', error);
+      }
+    };
+
+    const handlePartnerDisconnected = () => {
+      setConnectionState('Partner disconnected');
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = null;
+      }
+    };
+
+    const handlePartnerSkipped = () => {
+      setConnectionState('Partner skipped');
+      router.push('/');
+    };
+
+    const handleChatMessage = (data: any) => {
+      setChatMessages(prev => [...prev, {
+        message: data.message,
+        from: data.from,
+        timestamp: data.timestamp,
+        isOwn: false
+      }]);
+    };
+
+    const handleRoomError = (data: any) => {
+      console.error('Room error:', data.message);
+      router.push('/');
+    };
+
+    socket.on('room_joined', handleRoomJoined);
+    socket.on('offer', handleOffer);
+    socket.on('answer', handleAnswer);
+    socket.on('ice_candidate', handleIceCandidate);
+    socket.on('partner_disconnected', handlePartnerDisconnected);
+    socket.on('partner_skipped', handlePartnerSkipped);
+    socket.on('chat_message', handleChatMessage);
+    socket.on('room_error', handleRoomError);
+
+    // Join room
+    emit('join_room', { roomId });
 
     return () => {
-      socket.off("room_assigned", onRoomAssigned);
-      socket.off("room_joined", onRoomJoined);
-      socket.off("offer", onOffer);
-      socket.off("answer", onAnswer);
-      socket.off("ice-candidate", onIce);
-      socket.off("partner_disconnected", onPartnerDisconnected);
-      socket.off("partner_reconnected", onPartnerReconnected);
-      socket.off("request_reoffer", onRequestReoffer);
+      socket.off('room_joined', handleRoomJoined);
+      socket.off('offer', handleOffer);
+      socket.off('answer', handleAnswer);
+      socket.off('ice_candidate', handleIceCandidate);
+      socket.off('partner_disconnected', handlePartnerDisconnected);
+      socket.off('partner_skipped', handlePartnerSkipped);
+      socket.off('chat_message', handleChatMessage);
+      socket.off('room_error', handleRoomError);
     };
-  }, [socket, roomId, emit, isInitiator]);
+  }, [socket, roomId, emit, router]);
 
-  // Join room when socket ready
+  // Initialize connection
   useEffect(() => {
-    if (!socket || !roomId || !isConnected || joined.current) return;
-    setStatus("Joining room...");
-    emit("join_room", { room: roomId, token });
-  }, [socket, roomId, isConnected, emit, token]);
+    if (!partnerId || pcRef.current) return;
 
-  // Setup peer when joined
-  useEffect(() => {
-    if (!joined.current || !isConnected || pcRef.current) return;
-    let cancelled = false;
-    (async () => {
+    const setupConnection = async () => {
       try {
-        setStatus("Requesting camera...");
-        const stream = await initLocalMedia();
-        if (cancelled) return;
-        const pc = createPC();
+        const stream = await initializeMedia();
+        const pc = createPeerConnection();
+        
+        // Add local stream to peer connection
+        stream.getTracks().forEach(track => {
+          pc.addTrack(track, stream);
+        });
+        
         pcRef.current = pc;
-        if (stream) stream.getTracks().forEach(t => pc.addTrack(t, stream));
-        // apply buffered ICE candidates
-        if (pendingCandidates.current.length) {
-          for (const c of pendingCandidates.current) {
-            try { await pc.addIceCandidate(new RTCIceCandidate(c.candidate)); } catch(e) { console.warn(e); }
-          }
-          pendingCandidates.current = [];
-        }
+        
         if (isInitiator) {
-          setStatus("Creating offer...");
-          const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+          const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
-          emit("offer", { room: roomId, offer });
-        } else {
-          setStatus("Waiting for offer...");
-          // process buffered offers
-          if (pendingOffers.current.length) {
-            for (const p of pendingOffers.current) {
-              await pc.setRemoteDescription(new RTCSessionDescription(p.offer));
-              const answer = await pc.createAnswer();
-              await pc.setLocalDescription(answer);
-              emit("answer", { room: roomId, answer });
-            }
-            pendingOffers.current = [];
-          }
+          
+          emit('offer', {
+            roomId,
+            offer: offer
+          });
         }
-      } catch(e) {
-        console.error("[ROOM] setup error", e);
-        setStatus("Setup failed: " + (e?.message || e));
+      } catch (error) {
+        console.error('Error setting up connection:', error);
+        setConnectionState('Setup failed');
       }
-    })();
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInitiator, isConnected, roomId]);
+    };
 
-  const toggleAudio = useCallback(() => {
-    if (localStreamRef.current) {
-      const t = localStreamRef.current.getAudioTracks()[0];
-      if (t) t.enabled = !t.enabled;
+    setupConnection();
+  }, [partnerId, isInitiator, initializeMedia, createPeerConnection, emit, roomId]);
+
+  // Scroll chat to bottom
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, []);
+  }, [chatMessages]);
 
-  const toggleVideo = useCallback(() => {
+  // Media controls
+  const toggleAudio = () => {
     if (localStreamRef.current) {
-      const t = localStreamRef.current.getVideoTracks()[0];
-      if (t) t.enabled = !t.enabled;
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setAudioEnabled(audioTrack.enabled);
+      }
     }
+  };
+
+  const toggleVideo = () => {
+    if (localStreamRef.current) {
+      const videoTrack = localStreamRef.current.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setVideoEnabled(videoTrack.enabled);
+      }
+    }
+  };
+
+  const handleSkip = () => {
+    emit('skip');
+    cleanup();
+    router.push('/');
+  };
+
+  const handleGoHome = () => {
+    cleanup();
+    router.push('/');
+  };
+
+  const cleanup = () => {
+    if (pcRef.current) {
+      pcRef.current.close();
+      pcRef.current = null;
+    }
+    
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+    }
+    
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    }
+    
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+    }
+  };
+
+  const sendMessage = () => {
+    if (!chatMessage.trim()) return;
+    
+    const message = {
+      message: chatMessage,
+      from: userId || '',
+      timestamp: Date.now(),
+      isOwn: true
+    };
+    
+    setChatMessages(prev => [...prev, message]);
+    emit('chat_message', { roomId, message: chatMessage });
+    setChatMessage('');
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      sendMessage();
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return cleanup;
   }, []);
 
-  const cleanup = useCallback(() => {
-    if (pcRef.current) { pcRef.current.close(); pcRef.current = null; }
-    if (localStreamRef.current) { localStreamRef.current.getTracks().forEach(t => t.stop()); localStreamRef.current = null; }
-    if (typeof window !== 'undefined') sessionStorage.removeItem("omegle_room");
-  }, []);
-
-  const handleSkip = useCallback(() => { if (socket && isConnected) emit("skip"); cleanup(); router.push("/omegle"); }, [socket, isConnected, emit, cleanup, router]);
-  const handleStop = useCallback(() => { cleanup(); router.push("/omegle"); }, [cleanup, router]);
-  const handleNewChat = useCallback(() => { cleanup(); router.push("/omegle"); }, [cleanup, router]);
-
-  useEffect(() => { return () => cleanup(); }, [cleanup]);
-
-  if (!roomId) return <div className="min-h-screen flex items-center justify-center">Invalid room</div>;
+  if (!roomId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Invalid room</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen p-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold">Room: {roomId}</h1>
-          <div className="flex gap-2 justify-center mt-2">
-            <Badge>{status}</Badge>
-            <Badge>Role: {role || (isInitiator ? "initiator" : "responder")}</Badge>
-            {partnerId && <Badge>Partner: {partnerId}</Badge>}
+    <div className="min-h-screen bg-gray-900 p-4">
+      <div className="max-w-6xl mx-auto space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-white">Room: {roomId}</h1>
+            <Badge variant="outline" className="text-white border-white">
+              {connectionState}
+            </Badge>
+            {partnerId && (
+              <Badge variant="secondary">
+                Partner: {partnerId}
+              </Badge>
+            )}
           </div>
-          {mediaError && <div className="mt-3 text-red-600">{mediaError}</div>}
+          
+          <Button
+            onClick={() => setShowChat(!showChat)}
+            variant="outline"
+            size="sm"
+          >
+            <MessageCircle className="h-4 w-4 mr-2" />
+            Chat {chatMessages.length > 0 && `(${chatMessages.length})`}
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <Card>
-            <CardContent>
-              <h3>Your video</h3>
-              <video ref={localVideoRef} autoPlay playsInline muted className="w-full aspect-video bg-black" />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent>
-              <h3>Remote</h3>
-              <video ref={remoteVideoRef} autoPlay playsInline className="w-full aspect-video bg-black" />
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-120px)]">
+          {/* Video Section */}
+          <div className={`${showChat ? 'lg:col-span-3' : 'lg:col-span-4'} space-y-4`}>
+            {/* Remote Video */}
+            <Card className="bg-black">
+              <CardContent className="p-0">
+                <div className="relative aspect-video">
+                  <video
+                    ref={remoteVideoRef}
+                    autoPlay
+                    playsInline
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                  <div className="absolute top-2 left-2">
+                    <Badge variant="secondary">Partner</Badge>
+                  </div>
+                  {connectionState !== 'Connected' && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
+                      <p className="text-white text-lg">{connectionState}</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Local Video */}
+            <Card className="bg-black">
+              <CardContent className="p-0">
+                <div className="relative aspect-video">
+                  <video
+                    ref={localVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                  <div className="absolute top-2 left-2">
+                    <Badge variant="default">You</Badge>
+                  </div>
+                  {!videoEnabled && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 rounded-lg">
+                      <VideoOff className="h-12 w-12 text-white" />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Chat Section */}
+          {showChat && (
+            <div className="lg:col-span-1">
+              <Card className="h-full flex flex-col">
+                <CardContent className="p-4 flex-1 flex flex-col">
+                  <h3 className="font-semibold mb-4">Chat</h3>
+                  
+                  {/* Messages */}
+                  <div 
+                    ref={chatContainerRef}
+                    className="flex-1 overflow-y-auto space-y-2 mb-4"
+                  >
+                    {chatMessages.length === 0 ? (
+                      <p className="text-gray-500 text-sm text-center">
+                        No messages yet. Start the conversation!
+                      </p>
+                    ) : (
+                      chatMessages.map((msg, index) => (
+                        <div
+                          key={index}
+                          className={`p-2 rounded-lg max-w-xs ${
+                            msg.isOwn
+                              ? 'bg-blue-500 text-white ml-auto'
+                              : 'bg-gray-200 text-gray-800'
+                          }`}
+                        >
+                          <p className="text-sm">{msg.message}</p>
+                          <p className="text-xs opacity-70 mt-1">
+                            {new Date(msg.timestamp).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  
+                  {/* Message Input */}
+                  <div className="flex gap-2">
+                    <Input
+                      value={chatMessage}
+                      onChange={(e) => setChatMessage(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Type a message..."
+                      maxLength={500}
+                    />
+                    <Button onClick={sendMessage} size="sm">
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
 
-        <div className="flex gap-3 justify-center">
-          <Button onClick={toggleAudio}><Mic/></Button>
-          <Button onClick={toggleVideo}><VideoIcon/></Button>
-          <Button onClick={handleSkip}><SkipForward/>Skip</Button>
-          <Button onClick={handleStop}><StopCircle/>Stop</Button>
-          <Button onClick={handleNewChat}><RotateCcw/>New Chat</Button>
+        {/* Controls */}
+        <div className="flex items-center justify-center gap-4">
+          <Button
+            onClick={toggleAudio}
+            variant={audioEnabled ? "default" : "destructive"}
+            size="lg"
+          >
+            {audioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+          </Button>
+          
+          <Button
+            onClick={toggleVideo}
+            variant={videoEnabled ? "default" : "destructive"}
+            size="lg"
+          >
+            {videoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+          </Button>
+          
+          <Button
+            onClick={handleSkip}
+            variant="outline"
+            size="lg"
+          >
+            <SkipForward className="h-5 w-5 mr-2" />
+            Next
+          </Button>
+          
+          <Button
+            onClick={handleGoHome}
+            variant="secondary"
+            size="lg"
+          >
+            <Home className="h-5 w-5 mr-2" />
+            Home
+          </Button>
         </div>
       </div>
     </div>
