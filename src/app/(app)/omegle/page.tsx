@@ -18,27 +18,14 @@ export default function OmeglePage() {
   useEffect(() => {
     if (!socket) return;
 
-    const handleUserCount = (data: { count: number }) => {
-      setUserCount(data.count);
-    };
-
-    const handleRoomAssigned = (data: { roomId: string; partnerId: string; isInitiator: boolean }) => {
-      console.log('Room assigned:', data);
+    const handleUserCount = (data: { count: number }) => setUserCount(data.count);
+    const handleRoomAssigned = (data: { roomId: string }) => {
       setIsSearching(false);
       router.push(`/omegle/room/${data.roomId}`);
     };
-
-    const handleSearching = () => {
-      setIsSearching(true);
-    };
-
-    const handlePartnerSkipped = () => {
-      setIsSearching(false);
-    };
-
-    const handlePartnerDisconnected = () => {
-      setIsSearching(false);
-    };
+    const handleSearching = () => setIsSearching(true);
+    const handlePartnerSkipped = () => setIsSearching(false);
+    const handlePartnerDisconnected = () => setIsSearching(false);
 
     socket.on('user_count', handleUserCount);
     socket.on('room_assigned', handleRoomAssigned);
@@ -55,20 +42,14 @@ export default function OmeglePage() {
     };
   }, [socket, router]);
 
-  // Search timer
   useEffect(() => {
     let interval: NodeJS.Timeout | undefined;
     if (isSearching) {
-      interval = setInterval(() => {
-        setSearchTime(prev => prev + 1);
-      }, 1000);
+      interval = setInterval(() => setSearchTime(t => t + 1), 1000);
     } else {
       setSearchTime(0);
     }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => { if (interval) clearInterval(interval); };
   }, [isSearching]);
 
   const handleStartChat = () => {
@@ -92,28 +73,16 @@ export default function OmeglePage() {
     <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-6">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-foreground">
-            Random Chat
-          </h1>
-          <p className="text-muted-foreground">
-            Connect with strangers around the world
-          </p>
+          <h1 className="text-4xl font-bold text-foreground">Random Chat</h1>
+          <p className="text-muted-foreground">Connect with strangers around the world</p>
         </div>
 
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-center gap-2">
-              {isConnected ? (
-                <Wifi className="h-5 w-5 text-green-500" />
-              ) : (
-                <WifiOff className="h-5 w-5 text-red-500" />
-              )}
-              <span className="text-sm">
-                {isConnected ? 'Connected' : 'Connecting...'}
-              </span>
-              <Badge variant={isConnected ? 'default' : 'secondary'}>
-                {isConnected ? 'Online' : 'Offline'}
-              </Badge>
+              {isConnected ? <Wifi className="h-5 w-5 text-green-500" /> : <WifiOff className="h-5 w-5 text-red-500" />}
+              <span className="text-sm">{isConnected ? 'Connected' : 'Connecting...'}</span>
+              <Badge variant={isConnected ? 'default' : 'secondary'}>{isConnected ? 'Online' : 'Offline'}</Badge>
             </div>
           </CardContent>
         </Card>
@@ -122,9 +91,7 @@ export default function OmeglePage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-center gap-3">
               <Users className="h-6 w-6 text-primary" />
-              <span className="text-lg">
-                <strong className="text-primary">{userCount}</strong> people online
-              </span>
+              <span className="text-lg"><strong className="text-primary">{userCount}</strong> people online</span>
             </div>
           </CardContent>
         </Card>
@@ -137,39 +104,20 @@ export default function OmeglePage() {
                   <Loader2 className="h-5 w-5 animate-spin" />
                   Finding someone... {formatTime(searchTime)}
                 </div>
-              ) : (
-                'Start Video Chat'
-              )}
+              ) : 'Start Video Chat'}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
             {!isSearching ? (
-              <Button 
-                onClick={handleStartChat} 
-                size="lg" 
-                className="w-full"
-                disabled={!isConnected}
-              >
+              <Button onClick={handleStartChat} size="lg" className="w-full" disabled={!isConnected}>
                 <Video className="h-5 w-5 mr-2" />
                 {isConnected ? 'Start Chatting' : 'Connecting...'}
               </Button>
             ) : (
               <div className="space-y-4">
-                <div className="flex justify-center">
-                  <div className="animate-pulse">
-                    <Video className="h-12 w-12 text-primary" />
-                  </div>
-                </div>
-                <p className="text-center text-muted-foreground">
-                  Looking for someone to chat with...
-                </p>
-                <Button 
-                  onClick={handleStopSearch} 
-                  variant="destructive" 
-                  className="w-full"
-                >
-                  Stop Searching
-                </Button>
+                <div className="flex justify-center"><div className="animate-pulse"><Video className="h-12 w-12 text-primary" /></div></div>
+                <p className="text-center text-muted-foreground">Looking for someone to chat with...</p>
+                <Button onClick={handleStopSearch} variant="destructive" className="w-full">Stop Searching</Button>
               </div>
             )}
           </CardContent>
