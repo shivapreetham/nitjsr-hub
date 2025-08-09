@@ -14,47 +14,86 @@ import {
   Mic,
   MicOff,
   VideoOff,
-  VideoIcon
+  VideoIcon,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { useWebSocket } from '@/context/WebSocketProvider';
 
 export default function OmeglePage() {
   const router = useRouter();
-  const { socket, send } = useWebSocket();
+  const { socket, send, isConnected } = useWebSocket();
   const [isSearching, setIsSearching] = useState(false);
   const [userCount, setUserCount] = useState(0);
   const [searchTime, setSearchTime] = useState(0);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState("Connecting...");
   const searchIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const messageHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
+
+  // Update connection status
+  useEffect(() => {
+    if (isConnected) {
+      setConnectionStatus("Connected");
+    } else {
+      setConnectionStatus("Connecting...");
+    }
+  }, [isConnected]);
 
   // Listen for messages from shared WebSocket
   useEffect(() => {
     if (!socket) return;
 
+    // Clean up previous handler
+    if (messageHandlerRef.current) {
+      socket.removeEventListener('message', messageHandlerRef.current);
+    }
+
     const handleMessage = (event: MessageEvent) => {
       try {
-      const data = JSON.parse(event.data);
+        const data = JSON.parse(event.data);
+        console.log('[MAIN] Received message:', data.type);
+        
         if (data.type === "user_count") {
           setUserCount(data.count);
         } else if (data.type === "room_assigned" && data.room) {
-          console.log('[MAIN] Room assigned, navigating to room:', data.room);
+          console.log('[MAIN] Room assigned:', data.room, 'Role:', data.role);
           setIsSearching(false);
+          
           // Store room assignment in sessionStorage
-          sessionStorage.setItem("omegle_room", JSON.stringify({
+          const roomData = {
             room: data.room,
             initiator: data.initiator,
-            role: data.role
-          }));
+            role: data.role,
+            partnerId: data.partnerId,
+            timestamp: Date.now()
+          };
+          
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem("omegle_room", JSON.stringify(roomData));
+          }
+          
+          console.log('[MAIN] Navigating to room:', data.room);
           router.push(`/omegle/room?roomId=${data.room}`);
+        } else if (data.type === "partner_skipped" || data.type === "partner_disconnected") {
+          console.log('[MAIN] Partner left:', data.type);
+          setIsSearching(false);
+          setConnectionStatus(data.type === "partner_skipped" ? "Partner skipped" : "Partner disconnected");
         }
       } catch (error) {
         console.error('[MAIN] Error parsing message:', error);
       }
     };
 
+    messageHandlerRef.current = handleMessage;
     socket.addEventListener('message', handleMessage);
-    return () => socket.removeEventListener('message', handleMessage);
+
+    return () => {
+      if (messageHandlerRef.current) {
+        socket.removeEventListener('message', messageHandlerRef.current);
+      }
+    };
   }, [socket, router]);
 
   // Update search time when searching
@@ -94,32 +133,41 @@ export default function OmeglePage() {
   }, []);
 
   const handleStart = useCallback(() => {
-    if (!socket) {
-      alert('WebSocket not connected');
-      return;
-    }
+  if (!socket || !isConnected) {
+    setConnectionStatus('Not connected to server');
+    return;
+  }
 
-    console.log('[MAIN] Starting search for partner...');
-    setIsSearching(true);
-    
+  console.log('[MAIN] Starting search for partner...');
+  setIsSearching(true);
+  setConnectionStatus("Searching for partner...");
+  
+  try {
     send({ 
       type: "find_partner",
       audioEnabled,
       videoEnabled
     });
-  }, [socket, send, audioEnabled, videoEnabled]);
+  } catch (error) {
+    setIsSearching(false);
+    setConnectionStatus("Failed to send search request");
+    console.error('[MAIN] Error sending search request:', error);
+  }
+}, [socket, send, audioEnabled, videoEnabled, isConnected]);
 
   const handleStop = useCallback(() => {
     console.log('[MAIN] Stopping search');
     setIsSearching(false);
+    setConnectionStatus("Search stopped");
   }, []);
 
   const handleSkip = useCallback(() => {
     console.log('[MAIN] Skipping current search');
-    if (socket && socket.readyState === WebSocket.OPEN) {
+    if (socket && isConnected) {
       send({ type: "skip" });
     }
-  }, [socket, send]);
+    setIsSearching(false);
+  }, [socket, send, isConnected]);
 
   return (
     <div className="min-h-screen bg-background p-4 flex flex-col items-center">
@@ -131,6 +179,31 @@ export default function OmeglePage() {
           </h1>
           <p className="text-muted-foreground text-lg">Connect with strangers anonymously</p>
         </div>
+
+        {/* Connection Status */}
+        <Card className="mb-6 glass-card">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-center gap-3">
+              {isConnected ? (
+                <Wifi className="h-5 w-5 text-green-500" />
+              ) : (
+                <WifiOff className="h-5 w-5 text-red-500" />
+              )}
+              <span className="text-sm text-muted-foreground">
+                {connectionStatus}
+              </span>
+              <Badge 
+                variant={isConnected ? "default" : "secondary"}
+                className={isConnected 
+                  ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300" 
+                  : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300"
+                }
+              >
+                {isConnected ? "Online" : "Offline"}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* User Count Card */}
         <Card className="mb-6 glass-card">
@@ -169,6 +242,7 @@ export default function OmeglePage() {
                     size="sm"
                     onClick={() => setAudioEnabled(!audioEnabled)}
                     className="flex items-center gap-2"
+                    disabled={!isConnected}
                   >
                     {audioEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
                     {audioEnabled ? 'Audio On' : 'Audio Off'}
@@ -178,6 +252,7 @@ export default function OmeglePage() {
                     size="sm"
                     onClick={() => setVideoEnabled(!videoEnabled)}
                     className="flex items-center gap-2"
+                    disabled={!isConnected}
                   >
                     {videoEnabled ? <VideoIcon className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
                     {videoEnabled ? 'Video On' : 'Video Off'}
@@ -189,10 +264,17 @@ export default function OmeglePage() {
                   onClick={handleStart} 
                   size="lg" 
                   className="w-full text-lg py-6"
+                  disabled={!isConnected}
                 >
                   <Search className="h-5 w-5 mr-2" />
-                  Start Chatting
+                  {isConnected ? 'Start Chatting' : 'Connecting...'}
                 </Button>
+
+                {!isConnected && (
+                  <div className="text-center text-sm text-muted-foreground">
+                    Please wait while we connect to the server...
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-6">
@@ -209,6 +291,7 @@ export default function OmeglePage() {
                     onClick={handleSkip} 
                     variant="outline" 
                     className="flex-1"
+                    disabled={!isConnected}
                   >
                     <SkipForward className="h-4 w-4 mr-2" />
                     Skip
