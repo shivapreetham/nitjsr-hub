@@ -383,7 +383,7 @@ export default function OmeglePage() {
                     </div>
                   </Card>
                 </div>
-              </>
+              </div>
             )}
 
             {/* Safety Tips */}
