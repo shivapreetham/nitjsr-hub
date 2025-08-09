@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { SkipForward, StopCircle, Mic, MicOff, VideoOff, VideoIcon, RotateCcw, AlertCircle } from "lucide-react";
 import { useSocket } from "@/context/SocketProvider";
 
-export default function RoomPage({ params }: { params: { roomId: string } }) {
+export default function RoomPage({ params }: { params: any }) {
   const router = useRouter();
   const roomId = params.roomId;
   const { socket, emit, token, isConnected } = useSocket();
