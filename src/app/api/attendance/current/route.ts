@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/app/lib/prismadb";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/authentication/auth/[...nextauth]/options";
+import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 
 // Define TypeScript interfaces for better type safety
 interface AttendanceResponse {

@@ -24,7 +24,7 @@ export default function VerifyAccount() {
 
   const onSubmit = async (data: z.infer<typeof verifySchema>) => {
     try {
-      const response = await axios.post<ApiResponse>(`/api/authentication/auth-utils/verify-code`, {
+      const response = await axios.post<ApiResponse>(`/api/auth-utils/verify-code`, {
         email: params.email,
         code: data.code,
       });

@@ -66,7 +66,7 @@ export default function SignUpForm() {
       setIsSubmitting(true);
       
       // Main signup API call
-      const response = await axios.post<ApiResponse>('/api/authentication/auth-utils/sign-up', data);
+      const response = await axios.post<ApiResponse>('/api/auth-utils/sign-up', data);
       
       // Group management API call (non-blocking)
       try {

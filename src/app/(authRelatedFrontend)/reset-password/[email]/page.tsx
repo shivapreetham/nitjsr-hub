@@ -43,7 +43,7 @@ export default function ResetPasswordForm({ params }: { params: any }) {
 
   const onSubmit = async (data: z.infer<typeof resetPasswordSchema>) => {
     try {
-        await axios.post('/api/authentication/auth-utils/reset-password', {
+        await axios.post('/api/auth-utils/reset-password', {
         email,
         verifyCode: data.verifyCode,
         password: data.password,
@@ -70,7 +70,7 @@ export default function ResetPasswordForm({ params }: { params: any }) {
   const handleResendCode = async () => {
     setIsResending(true);
     try {
-      await axios.post('/api/authentication/auth-utils/forgot-password', { email });
+      await axios.post('/api/auth-utils/forgot-password', { email });
       
       toast({
         title: 'Code Resent',
