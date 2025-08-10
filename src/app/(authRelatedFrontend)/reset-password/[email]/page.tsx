@@ -1,7 +1,6 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -21,6 +20,13 @@ export default function ResetPasswordForm({ params }: { params: any }) {
   const email = decodeURIComponent(params.email);
   const [isResending, setIsResending] = useState(false);
 
+  const form = useForm<z.infer<typeof resetPasswordSchema>>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      verifyCode: '',
+      password: '',
+    },
+  });
   // Validate email format
   const isValidEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -33,17 +39,11 @@ export default function ResetPasswordForm({ params }: { params: any }) {
     return null;
   }
 
-  const form = useForm<z.infer<typeof resetPasswordSchema>>({
-    resolver: zodResolver(resetPasswordSchema),
-    defaultValues: {
-      verifyCode: '',
-      password: '',
-    },
-  });
+  
 
   const onSubmit = async (data: z.infer<typeof resetPasswordSchema>) => {
     try {
-        await axios.post('/api/auth-utils/reset-password', {
+        await axios.post('/api/authentication/auth-utils/reset-password', {
         email,
         verifyCode: data.verifyCode,
         password: data.password,
@@ -70,7 +70,7 @@ export default function ResetPasswordForm({ params }: { params: any }) {
   const handleResendCode = async () => {
     setIsResending(true);
     try {
-      await axios.post('/api/auth-utils/forgot-password', { email });
+      await axios.post('/api/authentication/auth-utils/forgot-password', { email });
       
       toast({
         title: 'Code Resent',

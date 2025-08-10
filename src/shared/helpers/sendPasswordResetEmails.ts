@@ -7,6 +7,7 @@ export async function sendPasswordResetEmail(
   verifyCode: string
 ): Promise<ApiResponse> {
   try {
+    console.log('Sending password reset email...');
     // Check if required environment variables are set
     if (!process.env.SENDGRID_API_KEY) {
       console.error('SENDGRID_API_KEY is not set');
@@ -47,10 +48,6 @@ export async function sendPasswordResetEmail(
           <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
             ${verifyCode}
           </div>
-          
-          <p>Please enter this code on the website to reset your password. This code will expire in 1 hour.</p>
-          
-          <p>If you didn't request this password reset, please ignore this email or contact support.</p>
         </div>
         
         <div style="text-align: center; font-size: 12px; color: #666; margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd;">

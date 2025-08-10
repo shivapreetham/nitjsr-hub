@@ -26,13 +26,13 @@ export default function SignUpForm() {
     },
   });
   const onSubmit = async (data: z.infer<typeof signInSchema>) => {
-    console.log('Signing in with:', data);
+    // console.log('Signing in with:', data);
     const result = await signIn('credentials', {
       redirect: false,
       identifier: data.identifier,
       password: data.password,
     });
-    console.log('Sign in result:', result);
+    // console.log('Sign in result:', result);
   
 
     if (!result) {

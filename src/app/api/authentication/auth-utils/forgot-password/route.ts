@@ -1,6 +1,6 @@
 import prisma from '@/app/lib/prismadb';
 import { NextResponse } from 'next/server';
-import { sendPasswordResetEmail } from '@/app/(authRelatedFrontend)/helpers/sendPasswordResetEmails';
+import { sendPasswordResetEmail } from '@/shared/helpers/sendPasswordResetEmails';
 
 export async function POST(request: Request) {
   try {

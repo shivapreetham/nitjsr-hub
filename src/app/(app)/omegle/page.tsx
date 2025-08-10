@@ -361,32 +361,6 @@ export default function OmeglePage() {
               </Card>
             </div>
 
-            {/* Feature cards */}
-            {!isSearching && (
-              <div className="items-center gap-4 grid grid-cols-2 md:grid-cols-3 mt-4">
-                <div>
-                  <Card className="bg-white/70 backdrop-blur-sm border border-white/30 shadow-lg rounded-xl p-6 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <Video className="h-8 w-8 text-blue-500" />
-                      <h4 className="font-medium text-sm">HD Video</h4>
-                      <p className="text-xs text-gray-600">Crystal clear video calls</p>
-                    </div>
-                  </Card>
-                </div>
-
-                <div>
-                  <Card className="bg-white/70 backdrop-blur-sm border border-white/30 shadow-lg rounded-xl p-6 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <MessageCircle className="h-8 w-8 text-green-500" />
-                      <h4 className="font-medium text-sm">Live Chat</h4>
-                      <p className="text-xs text-gray-600">Text while you video chat</p>
-                    </div>
-                  </Card>
-                </div>
-              </div>
-            )}
-
-            {/* Safety Tips */}
             {/* Debug info (development only) */}
             {process.env.NODE_ENV === "development" && (
               <div className="lg:col-span-3">

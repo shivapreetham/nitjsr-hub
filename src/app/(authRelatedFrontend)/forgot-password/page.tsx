@@ -32,7 +32,7 @@ export default function ForgotPasswordForm() {
     
     setIsSubmitting(true);
     try {
-      await axios.post('/api/auth-utils/forgot-password', data);
+      await axios.post('/api/authentication/auth-utils/forgot-password', data);
       
       toast({
         title: 'Success',
