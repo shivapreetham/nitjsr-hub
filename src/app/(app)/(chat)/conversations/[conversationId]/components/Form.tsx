@@ -209,7 +209,7 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
       formData.append('type', 'chat');
 
       // Upload to Cloudflare R2 via our API
-      const uploadResponse = await axios.post('/api/upload', formData, {
+      const uploadResponse = await axios.post('/api/cloudflare/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -221,8 +221,20 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
 
       const publicUrl = uploadResponse.data.url;
 
+      // Determine file type for message
+      const fileType = file.type;
+      const fileName = file.name;
+      const fileSize = file.size;
+
       // Automatically submit the message with media
-      await onSubmit({ message: message || '', imageUrl: publicUrl });
+      await onSubmit({ 
+        message: message || '', 
+        imageUrl: publicUrl,
+        fileUrl: publicUrl,
+        fileName,
+        fileType,
+        fileSize
+      });
       
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -250,13 +262,27 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
         return;
       }
 
+      // Determine message type for optimistic message
+      const determineOptimisticType = () => {
+        const url = data.fileUrl || data.imageUrl || imageUrl;
+        if (!url) return 'TEXT';
+        if (url.toLowerCase().includes('.gif')) return 'GIF';
+        if (url.toLowerCase().match(/\.(mp4|webm|ogg|avi|mov|wmv)$/)) return 'VIDEO';
+        if (url.toLowerCase().match(/\.(jpg|jpeg|png|webp|svg)$/)) return 'IMAGE';
+        return 'FILE';
+      };
+
       // Create optimistic message
       const tempId = `temp-${Date.now()}-${Math.random()}`;
       const optimisticMessage = {
         tempId,
         body: data.message,
         image: data.imageUrl || imageUrl,
-        type: (data.imageUrl || imageUrl) ? 'IMAGE' : 'TEXT',
+        fileUrl: data.fileUrl || data.imageUrl || imageUrl,
+        fileName: data.fileName,
+        fileType: data.fileType,
+        fileSize: data.fileSize,
+        type: determineOptimisticType(),
         createdAt: new Date(),
         senderId: currentUser?.id || '',
         seenIds: [currentUser?.id || ''],
@@ -289,6 +315,10 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
       axios.post('/api/chat/messages', {
         message: data.message,
         image: data.imageUrl || imageUrl,
+        fileUrl: data.fileUrl || data.imageUrl || imageUrl,
+        fileName: data.fileName,
+        fileType: data.fileType,
+        fileSize: data.fileSize,
         conversationId,
         replyToId: replyTo?.id
       }).then(response => {

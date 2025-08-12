@@ -92,7 +92,10 @@ model Conversation {
 
 enum MessageType {
   TEXT
-  IMAGE  
+  IMAGE
+  VIDEO
+  GIF
+  FILE
   VIDEO_CALL
   MARKETPLACE_INTEREST
 }
@@ -100,7 +103,11 @@ enum MessageType {
 model Message {
   id             String      @id @default(auto()) @map("_id") @db.ObjectId
   body           String?
-  image          String?
+  image          String?     // Deprecated - use fileUrl instead
+  fileUrl        String?     // URL to any file (image, video, gif, document)
+  fileName       String?     // Original file name
+  fileType       String?     // MIME type of the file
+  fileSize       Int?        // File size in bytes
   type           MessageType @default(TEXT)
   createdAt      DateTime    @default(now())
   

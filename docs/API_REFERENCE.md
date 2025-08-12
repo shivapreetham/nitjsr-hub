@@ -327,16 +327,34 @@ Reset password with token.
 
 ### File Upload
 
-#### `POST /api/(shared)/upload`
-Upload files to Supabase storage.
+#### `POST /api/cloudflare/upload`
+Upload files (images, videos, GIFs) to Cloudflare R2 storage.
 
-**Body:** FormData with file field
+**Body:** FormData with `file` field and optional `type` field
 
 **Response:**
 ```json
 {
   "url": "https://storage_url/filename",
   "success": true
+}
+```
+
+#### `POST /api/cloudflare/delete`
+Delete files from Cloudflare R2 storage.
+
+**Body:**
+```json
+{
+  "imageUrl": "https://storage_url/filename"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "File deleted successfully"
 }
 ```
 

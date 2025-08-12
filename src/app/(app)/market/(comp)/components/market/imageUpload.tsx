@@ -49,7 +49,7 @@ export const MainImageUpload = ({ value, onChange, onRemove }: MainImageUploadPr
       formData.append("file", file);
       formData.append("type", "main");
 
-      const response = await fetch("/api/upload", {
+      const response = await fetch("/api/cloudflare/upload", {
         method: "POST",
         body: formData,
       });
@@ -184,7 +184,7 @@ export const AdditionalImagesUpload = ({ value, onChange}: AdditionalImagesUploa
           formData.append("file", file);
           formData.append("type", "additional");
 
-          const response = await fetch("/api/upload", {
+          const response = await fetch("/api/cloudflare/upload", {
             method: "POST",
             body: formData,
           });
@@ -302,7 +302,7 @@ export const PaymentQRUpload = ({ value, onChange, onRemove }: PaymentQRUploadPr
       formData.append("file", file);
       formData.append("type", "qr");
 
-      const response = await fetch("/api/upload", {
+      const response = await fetch("/api/cloudflare/upload", {
         method: "POST",
         body: formData,
       });

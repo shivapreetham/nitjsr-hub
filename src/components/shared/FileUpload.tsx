@@ -95,7 +95,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
       setUploadProgress(30);
 
       // Upload to Cloudflare R2 via our API
-      const uploadResponse = await axios.post('/api/upload', formData, {
+      const uploadResponse = await axios.post('/api/cloudflare/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
