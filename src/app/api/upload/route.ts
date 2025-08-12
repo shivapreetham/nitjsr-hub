@@ -14,9 +14,22 @@ const s3Client = new S3Client({
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Upload route hit');
+    
+    // Check environment variables
+    if (!process.env.CLOUDFLARE_R2_ACCOUNT_ID || !process.env.CLOUDFLARE_R2_ACCESS_KEY_ID || !process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY || !process.env.CLOUDFLARE_R2_BUCKET_NAME) {
+      console.error('Missing Cloudflare R2 environment variables');
+      return NextResponse.json(
+        { success: false, error: "Server configuration error" },
+        { status: 500 }
+      );
+    }
+    
     const formData = await request.formData();
     const file = formData.get("file") as File;
     const type = formData.get("type") as string;
+
+    console.log('Upload request:', { fileName: file?.name, fileSize: file?.size, type });
 
     if (!file) {
       return NextResponse.json(
@@ -69,10 +82,13 @@ export async function POST(request: NextRequest) {
       ContentType: file.type,
     });
 
+    console.log('Uploading to R2:', uniqueFilename);
     await s3Client.send(command);
+    console.log('Upload successful to R2');
 
     // Generate public URL
     const publicUrl = `https://${process.env.CLOUDFLARE_R2_PUBLIC_URL}/${uniqueFilename}`;
+    console.log('Generated public URL:', publicUrl);
 
     return NextResponse.json({
       success: true,

@@ -15,6 +15,7 @@ interface MessagesContextType {
   addOptimisticMessage: (message: OptimisticMessageType) => void;
   updateOptimisticMessage: (tempId: string, realMessage: FullMessageType) => void;
   removeOptimisticMessage: (tempId: string) => void;
+  addRealMessage: (message: FullMessageType) => void;
 }
 
 const MessagesContext = createContext<MessagesContextType | undefined>(undefined);
@@ -61,6 +62,36 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
     );
   };
 
+  const addRealMessage = (message: FullMessageType) => {
+    setMessages(prev => {
+      // Check if this message already exists (by ID)
+      const existsById = prev.some(msg => 'id' in msg && msg.id === message.id);
+      if (existsById) {
+        console.log('Message already exists, skipping:', message.id);
+        return prev;
+      }
+
+      // Check if this message should replace an optimistic message
+      // We'll do a simple body match for now
+      const optimisticIndex = prev.findIndex(msg => 
+        'tempId' in msg && 
+        msg.body === message.body && 
+        msg.senderId === message.senderId
+      );
+
+      if (optimisticIndex !== -1) {
+        console.log('Replacing optimistic message with real message:', message.id);
+        const updated = [...prev];
+        updated[optimisticIndex] = message;
+        return updated;
+      }
+
+      // Add as new message
+      console.log('Adding new real message:', message.id);
+      return [...prev, message];
+    });
+  };
+
   return (
     <MessagesContext.Provider value={{
       messages,
@@ -68,6 +99,7 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
       addOptimisticMessage,
       updateOptimisticMessage,
       removeOptimisticMessage,
+      addRealMessage,
     }}>
       {children}
     </MessagesContext.Provider>

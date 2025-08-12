@@ -1,0 +1,215 @@
+i for now want to add new stuff, 
+i want to use cloud flare image and video or even gif upload possible , using cloudflare uploads, 
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+export async function POST(req) {
+  try {
+    const { filename, contentType } = await req.json();
+    if (!filename || !contentType) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Missing filename or contentType' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const key = `${Date.now()}-${filename}`;
+
+    const s3Client = new S3Client({
+      region: 'auto',
+      endpoint: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID,
+        secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY,
+      },
+    });
+
+    const putObjectCommand = new PutObjectCommand({
+      Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
+      Key: key,
+      ContentType: contentType,
+    });
+
+    const presignedUrl = await getSignedUrl(s3Client, putObjectCommand, { expiresIn: 3600 });
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        presignedUrl,
+        key,
+        publicUrl: `https://pub-638bee415f4749059222e128b1afc495.r2.dev/${key}`, // Public URL
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Error generating presigned URL:', error);
+    return new Response(
+      JSON.stringify({ success: false, error: error.message || 'Failed to generate upload URL' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+here is how you do the uploads, import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { NextResponse } from 'next/server';
+
+const s3 = new S3Client({
+  region: 'auto',
+  endpoint: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY,
+  },
+});
+
+// Modified helper function to extract full key (with subfolder, if any)
+function extractKeyFromUrl(url) {
+  const urlObj = new URL(url);
+  const decodedPath = decodeURIComponent(urlObj.pathname);
+  return decodedPath.startsWith('/') ? decodedPath.slice(1) : decodedPath;
+}
+
+export async function POST(request) {
+  try {
+    const { imageUrl } = await request.json();
+    if (!imageUrl) {
+      return NextResponse.json({ success: false, error: 'Missing imageUrl' }, { status: 400 });
+    }
+
+    const key = extractKeyFromUrl(imageUrl);
+    if (!key) {
+      return NextResponse.json({ success: false, error: 'Invalid imageUrl format' }, { status: 400 });
+    }
+
+    const deleteParams = {
+      Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
+      Key: key,
+    };
+
+    const command = new DeleteObjectCommand(deleteParams);
+    await s3.send(command);
+
+    return NextResponse.json({ success: true, message: 'Image deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting image:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Failed to delete image' },
+      { status: 500 }
+    );
+  }
+}
+
+and i dont like the way i have a common message bubble for all , 
+i have video chat invite which should rather look nice and would love for not just be a text , 
+
+it should be like a button that this guy wants to have a call and we all join him, try linking with the video chat component , to probably show how many people are in there 
+and also we have the chat option from marketplace, where we react out to person saying i am interested , it should look different.
+
+i for now want to add new stuff, 
+i want to use cloud flare image and video or even gif upload possible , using cloudflare uploads,
+but it should be within 5MB video, 
+
+
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+export async function POST(req) {
+  try {
+    const { filename, contentType } = await req.json();
+    if (!filename || !contentType) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Missing filename or contentType' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const key = `${Date.now()}-${filename}`;
+
+    const s3Client = new S3Client({
+      region: 'auto',
+      endpoint: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID,
+        secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY,
+      },
+    });
+
+    const putObjectCommand = new PutObjectCommand({
+      Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
+      Key: key,
+      ContentType: contentType,
+    });
+
+    const presignedUrl = await getSignedUrl(s3Client, putObjectCommand, { expiresIn: 3600 });
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        presignedUrl,
+        key,
+        publicUrl: `https://pub-638bee415f4749059222e128b1afc495.r2.dev/${key}`, // Public URL
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Error generating presigned URL:', error);
+    return new Response(
+      JSON.stringify({ success: false, error: error.message || 'Failed to generate upload URL' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+here is how you do the uploads, import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { NextResponse } from 'next/server';
+
+const s3 = new S3Client({
+  region: 'auto',
+  endpoint: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY,
+  },
+});
+
+// Modified helper function to extract full key (with subfolder, if any)
+function extractKeyFromUrl(url) {
+  const urlObj = new URL(url);
+  const decodedPath = decodeURIComponent(urlObj.pathname);
+  return decodedPath.startsWith('/') ? decodedPath.slice(1) : decodedPath;
+}
+
+export async function POST(request) {
+  try {
+    const { imageUrl } = await request.json();
+    if (!imageUrl) {
+      return NextResponse.json({ success: false, error: 'Missing imageUrl' }, { status: 400 });
+    }
+
+    const key = extractKeyFromUrl(imageUrl);
+    if (!key) {
+      return NextResponse.json({ success: false, error: 'Invalid imageUrl format' }, { status: 400 });
+    }
+
+    const deleteParams = {
+      Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
+      Key: key,
+    };
+
+    const command = new DeleteObjectCommand(deleteParams);
+    await s3.send(command);
+
+    return NextResponse.json({ success: true, message: 'Image deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting image:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Failed to delete image' },
+      { status: 500 }
+    );
+  }
+}
+
+so every where that i have used supabase , i want you to use cloudflare upload, 
+i might have used upload twice using supabase, 
+make one page and handle it, hence reducing redundancy
+
+
+and for now i want you to remove omegle from side bar, and put it onto where we see /videoChat, only then that route should appear on side bar

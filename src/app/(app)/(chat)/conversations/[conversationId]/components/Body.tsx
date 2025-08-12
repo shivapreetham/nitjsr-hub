@@ -18,7 +18,7 @@ interface BodyProps {
 }
 
 const Body: React.FC<BodyProps> = ({ conversation }) => {
-  const { messages, setMessages } = useMessages();
+  const { messages, setMessages, addRealMessage } = useMessages();
   const [isAnonymous, setIsAnonymous] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { conversationId } = useConversation();
@@ -52,34 +52,8 @@ const Body: React.FC<BodyProps> = ({ conversation }) => {
 
       console.log('Pusher message received:', message.id, message.body);
 
-      setMessages((prevMessages) => {
-        // Check if message already exists by id
-        if (find(prevMessages, { id: message.id })) {
-          console.log('Message already exists by id, skipping');
-          return prevMessages;
-        }
-        
-        // Check if there's an optimistic message with the same content and sender
-        // that was just sent (within last 5 seconds) to prevent duplicates
-        const recentOptimisticMessage = prevMessages.find(msg => 
-          'tempId' in msg && 
-          msg.body === message.body && 
-          msg.senderId === message.senderId &&
-          msg.createdAt && 
-          new Date().getTime() - new Date(msg.createdAt).getTime() < 5000
-        );
-        
-        if (recentOptimisticMessage) {
-          console.log('Found matching optimistic message, replacing:', (recentOptimisticMessage as any).tempId);
-          // Replace the optimistic message with the real one
-          return prevMessages.map(msg => 
-            msg === recentOptimisticMessage ? message : msg
-          );
-        }
-        
-        console.log('Adding new message from Pusher');
-        return [...prevMessages, message];
-      });
+      // Use the new addRealMessage function that handles duplicates properly
+      addRealMessage(message);
 
       bottomRef?.current?.scrollIntoView();
     };

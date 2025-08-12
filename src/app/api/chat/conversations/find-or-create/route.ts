@@ -81,6 +81,7 @@ export async function POST(request: Request) {
       await prisma.message.create({
         data: {
           body: `Hi, I'm interested in your product: ${productTitle}`,
+          type: 'MARKETPLACE_INTEREST',
           conversation: {
             connect: {
               id: newConversation.id
