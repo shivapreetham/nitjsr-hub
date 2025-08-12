@@ -1,4 +1,4 @@
-import prisma from '@/app/lib/prismadb';
+import prisma from '@/lib/prismadb';
 import bcrypt from 'bcryptjs';
 import { sendVerificationEmail } from '@/shared/helpers/sendVerificationEmails';
 

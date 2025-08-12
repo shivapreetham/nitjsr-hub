@@ -170,8 +170,8 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (user) {
-            token.NITUsername = user.NITUsername;
-            token.NITPassword = user.NITPassword;
+            token.NITUsername = user.NITUsername || undefined;
+            token.NITPassword = user.NITPassword || undefined;
             token.hasNitCredentials = Boolean(user.NITUsername && user.NITPassword);
             token.isVerified = user.isVerified;
             token.isAcceptingAnonymousMessages = user.isAcceptingAnonymousMessages;

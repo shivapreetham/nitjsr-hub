@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/popover";
 import { PRODUCT_CATEGORIES } from "@/shared/types/products";
 import { ProductFiltersProps } from "../types";
-import { cn } from "@/app/lib/utils";
+import { cn } from "@/lib/utils";
 
 export default function ProductFilters({
   filters,

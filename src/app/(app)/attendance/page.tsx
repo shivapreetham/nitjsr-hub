@@ -75,7 +75,7 @@ import AttendanceTrends from './(comp)/components/AttendanceTrends';
 
 // Move loading and error UI to new files: components/Loading.tsx, components/Error.tsx
 import Loading from './(comp)/components/Loading';
-import Error from './(comp)/components/Error';
+import ErrorComponent from './(comp)/components/Error';
 
 function CredentialsRequired({ onAddCredentials }: { onAddCredentials: () => void }) {
   const [isStartingScraping, setIsStartingScraping] = useState(false);
@@ -209,16 +209,17 @@ export default function AttendanceDashboard() {
     return (
       <CredentialsRequired 
         onAddCredentials={() => {
-          // Navigate to profile page or show credentials modal
-          window.location.href = '/profile';
+          // This should trigger opening the settings modal
+          // For now, we'll show an alert to remind users to use settings
+          alert('Please use the Settings option in the sidebar to add your NIT credentials.');
         }}
       />
     );
   }
 
   if (loading) return <Loading />;
-  if (error) return <Error error={error} />;
-  if (!attendanceData) return <Error error="No attendance data is available for your account. Please contact your administrator." />;
+  if (error) return <ErrorComponent error={error} />;
+  if (!attendanceData) return <ErrorComponent error="No attendance data is available for your account. Please contact your administrator." />;
 
   return (
     <div className="min-h-screen bg-background py-4 sm:py-8 transition-colors duration-200">

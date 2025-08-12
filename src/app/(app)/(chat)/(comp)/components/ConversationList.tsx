@@ -10,7 +10,7 @@ import ConversationBox from './ConversationBox';
 import GroupChatModal from './GroupChatModal';
 import { User } from '@prisma/client';
 import { useSession } from 'next-auth/react';
-import { pusherClient } from '@/app/lib/pusher';
+import { pusherClient } from '@/lib/pusher';
 import { find } from 'lodash';
 
 interface ConversationListProps {

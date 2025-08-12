@@ -54,7 +54,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Loader from './Loader';
 import EndCallButton from './EndCallButton';
-import { cn } from '@/app/lib/utils';
+import { cn } from '@/lib/utils';
 
 type CallLayoutType = 'grid' | 'speaker-left' | 'speaker-right' | 'speaker-bottom';
 type ViewMode = 'fullscreen' | 'normal';

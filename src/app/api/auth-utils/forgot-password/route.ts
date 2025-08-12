@@ -1,4 +1,4 @@
-import prisma from '@/app/lib/prismadb';
+import prisma from '@/lib/prismadb';
 import { NextResponse } from 'next/server';
 import { sendPasswordResetEmail } from '@/shared/helpers/sendPasswordResetEmails';
 
