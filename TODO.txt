@@ -1,27 +1,28 @@
-# Project TODO List
 
-## Features to Implement
-- [ ] Add task here
-- [ ] Add another task here
+first of all i want you to spot the novice errors in the existing project code and make it really 
+production ready and really of good quality and showable.
+modular
 
-## Bugs to Fix
-- [ ] Bug description here
-- [ ] Another bug here
+i want you to add next auth oauth using google provider along with current credential provider, \                                   │
+│     but the major thing is that i need the regex of the email followed .email()                                                       │
+│       .regex(/^(20\d{2})(ug|pg)([a-z]+)(\d{3})@nitjsr\.ac\.in$/, {                                                                    │
+│         message: "Please fill a valid email address (ending with @nitjsr.ac.in)"\                                                     │
+│     this kind of a regex in the email , ie it should be institute email, \\                                                           │
+│   \                                                                                                                                   │
+│   along with that i want you to remove the NITUsername and NITPassword from compulsary credentials , \                                │
+│   and from sign-up page also remove it , \                                                                                            │
+│   \                                                                                                                                   │
+│   and make it possible that if a new user comes he can just login with google, \                                                      │
+│   and it should have proper error handling along with production level code 
+    i used to trigger a certain website whenever a person joins in ,that part we remove, 
+    but we have to have the group management logic run even on google login,
 
-## Improvements
-- [ ] Performance optimization
-- [ ] UI/UX enhancements
-- [ ] Code refactoring
-
-## Documentation
-- [ ] Update README
-- [ ] Add API documentation
-- [ ] Code comments
-
-## Testing
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] End-to-end tests
-
----
-Instructions: Use [x] to mark completed tasks, [ ] for pending tasks
+    while also ensureing that i have the attendance feature for the person who is joining right now, 
+    if he doesnt happen to have NITPassword and NITUsername and he goes to attendance page, 
+    we say that he doesnt have credentials, and pop up the profile button where he can add the credential
+    
+    and therefore also add a start scraping button which sends the user email to a server with post request, 
+    server url will be in env by name of scrapingServerSpecific
+    
+                                                          │
+╰────────────────────────────────────────────────────────────────────────────────

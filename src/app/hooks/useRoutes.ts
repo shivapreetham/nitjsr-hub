@@ -12,7 +12,8 @@ import {
   HiChartBar,
   HiClipboardDocumentCheck,
   HiInboxStack,
-  HiOutlineSparkles
+  HiOutlineSparkles,
+  HiUserCircle
 } from 'react-icons/hi2';
 import { IconType } from 'react-icons';
 
@@ -45,6 +46,13 @@ const useRoutes = () => {
           await signOut({ callbackUrl: '/' });
         },
         icon: HiArrowLeftOnRectangle,
+        position: 'bottom'
+      },
+      {
+        label: 'Profile',
+        href: '/profile',
+        icon: HiUserCircle,
+        active: pathname === '/profile',
         position: 'bottom'
       },
       {

@@ -18,6 +18,11 @@ export const signUpSchema = z.object({
   password: z
     .string()
     .min(6, { message: 'Password must be at least 6 characters' }),
-    NITUsername: z.string().min(1, 'NIT Username is required'),
-    NITPassword: z.string().min(6, 'NIT Password must be at least 6 characters long'),
+    NITUsername: z.string().optional(),
+    NITPassword: z.string().optional(),
+});
+
+export const nitCredentialsSchema = z.object({
+  NITUsername: z.string().min(1, 'NIT Username is required'),
+  NITPassword: z.string().min(6, 'NIT Password must be at least 6 characters long'),
 });
