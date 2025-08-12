@@ -22,14 +22,14 @@ const LoadingModal = () => {
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-gray-100 bg-opacity-50 transition-opacity" />
+          <div className="fixed inset-0 bg-background/50 transition-opacity" />
         </Transition.Child>
 
         <div className="fixed inset-0 z-10 overflow-y-auto">
           <div className="flex items-center justify-center min-h-full p-4 text-center">
             <Dialog.Panel>
-              <ClipLoader size={24} color="#3B82F6" />
-              <p className="mt-4">{loadingText}</p>
+              <ClipLoader size={24} color="hsl(var(--primary))" />
+              <p className="mt-4 text-foreground">{loadingText}</p>
             </Dialog.Panel>
           </div>
         </div>

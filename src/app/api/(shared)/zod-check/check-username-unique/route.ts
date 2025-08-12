@@ -1,4 +1,4 @@
-import prisma from '@/app/lib/prismadb'; // Import Prisma client
+import prisma from '@/lib/prismadb'; // Import Prisma client
 import { z } from 'zod';
 import { usernameValidation } from '@/shared/schemas/signUpSchema';
 

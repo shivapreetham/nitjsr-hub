@@ -1,6 +1,6 @@
 // api/attendance/current/route.ts
 import { NextResponse } from "next/server";
-import prisma from "@/app/lib/prismadb";
+import prisma from "@/lib/prismadb";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 

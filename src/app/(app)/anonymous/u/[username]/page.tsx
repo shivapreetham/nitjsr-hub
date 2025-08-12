@@ -18,7 +18,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { anonymousMessageSchema as messageSchema } from '@/shared/schemas/anonymousMessageSchema';
 import { ModeToggle } from '@/components/home&anonymous/ModeToggle';
-import { cn } from '@/app/lib/utils';
+import { cn } from '@/lib/utils';
 
 interface SendMessageState {
   isLoading: boolean;

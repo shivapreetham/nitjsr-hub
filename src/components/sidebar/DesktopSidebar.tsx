@@ -32,18 +32,7 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({ currentUser }) => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
       />
-      <div 
-        className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:w-20 lg:overflow-y-auto lg:border-r lg:border-border/30 lg:pb-4 lg:flex lg:flex-col justify-between transition-all duration-300 ease-in-out glass-card"
-        style={{ 
-          background: isDark 
-            ? "linear-gradient(180deg, rgba(15, 23, 42, 0.75) 0%, rgba(20, 30, 50, 0.85) 100%)" 
-            : "linear-gradient(180deg, rgba(255, 255, 255, 0.75) 0%, rgba(245, 247, 250, 0.85) 100%)",
-          backdropFilter: "blur(12px)",
-          boxShadow: isDark 
-            ? "0 4px 20px rgba(0, 0, 0, 0.25)" 
-            : "0 4px 20px rgba(0, 0, 0, 0.05)"
-        }}
-      >
+      <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:w-20 lg:overflow-y-auto lg:pb-4 lg:flex lg:flex-col justify-between transition-all duration-300 ease-in-out glass-sidebar">
         
         <div className="flex items-center justify-center mt-6 mb-8">
           <div className="glass-card text-foreground font-bold text-lg w-10 h-10 flex items-center justify-center rounded-full">

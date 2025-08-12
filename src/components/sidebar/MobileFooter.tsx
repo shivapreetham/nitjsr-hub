@@ -30,7 +30,7 @@ const MobileFooter: React.FC<MobileFooterProps> = ({ currentUser }) => {
 
   return (
     <>
-      <div className="fixed justify-between w-full bottom-0 z-40 flex items-center bg-background/50 backdrop-blur-sm border-t border-border lg:hidden transition-colors duration-300">
+      <div className="fixed justify-between w-full bottom-0 z-40 flex items-center bg-card/80 backdrop-blur-xl border-t border-border/50 lg:hidden shadow-lg transition-all duration-300">
         {/* Profile Button */}
         <div 
           className="p-3 cursor-pointer"

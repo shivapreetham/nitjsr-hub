@@ -2,10 +2,11 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { useTheme } from "next-themes";
+import { useSession } from "next-auth/react";
 import { 
    BookOpen, UserCheck, Calendar, Clock, AlertCircle, 
   CheckCircle, XCircle, ChevronDown, BarChart3, ArrowUpRight, 
-  Award, CalendarClock, TrendingUp, BookOpenCheck, BookX, Flame
+  Award, CalendarClock, TrendingUp, BookOpenCheck, BookX, Flame, Settings
 } from "lucide-react";
 import { Doughnut, Bar, Line } from "react-chartjs-2";
 import {
@@ -74,9 +75,110 @@ import AttendanceTrends from './(comp)/components/AttendanceTrends';
 
 // Move loading and error UI to new files: components/Loading.tsx, components/Error.tsx
 import Loading from './(comp)/components/Loading';
-import Error from './(comp)/components/Error';
+import ErrorComponent from './(comp)/components/Error';
+
+function CredentialsRequired({ onAddCredentials }: { onAddCredentials: () => void }) {
+  const [isStartingScraping, setIsStartingScraping] = useState(false);
+  const { data: session } = useSession();
+
+  const handleStartScraping = async () => {
+    try {
+      setIsStartingScraping(true);
+      const response = await fetch('/api/start-scraping', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: session?.user?.email,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start scraping');
+      }
+
+      // Show success message or handle response
+      alert('Scraping request sent successfully!');
+    } catch (error) {
+      console.error('Error starting scraping:', error);
+      alert('Failed to start scraping. Please try again.');
+    } finally {
+      setIsStartingScraping(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center py-8">
+      <div className="max-w-md w-full mx-auto px-4">
+        <div className="bg-card rounded-xl shadow-lg border border-border p-8 text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="bg-orange-100 dark:bg-orange-900/20 rounded-full p-4">
+              <AlertCircle className="h-8 w-8 text-orange-600 dark:text-orange-400" />
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <h2 className="text-2xl font-bold text-foreground">
+              NIT Credentials Required
+            </h2>
+            <p className="text-muted-foreground">
+              To access attendance features, you need to add your NIT attendance portal credentials to your profile.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <button
+              onClick={onAddCredentials}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Add Credentials in Profile
+            </button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or</span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleStartScraping}
+              disabled={isStartingScraping}
+              className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isStartingScraping ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-secondary-foreground"></div>
+                  Starting Scraping...
+                </>
+              ) : (
+                <>
+                  <BookOpen className="h-4 w-4" />
+                  Start Scraping Process
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="text-xs text-muted-foreground">
+            <p>
+              <strong>Note:</strong> The scraping process will collect your attendance data using your NIT credentials.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AttendanceDashboard() {
+  const { data: session, status } = useSession();
+  const [showAddCredentials, setShowAddCredentials] = useState(false);
+  
   const {
     attendanceData,
     loading,
@@ -100,9 +202,24 @@ export default function AttendanceDashboard() {
     displayedSubjects
   } = useAttendanceDashboard();
 
+  // Check if user has NIT credentials
+  if (status === "loading") return <Loading />;
+  
+  if (session && !session.user.hasNitCredentials) {
+    return (
+      <CredentialsRequired 
+        onAddCredentials={() => {
+          // This should trigger opening the settings modal
+          // For now, we'll show an alert to remind users to use settings
+          alert('Please use the Settings option in the sidebar to add your NIT credentials.');
+        }}
+      />
+    );
+  }
+
   if (loading) return <Loading />;
-  if (error) return <Error error={error} />;
-  if (!attendanceData) return <Error error="No attendance data is available for your account. Please contact your administrator." />;
+  if (error) return <ErrorComponent error={error} />;
+  if (!attendanceData) return <ErrorComponent error="No attendance data is available for your account. Please contact your administrator." />;
 
   return (
     <div className="min-h-screen bg-background py-4 sm:py-8 transition-colors duration-200">

@@ -34,26 +34,26 @@ body {
   }
 
   .dark {
-    /* Dark theme - enhanced with violet/purple tones */
-    --background: 240 30% 4%;  /* Deep black with slight purple tint */
-    --foreground: 250 15% 95%;
-    --card: 240 30% 6%;
-    --card-foreground: 250 15% 95%;
-    --popover: 240 30% 6%;
-    --popover-foreground: 250 15% 95%;
-    --primary: 265 85% 65%;  /* Vibrant purple */
-    --primary-foreground: 240 30% 4%;
-    --secondary: 250 30% 10%;
-    --secondary-foreground: 250 15% 95%;
-    --muted: 250 30% 10%;
-    --muted-foreground: 250 15% 65%;
-    --accent: 280 50% 25%;  /* Deep purple accent */
-    --accent-foreground: 250 15% 95%;
+    /* Dark theme - enhanced with blue tones */
+    --background: 220 30% 4%;  /* Deep black with slight blue tint */
+    --foreground: 210 15% 95%;
+    --card: 220 30% 6%;
+    --card-foreground: 210 15% 95%;
+    --popover: 220 30% 6%;
+    --popover-foreground: 210 15% 95%;
+    --primary: 215 85% 65%;  /* Vibrant blue */
+    --primary-foreground: 220 30% 4%;
+    --secondary: 210 30% 10%;
+    --secondary-foreground: 210 15% 95%;
+    --muted: 210 30% 10%;
+    --muted-foreground: 210 15% 65%;
+    --accent: 200 50% 25%;  /* Deep blue accent */
+    --accent-foreground: 210 15% 95%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 250 15% 95%;
-    --border: 250 30% 12%;
-    --input: 250 30% 10%;
-    --ring: 265 85% 65%;
+    --destructive-foreground: 210 15% 95%;
+    --border: 210 30% 12%;
+    --input: 210 30% 10%;
+    --ring: 215 85% 65%;
     --radius: 0.6rem;
   }
 }
@@ -71,14 +71,32 @@ body {
 
 @layer utilities {
   
-  /* Glass effect for cards */
+  /* Enhanced Glass effect for cards */
   .glass-card {
-    @apply bg-background/50 backdrop-blur-sm;
-    border: 1px solid rgb(var(--primary) / 0.1);
+    @apply bg-card/80 backdrop-blur-md border border-border/50;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
   }
 
   .glass-card:hover {
-    border-color: rgb(var(--primary) / 0.2);
+    @apply border-border/70;
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.5);
+  }
+
+  /* Glass input styling */
+  .glass-input {
+    @apply bg-background/70 backdrop-blur-sm border-border/50 focus:border-primary hover:border-border/70;
+  }
+
+  /* Enhanced glass sidebar */
+  .glass-sidebar {
+    @apply backdrop-blur-xl;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .dark .glass-sidebar {
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.6));
+    border-right: 1px solid rgba(148, 163, 184, 0.1);
   }
 
   /* Marketplace specific styles */
@@ -113,4 +131,5 @@ body {
   .loading-spinner {
     @apply animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary;
   }
+
 }

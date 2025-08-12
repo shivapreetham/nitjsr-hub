@@ -1,6 +1,6 @@
 // app/api/chat/validate-group-name/route.ts
 import { NextResponse } from 'next/server';
-import prisma from '@/app/lib/prismadb';
+import prisma from '@/lib/prismadb';
 import { groupChatSchema } from '@/shared/schemas/groupChatSchema';
 
 export async function GET(request: Request) {

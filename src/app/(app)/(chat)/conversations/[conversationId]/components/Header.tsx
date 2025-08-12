@@ -12,7 +12,7 @@ import ProfileDrawer from './ProfileDrawer';
 import AvatarGroup from '@/components/status&sidebar/AvatarGroup';
 import useActiveList from '@/app/hooks/useActiveList';
 import { useSession } from 'next-auth/react';
-import { cn } from '@/app/lib/utils';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useStreamVideoClient } from '@stream-io/video-react-sdk';
