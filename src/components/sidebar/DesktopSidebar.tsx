@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User } from '@prisma/client';
 import useRoutes from '@/app/hooks/useRoutes';
 import DesktopSidebarItem from './DesktopSidebarItem';
@@ -9,6 +9,9 @@ import SettingsModal from './SettingsModal';
 import { ModeToggle } from '@/components/home&anonymous/ModeToggle';
 import { useTheme } from 'next-themes';
 import Image from 'next/image';
+import GuideModal from '@/components/ui/guide-modal';
+import { Button } from '@/components/ui/button';
+import { HelpCircle } from 'lucide-react';
 
 interface DesktopSidebarProps {
   currentUser: User;
@@ -16,9 +19,17 @@ interface DesktopSidebarProps {
 
 const DesktopSidebar: React.FC<DesktopSidebarProps> = ({ currentUser }) => {
   const { routes} = useRoutes();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+
+  // Removed auto-popup behavior - guide modal only opens when user clicks help button
+
+  const handleGuideComplete = () => {
+    localStorage.setItem('hasSeenGuide', 'true');
+    setIsGuideOpen(false);
+  };
 
   // Organize routes by position
   const topRoutes = routes.filter(route => route.position === 'top');
@@ -29,8 +40,13 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({ currentUser }) => {
     <>
       <SettingsModal
         currentUser={currentUser}
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
+      <GuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+        onComplete={handleGuideComplete}
       />
       <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:w-20 lg:overflow-y-auto lg:pb-4 lg:flex lg:flex-col justify-between transition-all duration-300 ease-in-out glass-sidebar">
         
@@ -85,6 +101,19 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({ currentUser }) => {
           <div className="mt-auto flex flex-col pt-4 border-t border-border/30">
             {/* Controls section - Theme toggle & bottom routes */}
             <div className="flex flex-col justify-center items-center mb-4">
+              {/* Guide/Help button */}
+              <div className="glass-card p-2 rounded-xl m-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsGuideOpen(true)}
+                  className="h-6 w-6 p-0 hover:bg-orange-500/10 text-orange-500 hover:text-orange-600"
+                  title="Help & Guide"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                </Button>
+              </div>
+              
               {/* Theme toggle with consistent styling */}
               <div className="glass-card p-2 rounded-xl m-2">
                 <ModeToggle isExpanded={false} />
@@ -110,7 +139,7 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({ currentUser }) => {
             
             {/* User profile - Consistently styled for both states */}
             <div
-              onClick={() => setIsOpen(true)}
+              onClick={() => setIsSettingsOpen(true)}
               className="cursor-pointer hover:bg-secondary/70 transition rounded-xl p-3 mx-2 mb-4 flex justify-center glass-card"
               title="Edit profile"
             >

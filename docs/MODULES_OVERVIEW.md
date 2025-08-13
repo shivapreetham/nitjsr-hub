@@ -83,7 +83,7 @@ Peer-to-peer marketplace for students to buy and sell items.
 #### API Endpoints
 - `/api/products` - CRUD operations for products
 - `/api/products/[productId]/interest` - Interest expression
-- `/api/upload` - File upload handling
+- `/api/cloudflare/upload` - File upload to Cloudflare R2 storage
 
 #### Database Schema
 ```prisma

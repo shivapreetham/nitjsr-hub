@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { User } from '@prisma/client';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
@@ -11,8 +11,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createClient } from '@supabase/supabase-js';
-
+import FileUpload from '@/components/shared/FileUpload';
 // Define types for programMap and branchMap
 type ProgramMap = {
   cs: string;
@@ -31,22 +30,18 @@ type BranchMap = {
   pg: string;
 };
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY!
-);
-
 interface SettingsModalProps {
   currentUser: User;
   isOpen?: boolean;
   onClose: () => void;
+  defaultTab?: 'profile' | 'credentials';
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
   currentUser,
   isOpen = false,
   onClose,
+  defaultTab = 'profile',
 }) => {
   const router = useRouter();
   const { toast } = useToast();
@@ -59,8 +54,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [mobileNumber, setMobileNumber] = useState(currentUser?.mobileNumber || '');
   const [hostel, setHostel] = useState(currentUser?.hostel || '');
   
-  const [activeTab, setActiveTab] = useState('profile');
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
+  // Reset tab when modal opens with different defaultTab
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+    }
+  }, [isOpen, defaultTab]);
 
   // Move programMap and branchMap outside of useMemo for correct type inference
   const programMap: ProgramMap = {
@@ -96,82 +97,34 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     };
   }, [currentUser?.email, programMap, branchMap]);
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-  
-    setIsLoading(true);
-    setUploadProgress(10);
-    
-    try {
-      // Create unique file path with proper extension
-      const fileExtension = file.name.split('.').pop() || 'jpg';
-      const fileName = `${currentUser.id}-${Date.now()}.${fileExtension}`;
-      
-      // Better file validation
-      if (!file.type.startsWith('image/')) {
-        throw new Error('Please select a valid image file');
-      }
-      
-      if (file.size > 5 * 1024 * 1024) {
-        throw new Error('File size must be less than 5MB');
-      }
-      
-      setUploadProgress(30);
-      
-      // Properly chunked upload
-      const { error: uploadError } = await supabase.storage
-        .from('profile-images')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      
-      setUploadProgress(70);
-  
-      if (uploadError) {
-        console.error('Supabase error:', uploadError);
-        throw uploadError;
-      }
-      
-      setUploadProgress(80);
-  
-      // Get URL immediately after successful upload
-      const { data: { publicUrl } } = supabase.storage
-        .from('profile-images')
-        .getPublicUrl(fileName);
-  
-      console.log('Upload successful, URL:', publicUrl);
-      setImage(publicUrl);
-      setUploadProgress(100);
-      
-      // Don't automatically submit after upload
-      toast({
-        title: 'Success',
-        description: 'Image uploaded successfully. Click Update Profile to save changes.',
-      });
-  
-    } catch (error: any) {
-      console.error('Upload failed:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to upload image'
-      });
-      setUploadProgress(0);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleImageUpload = (url: string) => {
+    setImage(url);
+    toast({
+      title: 'Success',
+      description: 'Image uploaded successfully. Click Update Profile to save changes.',
+    });
+  };
+
+  const handleUploadError = (error: string) => {
+    toast({
+      variant: 'destructive',
+      title: 'Error',
+      description: error
+    });
   };
 
   const onSubmit = async () => {
     setIsLoading(true);
     try {
-      // Remove old image if there's a new one and the old one is from Supabase
-      if (image !== currentUser.image && currentUser?.image && currentUser.image.includes(process.env.NEXT_PUBLIC_SUPABASE_URL!)) {
-        const oldFileName = currentUser.image.split('/').pop();
-        if (oldFileName) {
-          await supabase.storage.from('profile-images').remove([oldFileName]);
+      // Remove old image if there's a new one and the old one is from Cloudflare R2
+      if (image !== currentUser.image && currentUser?.image && currentUser.image.includes(process.env.CLOUDFLARE_R2_PUBLIC_URL!)) {
+        try {
+          await axios.post('/api/cloudflare/delete', {
+            imageUrl: currentUser.image
+          });
+        } catch (deleteError) {
+          console.warn('Failed to delete old image:', deleteError);
+          // Continue with profile update even if old image deletion fails
         }
       }
       
@@ -230,16 +183,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <Card className="relative w-full max-w-md mx-4 p-6 bg-card shadow-xl rounded-lg border border-border overflow-hidden">
         
         {/* Close button */}
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={onClose}
-          className="absolute right-4 top-4 p-2 rounded-full hover:bg-muted transition-all duration-200"
+          className="absolute right-4 top-4 p-2 rounded-full hover:bg-muted transition-all duration-200 h-8 w-8"
         >
-          <X className="h-5 w-5 text-muted-foreground" />
-        </button>
+          <X className="h-4 w-4 text-muted-foreground" />
+        </Button>
 
         <div className="space-y-6">
           {/* Header */}
@@ -291,32 +253,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     </div>
                   )}
                   
-                  <label className="absolute inset-0 z-20 flex items-center justify-center bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                      disabled={isLoading}
-                    />
-                    <div className="bg-black/50 rounded-full p-2 backdrop-blur-sm transform group-hover:scale-110 transition-transform duration-300">
-                      <Upload className="h-5 w-5 text-white" />
-                    </div>
-                  </label>
                 </div>
                 
-                {/* Upload progress bar */}
-                {uploadProgress > 0 && uploadProgress < 100 && (
-                  <div className="w-full max-w-xs">
-                    <div className="h-2 w-full bg-gray-200/80 dark:bg-gray-700/50 rounded-full overflow-hidden backdrop-blur-sm">
-                      <div 
-                        className="h-full bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-300" 
-                        style={{ width: `${uploadProgress}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-center  text-gray-500">Uploading: {uploadProgress}%</p>
-                  </div>
-                )}
+                {/* File Upload Component */}
+                <div className="w-full max-w-xs">
+                  <FileUpload
+                    onUpload={handleImageUpload}
+                    onError={handleUploadError}
+                    maxSize={5}
+                    acceptedTypes={['image/jpeg', 'image/jpg', 'image/png', 'image/webp']}
+                    uploadType="profile"
+                    buttonText="Upload Profile Picture"
+                    showPreview={false}
+                    disabled={isLoading}
+                  />
+                </div>
                 
                 {/* Username field */}
                 <div className="w-full space-y-1">

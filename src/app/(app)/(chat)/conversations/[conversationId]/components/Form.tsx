@@ -8,7 +8,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { HiPhoto, HiPaperAirplane } from 'react-icons/hi2';
 import { Video, Phone } from 'lucide-react';
 import MessageInput from './MessageInput';
-import { createClient } from '@supabase/supabase-js';
 import { messageSchema } from '@/shared/schemas/messageSchema';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
@@ -16,18 +15,13 @@ import { useStreamVideoClient } from '@stream-io/video-react-sdk';
 import { useCurrentUserContext } from '@/context/CurrentUserProvider';
 import { useToast } from '@/app/hooks/use-toast';
 import useOtherUser from '@/app/hooks/useOtherUser';
-import { Conversation, User } from '@prisma/client';
+import { Conversation, User, MessageType } from '@prisma/client';
 import { useMessages } from '@/context/MessagesProvider';
 import { FullMessageType } from '@/shared/types';
 import ReplyInput from './ReplyInput';
 import { useReply } from '@/context/ReplyProvider';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY!
-);
-
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif", "video/mp4", "video/webm"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 interface FormProps {
@@ -136,6 +130,11 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
         tempId,
         body: `📞 Video call started! Join here: ${meetingLink}`,
         image: null,
+        fileUrl: null,
+        fileName: null,
+        fileType: null,
+        fileSize: null,
+        type: MessageType.VIDEO_CALL,
         createdAt: new Date(),
         senderId: currentUser?.id || '',
         seenIds: [currentUser?.id || ''],
@@ -153,6 +152,7 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
         message: `📞 Video call started! Join here: ${meetingLink}`,
         conversationId: conversationId,
         image: null,
+        type: MessageType.VIDEO_CALL,
       }).then(response => {
         // Update optimistic message with real message
         if (response.data) {
@@ -196,31 +196,49 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
     if (!file) return;
 
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      console.error('Invalid file type');
+      toast({ title: 'Invalid file type. Please select an image, GIF, or video file.', variant: 'destructive' });
       return;
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      console.error('File too large');
+      toast({ title: 'File too large. Maximum size is 5MB.', variant: 'destructive' });
       return;
     }
 
     setIsUploadingFile(true);
     try {
-      const fileName = `${conversationId}-${Date.now()}.jpg`;
+      // Create FormData for upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'chat');
 
-      const { error } = await supabase.storage
-        .from('chat-images')
-        .upload(fileName, file);
+      // Upload to Cloudflare R2 via our API
+      const uploadResponse = await axios.post('/api/cloudflare/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
-      if (error) throw error;
+      if (!uploadResponse.data.success) {
+        throw new Error(uploadResponse.data.error || 'Upload failed');
+      }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('chat-images')
-        .getPublicUrl(fileName);
+      const publicUrl = uploadResponse.data.url;
 
-      // Automatically submit the message with image
-      await onSubmit({ message: message || '', imageUrl: publicUrl });
+      // Determine file type for message
+      const fileType = file.type;
+      const fileName = file.name;
+      const fileSize = file.size;
+
+      // Automatically submit the message with media
+      await onSubmit({ 
+        message: message || '', 
+        imageUrl: publicUrl,
+        fileUrl: publicUrl,
+        fileName,
+        fileType,
+        fileSize
+      });
       
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -229,6 +247,7 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
 
     } catch (error) {
       console.error('Upload failed:', error);
+      toast({ title: 'Failed to upload file', variant: 'destructive' });
     } finally {
       setIsUploadingFile(false);
     }
@@ -247,12 +266,27 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
         return;
       }
 
+      // Determine message type for optimistic message
+      const determineOptimisticType = (): MessageType => {
+        const url = data.fileUrl || data.imageUrl || imageUrl;
+        if (!url) return MessageType.TEXT;
+        if (url.toLowerCase().includes('.gif')) return MessageType.GIF;
+        if (url.toLowerCase().match(/\.(mp4|webm|ogg|avi|mov|wmv)$/)) return MessageType.VIDEO;
+        if (url.toLowerCase().match(/\.(jpg|jpeg|png|webp|svg)$/)) return MessageType.IMAGE;
+        return MessageType.FILE;
+      };
+
       // Create optimistic message
       const tempId = `temp-${Date.now()}-${Math.random()}`;
       const optimisticMessage = {
         tempId,
         body: data.message,
         image: data.imageUrl || imageUrl,
+        fileUrl: data.fileUrl || data.imageUrl || imageUrl,
+        fileName: data.fileName,
+        fileType: data.fileType,
+        fileSize: data.fileSize,
+        type: determineOptimisticType(),
         createdAt: new Date(),
         senderId: currentUser?.id || '',
         seenIds: [currentUser?.id || ''],
@@ -285,6 +319,10 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
       axios.post('/api/chat/messages', {
         message: data.message,
         image: data.imageUrl || imageUrl,
+        fileUrl: data.fileUrl || data.imageUrl || imageUrl,
+        fileName: data.fileName,
+        fileType: data.fileType,
+        fileSize: data.fileSize,
         conversationId,
         replyToId: replyTo?.id
       }).then(response => {

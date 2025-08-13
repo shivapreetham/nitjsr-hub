@@ -32,7 +32,7 @@ const useRoutes = () => {
   const { conversationId } = useConversation();
   
   // Determine which section we're in
-  const isVideoChat = pathname?.startsWith('/videoChat');
+  const isVideoChat = pathname?.startsWith('/videoChat') || pathname?.startsWith('/omegle');
   const isAttendance = pathname?.startsWith('/attendance');
   
   // Common routes that appear in all sections
@@ -70,13 +70,6 @@ const useRoutes = () => {
         position: 'middle'
       },
       {
-        label: 'Omegle',
-        href: '/omegle',
-        icon: HiOutlineSparkles,
-        active: pathname === '/omegle' || pathname?.startsWith('/omegle/'),
-        position: 'middle'
-      },
-      {
         label: 'Users',
         href: '/users',
         icon: HiUsers,
@@ -102,6 +95,13 @@ const useRoutes = () => {
         href: '/videoChat/',
         icon: HiVideoCamera,
         active: pathname === '/videoChat/' || pathname === '/videoChat',
+        position: 'middle'
+      },
+      {
+        label: 'Omegle',
+        href: '/omegle',
+        icon: HiOutlineSparkles,
+        active: pathname === '/omegle' || pathname?.startsWith('/omegle/'),
         position: 'middle'
       },
     ],

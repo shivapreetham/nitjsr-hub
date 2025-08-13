@@ -15,12 +15,12 @@ NIT-JSR-Hub is divided into four primary modules, each packed with its own set o
 ### 💬 Real-Time Chat
 - **Instant Messaging:** One-on-one and group conversations with real-time message delivery powered by **Pusher**.
 - **Typing Indicators & Read Receipts:** See when users are typing and when your messages have been seen.
-- **Rich Media:** Share images and files seamlessly within chats.
+- **Rich Media:** Share images, videos, GIFs and files seamlessly within chats (up to 5MB for videos).
 - **Group Management:** Easily create groups and add or remove members.
 
 ### 🛒 Peer-to-Peer Marketplace
 - **Product Listings:** Users can create, update, and delete their product listings.
-- **Image Uploads:** Multiple image uploads for each product, handled by **Supabase Storage**.
+- **Media Uploads:** Multiple image and video uploads for each product, handled by **Cloudflare R2**.
 - **Show Interest:** Users can express interest in products, notifying the seller and initiating a conversation.
 - **Direct-to-Chat:** A "Contact Seller" button creates a private conversation between the buyer and seller.
 
@@ -34,6 +34,8 @@ NIT-JSR-Hub is divided into four primary modules, each packed with its own set o
 - **Data Analytics:** The microservice processes the raw data to calculate daily/weekly attendance percentages and trends.
 - **Visualizations:** The frontend displays attendance data in a calendar view, with analytics charts and a student leaderboard.
 - **Manual Refresh Trigger:** A "Refresh" button on the frontend can ping the microservice to wake it up and trigger an on-demand scrape.
+- **Credential Management:** Users must provide their college portal credentials to enable attendance tracking.
+- **Guided Setup:** First-time users receive guided instructions on setting up their credentials and using the platform.
 
 ---
 
@@ -64,7 +66,7 @@ It’s built around a few core, typesafe technologies that are modular and easy 
 | **Database** | ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)                                                                                                                                                                                     |
 | **Authentication** | ![NextAuth.js](https://img.shields.io/badge/NextAuth.js-000?style=for-the-badge&logo=next-auth&logoColor=white)                                                                                                                                                                                      |
 | **Real-Time Services**| **Pusher** (Chat), **Stream.io** (Video)                                                                                                                                                                                                                                                           |
-| **File Storage** | **Supabase Storage** (for Images & Files)                                                                                                                                                                                                                                                          |
+| **File Storage** | **Cloudflare R2** (for Images, Videos & Files)                                                                                                                                                                                                                                          |
 | **Scraping** | **Playwright** |
 | **Uptime/Monitoring** | **UptimeRobot** (for pinging the scraper microservice)                                                                                                                                                                                                                                           |
 | **Deployment** | **Vercel** (Next.js App), **Render / Fly.io** (Microservice) - *Recommended* |
@@ -104,6 +106,10 @@ Follow these instructions to get a copy of the project up and running on your lo
       # NextAuth
       NEXTAUTH_SECRET="a_random_strong_secret_for_jwt"
       NEXTAUTH_URL="http://localhost:3000"
+      
+      # Google OAuth (for college email authentication)
+      GOOGLE_CLIENT_ID="your_google_client_id"
+      GOOGLE_CLIENT_SECRET="your_google_client_secret"
 
       # Pusher
       PUSHER_APP_ID="your_pusher_app_id"
@@ -114,9 +120,11 @@ Follow these instructions to get a copy of the project up and running on your lo
       NEXT_PUBLIC_STREAM_API_KEY="your_stream_api_key"
       STREAM_API_SECRET="your_stream_secret"
 
-      # Supabase (for File Storage)
-      NEXT_PUBLIC_SUPABASE_URL="your_supabase_project_url"
-      NEXT_PUBLIC_SUPABASE_ANON_KEY="your_supabase_anon_key"
+      # Cloudflare R2 (for File Storage)
+      CLOUDFLARE_R2_ACCOUNT_ID="your_cloudflare_account_id"
+      CLOUDFLARE_R2_ACCESS_KEY_ID="your_r2_access_key_id"
+      CLOUDFLARE_R2_SECRET_ACCESS_KEY="your_r2_secret_access_key"
+      CLOUDFLARE_R2_BUCKET_NAME="your_r2_bucket_name"
       ```
 
 3.  **Set up the Attendance Scraper Microservice:**

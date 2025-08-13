@@ -74,12 +74,10 @@ body {
   /* Enhanced Glass effect for cards */
   .glass-card {
     @apply bg-card/80 backdrop-blur-md border border-border/50;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
   }
 
   .glass-card:hover {
     @apply border-border/70;
-    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.5);
   }
 
   /* Glass input styling */

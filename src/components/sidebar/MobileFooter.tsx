@@ -4,9 +4,12 @@ import useConversation from '@/app/(app)/(chat)/(comp)/hooks/useConversation';
 import useRoutes from '@/app/hooks/useRoutes';
 import MobileFooterItem from './MobileFooterItem';
 import Avatar from '@/components/status&sidebar/Avatar';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SettingsModal from './SettingsModal';
+import GuideModal from '@/components/ui/guide-modal';
 import { User } from '@prisma/client';
+import { Button } from '@/components/ui/button';
+import { HelpCircle } from 'lucide-react';
 
 interface MobileFooterProps {
   currentUser: User;
@@ -25,6 +28,14 @@ const MobileFooter: React.FC<MobileFooterProps> = ({ currentUser }) => {
   const { routes } = useRoutes(); // Extract routes from the object returned by useRoutes
   const { isOpen } = useConversation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+
+  // Removed auto-popup behavior - guide modal only opens when user clicks help button
+
+  const handleGuideComplete = () => {
+    localStorage.setItem('hasSeenGuide', 'true');
+    setIsGuideOpen(false);
+  };
 
   if (isOpen) return null;
 
@@ -54,6 +65,18 @@ const MobileFooter: React.FC<MobileFooterProps> = ({ currentUser }) => {
           />
         ))}
         
+        {/* Help Button */}
+        <div className="p-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsGuideOpen(true)}
+            className="h-6 w-6 p-0 text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </Button>
+        </div>
+        
         
       </div>
 
@@ -65,6 +88,13 @@ const MobileFooter: React.FC<MobileFooterProps> = ({ currentUser }) => {
           onClose={() => setIsSettingsOpen(false)}
         />
       )}
+      
+      {/* Guide Modal */}
+      <GuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+        onComplete={handleGuideComplete}
+      />
     </>
   );
 };

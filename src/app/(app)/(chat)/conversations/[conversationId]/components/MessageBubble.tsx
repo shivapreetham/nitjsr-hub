@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { MessageCircle, Smile, MoreHorizontal, Reply, Trash } from 'lucide-react';
+import { Smile, MoreHorizontal, Reply, Trash, Download, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FullMessageType, ReactionType } from '@/shared/types';
@@ -83,21 +83,135 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                  <div className={clsx(
            'relative rounded-2xl px-4 py-2 shadow-sm',
            'transition-all duration-200',
-           isOwn
-             ? 'bg-[#dcf8c6] text-gray-800 rounded-br-md' // WhatsApp green for own messages
-             : 'bg-white text-gray-800 rounded-bl-md', // White for others' messages
+           // Message type specific styling
+           message.type === 'VIDEO_CALL' ? (
+             isOwn 
+               ? 'bg-blue-500 text-white rounded-br-md border-2 border-blue-400' 
+               : 'bg-blue-100 text-blue-800 rounded-bl-md border-2 border-blue-300'
+           ) : message.type === 'MARKETPLACE_INTEREST' ? (
+             isOwn 
+               ? 'bg-purple-500 text-white rounded-br-md border-2 border-purple-400' 
+               : 'bg-purple-100 text-purple-800 rounded-bl-md border-2 border-purple-300'
+           ) : message.type === 'GIF' ? (
+             isOwn
+               ? 'bg-[#dcf8c6] text-gray-800 rounded-br-md border-l-4 border-yellow-400' 
+               : 'bg-white text-gray-800 rounded-bl-md border-l-4 border-yellow-400'
+           ) : (
+             isOwn
+               ? 'bg-[#dcf8c6] text-gray-800 rounded-br-md' // WhatsApp green for own messages
+               : 'bg-white text-gray-800 rounded-bl-md' // White for others' messages
+           ),
            message.image && 'p-1'
          )}>
           {/* Message Body */}
-          {message.image ? (
-            <Image
-              src={message.image}
-              alt="Message attachment"
-              width={200}
-              height={200}
-              className="rounded-lg object-cover cursor-pointer hover:scale-105 transition-transform"
-            />
-                     ) : (
+          {message.type === 'VIDEO_CALL' ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className={clsx(
+                  'flex items-center justify-center w-12 h-12 rounded-full',
+                  isOwn ? 'bg-blue-600' : 'bg-blue-500'
+                )}>
+                  <Video className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-semibold text-base">Video Call Invitation</span>
+                  <span className={clsx(
+                    'text-sm',
+                    isOwn ? 'text-blue-100' : 'text-blue-700'
+                  )}>
+                    Click to join the meeting
+                  </span>
+                </div>
+              </div>
+              <Button
+                asChild
+                className={clsx(
+                  'w-full font-semibold transition-all duration-200 hover:scale-105',
+                  isOwn 
+                    ? 'bg-white text-blue-500 hover:bg-blue-50 border border-blue-200' 
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                )}
+              >
+                <a 
+                  href={message.body?.split('Join here: ')[1]} 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2"
+                >
+                  <Video className="h-4 w-4" />
+                  Join Now
+                </a>
+              </Button>
+            </div>
+          ) : message.type === 'MARKETPLACE_INTEREST' ? (
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🛒</span>
+              <div className="flex flex-col">
+                <span className="font-medium text-sm">Marketplace Interest</span>
+                <span className={clsx(
+                  'text-xs',
+                  isOwn ? 'text-purple-100' : 'text-purple-700'
+                )}>
+                  {message.body}
+                </span>
+              </div>
+            </div>
+          ) : message.type === 'GIF' ? (
+            <div className="relative group">
+              <div className="flex items-center gap-1 mb-1">
+                <span className="text-sm">🎬</span>
+                <span className="text-xs font-medium text-yellow-600">GIF</span>
+              </div>
+              {message.image || message.fileUrl ? (
+                <div className="relative">
+                  <img
+                    src={message.image || message.fileUrl || ''}
+                    alt="GIF"
+                    className="rounded-lg object-cover cursor-pointer hover:scale-105 transition-transform max-w-[200px] max-h-[200px]"
+                  />
+                </div>
+              ) : (
+                <div className="text-sm">{message.body}</div>
+              )}
+            </div>
+          ) : message.image || message.fileUrl ? (
+            <div className="relative group">
+              {message.fileUrl?.includes('.mp4') || message.fileUrl?.includes('.webm') || message.fileUrl?.includes('.mov') ? (
+                <div className="relative">
+                  <video
+                    src={message.fileUrl}
+                    controls
+                    className="rounded-lg object-cover max-w-[300px] max-h-[200px]"
+                    preload="metadata"
+                  />
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-lg p-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-white hover:bg-white/20"
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = message.fileUrl || '';
+                        link.download = `video-${message.id}`;
+                        link.click();
+                      }}
+                      title="Download video"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Image
+                  src={message.image || message.fileUrl || ''}
+                  alt="Message attachment"
+                  width={200}
+                  height={200}
+                  className="rounded-lg object-cover cursor-pointer hover:scale-105 transition-transform"
+                />
+              )}
+            </div>
+          ) : (
              <div className="break-words whitespace-pre-wrap font-['Inter'] text-sm leading-relaxed">
                {message.body}
              </div>
