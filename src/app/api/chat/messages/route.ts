@@ -4,13 +4,16 @@ import prisma from '@/lib/prismadb';
 import { pusherServer } from '@/lib/pusher';
 import { withErrorHandler, validateRequestBody, requireAuth, CustomApiError } from '@/lib/errorHandler';
 import { createMessageSchema } from '@/shared/schemas/apiSchemas';
+import { z } from 'zod';
+
+type CreateMessageInput = z.infer<typeof createMessageSchema>;
 
 async function postHandler(request: Request) {
   const currentUser = await getCurrentUser();
   requireAuth(currentUser);
 
   // Validate request body
-  const body = await validateRequestBody(request, createMessageSchema);
+  const body = await validateRequestBody<CreateMessageInput>(request, createMessageSchema);
   const { message, image, conversationId, replyToId, type, fileUrl, fileName, fileType, fileSize } = body;
 
   // Check if conversation exists and user has access
@@ -18,7 +21,7 @@ async function postHandler(request: Request) {
     where: {
       id: conversationId,
       userIds: {
-        has: currentUser.id,
+        has: currentUser!.id,
       },
     },
   });
@@ -46,9 +49,9 @@ async function postHandler(request: Request) {
       if (type) return type;
       if (fileUrl || image) {
         const url = fileUrl || image;
-        if (url.toLowerCase().includes('.gif')) return 'GIF';
-        if (url.toLowerCase().match(/\.(mp4|webm|ogg|avi|mov|wmv)$/)) return 'VIDEO';
-        if (url.toLowerCase().match(/\.(jpg|jpeg|png|webp|svg)$/)) return 'IMAGE';
+        if (url && url.toLowerCase().includes('.gif')) return 'GIF';
+        if (url && url.toLowerCase().match(/\.(mp4|webm|ogg|avi|mov|wmv)$/)) return 'VIDEO';
+        if (url && url.toLowerCase().match(/\.(jpg|jpeg|png|webp|svg)$/)) return 'IMAGE';
         return 'FILE';
       }
       return 'TEXT';
@@ -70,12 +73,12 @@ async function postHandler(request: Request) {
         },
         sender: {
           connect: {
-            id: currentUser.id,
+            id: currentUser!.id,
           },
         },
         seen: {
           connect: {
-            id: currentUser.id,
+            id: currentUser!.id,
           },
         },
         ...(replyToId && {

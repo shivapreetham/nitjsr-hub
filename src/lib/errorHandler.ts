@@ -193,7 +193,7 @@ export async function validateRequestBody<T>(
 }
 
 // Utility function to check authentication
-export function requireAuth(currentUser: any): void {
+export function requireAuth(currentUser: any): asserts currentUser is NonNullable<typeof currentUser> {
   if (!currentUser?.id || !currentUser?.email) {
     throw new CustomApiError('Authentication required', 401, 'UNAUTHORIZED');
   }
