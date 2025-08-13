@@ -144,7 +144,7 @@ const MessageBox: React.FC<MessageBoxProps> = ({
 
   // Debug logging
   console.log('Message Debug:', {
-    messageId: data.id || (data as any).tempId,
+    messageId: 'id' in data ? data.id : data.tempId,
     messageType,
     body: data.body,
     isVideoCall,
@@ -320,7 +320,7 @@ const MessageBox: React.FC<MessageBoxProps> = ({
                   // GIF handling with auto-play
                   <img
                     onClick={() => setIsImageModalOpen(true)}
-                    src={fileUrl}
+                    src={fileUrl || undefined}
                     width={288}
                     height={288}
                     alt="gif"
@@ -335,19 +335,21 @@ const MessageBox: React.FC<MessageBoxProps> = ({
                     className="object-cover rounded-lg max-w-72"
                     preload="metadata"
                   >
-                    <source src={fileUrl} type={data.fileType || "video/mp4"} />
+                    <source src={fileUrl || undefined} type={data.fileType || "video/mp4"} />
                     Your browser does not support the video tag.
                   </video>
                 ) : messageType === 'IMAGE' || fileUrl?.toLowerCase().match(/\.(jpg|jpeg|png|webp|svg)$/) ? (
                   // Regular image handling
-                  <Image
-                    onClick={() => setIsImageModalOpen(true)}
-                    src={fileUrl}
-                    width={288}
-                    height={288}
-                    alt="image"
-                    className="object-cover cursor-pointer rounded-lg hover:scale-105"
-                  />
+                  fileUrl && (
+                    <Image
+                      onClick={() => setIsImageModalOpen(true)}
+                      src={fileUrl}
+                      width={288}
+                      height={288}
+                      alt="image"
+                      className="object-cover cursor-pointer rounded-lg hover:scale-105"
+                    />
+                  )
                 ) : (
                   // Generic file handling
                   <div className="flex items-center gap-3 p-4 bg-secondary rounded-lg max-w-72">
@@ -447,11 +449,13 @@ const MessageBox: React.FC<MessageBoxProps> = ({
         )}
       </div>
 
-      <ImageModal 
-        isOpen={isImageModalOpen} 
-        src={fileUrl} 
-        onClose={() => setIsImageModalOpen(false)}
-      />
+      {fileUrl && (
+        <ImageModal 
+          isOpen={isImageModalOpen} 
+          src={fileUrl} 
+          onClose={() => setIsImageModalOpen(false)}
+        />
+      )}
     </div>
   );
 };

@@ -2,7 +2,7 @@
 
 import Avatar from '@/components/status&sidebar/Avatar';
 import useOtherUser from '@/app/hooks/useOtherUser';
-import { Conversation, User } from '@prisma/client';
+import { Conversation, User, MessageType } from '@prisma/client';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { HiChevronLeft } from 'react-icons/hi';
@@ -171,6 +171,11 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
         tempId,
         body: `📞 Started a video call - Join here: ${meetingLink}`,
         image: null,
+        fileUrl: null,
+        fileName: null,
+        fileType: null,
+        fileSize: null,
+        type: MessageType.VIDEO_CALL,
         createdAt: new Date(),
         senderId: currentUser?.id || '',
         seenIds: [currentUser?.id || ''],
@@ -178,6 +183,9 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
         replyToId: null,
         sender: currentUser,
         seen: currentUser ? [currentUser] : [],
+        replyTo: undefined,
+        replies: undefined,
+        reactions: undefined,
       };
 
       // Add optimistic message immediately

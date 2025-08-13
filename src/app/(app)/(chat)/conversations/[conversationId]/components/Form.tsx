@@ -15,7 +15,7 @@ import { useStreamVideoClient } from '@stream-io/video-react-sdk';
 import { useCurrentUserContext } from '@/context/CurrentUserProvider';
 import { useToast } from '@/app/hooks/use-toast';
 import useOtherUser from '@/app/hooks/useOtherUser';
-import { Conversation, User } from '@prisma/client';
+import { Conversation, User, MessageType } from '@prisma/client';
 import { useMessages } from '@/context/MessagesProvider';
 import { FullMessageType } from '@/shared/types';
 import ReplyInput from './ReplyInput';
@@ -130,7 +130,11 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
         tempId,
         body: `📞 Video call started! Join here: ${meetingLink}`,
         image: null,
-        type: 'VIDEO_CALL',
+        fileUrl: null,
+        fileName: null,
+        fileType: null,
+        fileSize: null,
+        type: MessageType.VIDEO_CALL,
         createdAt: new Date(),
         senderId: currentUser?.id || '',
         seenIds: [currentUser?.id || ''],
@@ -148,7 +152,7 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
         message: `📞 Video call started! Join here: ${meetingLink}`,
         conversationId: conversationId,
         image: null,
-        type: 'VIDEO_CALL',
+        type: MessageType.VIDEO_CALL,
       }).then(response => {
         // Update optimistic message with real message
         if (response.data) {
@@ -263,13 +267,13 @@ const Form: React.FC<FormProps> = ({ conversation }) => {
       }
 
       // Determine message type for optimistic message
-      const determineOptimisticType = () => {
+      const determineOptimisticType = (): MessageType => {
         const url = data.fileUrl || data.imageUrl || imageUrl;
-        if (!url) return 'TEXT';
-        if (url.toLowerCase().includes('.gif')) return 'GIF';
-        if (url.toLowerCase().match(/\.(mp4|webm|ogg|avi|mov|wmv)$/)) return 'VIDEO';
-        if (url.toLowerCase().match(/\.(jpg|jpeg|png|webp|svg)$/)) return 'IMAGE';
-        return 'FILE';
+        if (!url) return MessageType.TEXT;
+        if (url.toLowerCase().includes('.gif')) return MessageType.GIF;
+        if (url.toLowerCase().match(/\.(mp4|webm|ogg|avi|mov|wmv)$/)) return MessageType.VIDEO;
+        if (url.toLowerCase().match(/\.(jpg|jpeg|png|webp|svg)$/)) return MessageType.IMAGE;
+        return MessageType.FILE;
       };
 
       // Create optimistic message

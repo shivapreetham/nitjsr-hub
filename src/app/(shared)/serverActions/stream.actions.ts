@@ -7,7 +7,7 @@ const STREAM_API_SECRET = process.env.STREAM_SECRET_KEY;
 
 export const tokenProvider = async () => {
   const user = await getCurrentUser();
-  console.log(user, "user got at streamActions")
+  // console.log(user, "user got at streamActions")
   if (!user) throw new Error('User is not authenticated');
   if (!STREAM_API_KEY) throw new Error('Stream API key is missing');
   if (!STREAM_API_SECRET) throw new Error('Stream API secret is missing');

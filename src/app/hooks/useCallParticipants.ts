@@ -27,9 +27,7 @@ export const useCallParticipants = (callId: string | null) => {
           const callState = call.state;
           
           // Count participants who are currently connected
-          const activeParticipants = callState.participants.filter(
-            participant => participant.connectionQuality !== 'unknown'
-          ).length;
+          const activeParticipants = callState.participants.length;
           
           setParticipantCount(activeParticipants);
         } else {
