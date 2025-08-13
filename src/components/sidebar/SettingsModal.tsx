@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { User } from '@prisma/client';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
@@ -34,12 +34,14 @@ interface SettingsModalProps {
   currentUser: User;
   isOpen?: boolean;
   onClose: () => void;
+  defaultTab?: 'profile' | 'credentials';
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
   currentUser,
   isOpen = false,
   onClose,
+  defaultTab = 'profile',
 }) => {
   const router = useRouter();
   const { toast } = useToast();
@@ -52,7 +54,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [mobileNumber, setMobileNumber] = useState(currentUser?.mobileNumber || '');
   const [hostel, setHostel] = useState(currentUser?.hostel || '');
   
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
+  // Reset tab when modal opens with different defaultTab
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+    }
+  }, [isOpen, defaultTab]);
 
   // Move programMap and branchMap outside of useMemo for correct type inference
   const programMap: ProgramMap = {
@@ -174,16 +183,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <Card className="relative w-full max-w-md mx-4 p-6 bg-card shadow-xl rounded-lg border border-border overflow-hidden">
         
         {/* Close button */}
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={onClose}
-          className="absolute right-4 top-4 p-2 rounded-full hover:bg-muted transition-all duration-200"
+          className="absolute right-4 top-4 p-2 rounded-full hover:bg-muted transition-all duration-200 h-8 w-8"
         >
-          <X className="h-5 w-5 text-muted-foreground" />
-        </button>
+          <X className="h-4 w-4 text-muted-foreground" />
+        </Button>
 
         <div className="space-y-6">
           {/* Header */}

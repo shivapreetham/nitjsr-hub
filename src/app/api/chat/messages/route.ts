@@ -2,16 +2,44 @@ import getCurrentUser from '@/app/(shared)/serverActions/getCurrentUser';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prismadb';
 import { pusherServer } from '@/lib/pusher';
+import { withErrorHandler, validateRequestBody, requireAuth, CustomApiError } from '@/lib/errorHandler';
+import { createMessageSchema } from '@/shared/schemas/apiSchemas';
 
-export async function POST(request: Request) {
-  try {
-    const currentUser = await getCurrentUser();
-    const body = await request.json();
-    const { message, image, conversationId, replyToId, type, fileUrl, fileName, fileType, fileSize } = body;
+async function postHandler(request: Request) {
+  const currentUser = await getCurrentUser();
+  requireAuth(currentUser);
 
-    if (!currentUser?.id || !currentUser?.email) {
-      return new NextResponse('Unauthorized', { status: 401 });
+  // Validate request body
+  const body = await validateRequestBody(request, createMessageSchema);
+  const { message, image, conversationId, replyToId, type, fileUrl, fileName, fileType, fileSize } = body;
+
+  // Check if conversation exists and user has access
+  const conversation = await prisma.conversation.findFirst({
+    where: {
+      id: conversationId,
+      userIds: {
+        has: currentUser.id,
+      },
+    },
+  });
+
+  if (!conversation) {
+    throw new CustomApiError('Conversation not found or access denied', 404, 'CONVERSATION_NOT_FOUND');
+  }
+
+  // Validate reply-to message if provided
+  if (replyToId) {
+    const replyToMessage = await prisma.message.findFirst({
+      where: {
+        id: replyToId,
+        conversationId: conversationId,
+      },
+    });
+
+    if (!replyToMessage) {
+      throw new CustomApiError('Reply-to message not found in this conversation', 400, 'INVALID_REPLY_TO');
     }
+  }
 
     // Determine message type based on file or content
     const determineMessageType = () => {
@@ -112,9 +140,10 @@ export async function POST(request: Request) {
       });
     });
 
-    return NextResponse.json(newMessage);
-  } catch (error: any) {
-    console.log(error, 'ERROR_MESSAGES');
-    return new NextResponse('Internal Server Error', { status: 500 });
-  }
+    return NextResponse.json({
+      success: true,
+      data: newMessage,
+    });
 }
+
+export const POST = withErrorHandler(postHandler);

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTheme } from "next-themes";
 import { useSession } from "next-auth/react";
+import { useToast } from "@/app/hooks/use-toast";
 import { 
    BookOpen, UserCheck, Calendar, Clock, AlertCircle, 
   CheckCircle, XCircle, ChevronDown, BarChart3, ArrowUpRight, 
@@ -76,10 +77,29 @@ import AttendanceTrends from './(comp)/components/AttendanceTrends';
 // Move loading and error UI to new files: components/Loading.tsx, components/Error.tsx
 import Loading from './(comp)/components/Loading';
 import ErrorComponent from './(comp)/components/Error';
+import SettingsModal from '@/components/sidebar/SettingsModal';
 
 function CredentialsRequired({ onAddCredentials }: { onAddCredentials: () => void }) {
   const [isStartingScraping, setIsStartingScraping] = useState(false);
   const { data: session } = useSession();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Show toast notification when component mounts
+    toast({
+      title: "NIT Credentials Required",
+      description: "Please add your college portal credentials to access attendance tracking.",
+      variant: "destructive",
+      action: (
+        <button
+          onClick={onAddCredentials}
+          className="px-3 py-1 bg-primary text-primary-foreground text-sm rounded hover:bg-primary/90 transition-colors"
+        >
+          Add Credentials
+        </button>
+      ),
+    });
+  }, [toast, onAddCredentials]);
 
   const handleStartScraping = async () => {
     try {
@@ -178,6 +198,8 @@ function CredentialsRequired({ onAddCredentials }: { onAddCredentials: () => voi
 export default function AttendanceDashboard() {
   const { data: session, status } = useSession();
   const [showAddCredentials, setShowAddCredentials] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const { toast } = useToast();
   
   const {
     attendanceData,
@@ -207,13 +229,19 @@ export default function AttendanceDashboard() {
   
   if (session && !session.user.hasNitCredentials) {
     return (
-      <CredentialsRequired 
-        onAddCredentials={() => {
-          // This should trigger opening the settings modal
-          // For now, we'll show an alert to remind users to use settings
-          alert('Please use the Settings option in the sidebar to add your NIT credentials.');
-        }}
-      />
+      <>
+        <CredentialsRequired 
+          onAddCredentials={() => {
+            setIsSettingsOpen(true);
+          }}
+        />
+        <SettingsModal
+          currentUser={session.user as any}
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          defaultTab="credentials"
+        />
+      </>
     );
   }
 
