@@ -72,18 +72,49 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
       }
 
       // Check if this message should replace an optimistic message
-      // We'll do a simple body match for now
-      const optimisticIndex = prev.findIndex(msg => 
-        'tempId' in msg && 
-        msg.body === message.body && 
-        msg.senderId === message.senderId
-      );
+      // Use a more robust matching strategy
+      const optimisticIndex = prev.findIndex(msg => {
+        if (!('tempId' in msg)) return false;
+        
+        // Match by content and sender
+        const senderMatch = (
+          (msg.senderId && msg.senderId === message.senderId) || 
+          (msg.sender?.id && msg.sender.id === message.sender?.id)
+        );
+        
+        const contentMatch = msg.body === message.body;
+        
+        // If it's a file message, also check file URL
+        const fileMatch = !message.fileUrl || msg.fileUrl === message.fileUrl;
+        
+        return senderMatch && contentMatch && fileMatch;
+      });
 
       if (optimisticIndex !== -1) {
         console.log('Replacing optimistic message with real message:', message.id);
         const updated = [...prev];
         updated[optimisticIndex] = message;
         return updated;
+      }
+
+      // Check for potential duplicates based on timestamp and sender (within 5 seconds)
+      const now = new Date(message.createdAt).getTime();
+      const potentialDuplicate = prev.find(msg => {
+        if (!('id' in msg)) return false;
+        
+        const msgTime = new Date(msg.createdAt).getTime();
+        const timeDiff = Math.abs(now - msgTime);
+        
+        return (
+          timeDiff < 5000 && // Within 5 seconds
+          msg.body === message.body &&
+          msg.sender?.id === message.sender?.id
+        );
+      });
+
+      if (potentialDuplicate) {
+        console.log('Potential duplicate detected, skipping:', message.id);
+        return prev;
       }
 
       // Add as new message

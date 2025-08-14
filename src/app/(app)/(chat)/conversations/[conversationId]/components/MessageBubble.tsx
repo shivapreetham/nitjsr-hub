@@ -222,7 +222,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
              'flex items-center justify-end gap-1 mt-1 text-xs opacity-70',
              isOwn ? 'text-gray-600' : 'text-gray-500'
            )}>
-            <span>{format(new Date(message.createdAt), 'HH:mm')}</span>
+            <span>
+              {(() => {
+                if (!message.createdAt) return format(new Date(), 'HH:mm');
+                const date = new Date(message.createdAt);
+                return !isNaN(date.getTime()) ? format(date, 'HH:mm') : format(new Date(), 'HH:mm');
+              })()}
+            </span>
             {isOwn && (
               <div className="flex items-center">
                 {message.seen.length > 0 ? (

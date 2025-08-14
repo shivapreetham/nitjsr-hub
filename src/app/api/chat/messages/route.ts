@@ -16,6 +16,11 @@ async function postHandler(request: Request) {
   const body = await validateRequestBody<CreateMessageInput>(request, createMessageSchema);
   const { message, image, conversationId, replyToId, type, fileUrl, fileName, fileType, fileSize } = body;
 
+  // Ensure either message or file is provided
+  if (!message && !image && !fileUrl) {
+    throw new CustomApiError('Either message content or file must be provided', 400, 'MISSING_CONTENT');
+  }
+
   // Check if conversation exists and user has access
   const conversation = await prisma.conversation.findFirst({
     where: {
@@ -128,8 +133,48 @@ async function postHandler(request: Request) {
       },
     });
 
-    //
-    await pusherServer.trigger(conversationId, 'messages:new', newMessage);
+    // Send minimal message data to avoid Pusher size limits
+    const pusherMessage = {
+      id: newMessage.id,
+      body: newMessage.body,
+      type: newMessage.type,
+      createdAt: newMessage.createdAt,
+      fileUrl: newMessage.fileUrl,
+      fileName: newMessage.fileName,
+      fileType: newMessage.fileType,
+      fileSize: newMessage.fileSize,
+      sender: {
+        id: newMessage.sender.id,
+        username: newMessage.sender.username,
+        email: newMessage.sender.email,
+        image: newMessage.sender.image,
+      },
+      replyTo: newMessage.replyTo ? {
+        id: newMessage.replyTo.id,
+        body: newMessage.replyTo.body,
+        type: newMessage.replyTo.type,
+        sender: {
+          id: newMessage.replyTo.sender.id,
+          username: newMessage.replyTo.sender.username,
+        },
+      } : null,
+      reactions: newMessage.reactions.map(reaction => ({
+        id: reaction.id,
+        emoji: reaction.emoji,
+        user: {
+          id: reaction.user.id,
+          username: reaction.user.username,
+        },
+      })),
+      seen: newMessage.seen.map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        image: user.image,
+      })),
+    };
+    
+    await pusherServer.trigger(conversationId, 'messages:new', pusherMessage);
 
     // get last message
     const lastMessage =

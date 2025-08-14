@@ -144,7 +144,7 @@ const Body: React.FC<BodyProps> = ({ conversation }) => {
           
           return (
                          <MessageBubble
-               key={'id' in message ? message.id : (message as any).tempId}
+               key={'id' in message ? message.id : (message as any).tempId || `temp-${i}`}
                message={message as FullMessageType}
                isOwn={isOwn}
                isLast={i === messages.length - 1}
