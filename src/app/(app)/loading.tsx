@@ -1,5 +1,12 @@
-import SharedLoadingScreen from '@/components/shared/SharedLoadingScreen';
+import TheOneLoader from '@/components/shared/TheOneLoader';
 
 export default function AppLoading() {
-  return <SharedLoadingScreen message="Loading application..." overlay={false} />;
+  return (
+    <TheOneLoader 
+      overlay={false}
+      size={36}
+      showJoke={true}
+      className="min-h-[60vh]"
+    />
+  );
 }

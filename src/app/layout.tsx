@@ -6,7 +6,6 @@ import "./globals.css";
 import { ThemeProvider } from "@/context/ThemeProvider";
 import ActiveStatus from "@/components/status&sidebar/ActiveStatus";
 import ClientProviders from "@/context/ClientProviders";
-import GlobalLoading from "@/components/shared/GlobalLoading";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://nitjsr-hub.fun'),
@@ -71,7 +70,6 @@ export default function RootLayout({
               <ActiveStatus />
               {children}
               <Toaster />
-              <GlobalLoading />
             </ClientProviders>
           </ThemeProvider>
         </AuthProvider>

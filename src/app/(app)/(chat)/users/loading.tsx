@@ -1,6 +1,13 @@
-import SharedLoadingScreen from '@/components/shared/SharedLoadingScreen';
+import TheOneLoader from '@/components/shared/TheOneLoader';
 
 const loading = () => {
-  return <SharedLoadingScreen message="Loading users..." overlay={false} />;
+  return (
+    <TheOneLoader 
+      overlay={false}
+      showJoke={true}
+      className="h-full"
+    />
+  );
 };
+
 export default loading;

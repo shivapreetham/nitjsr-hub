@@ -1,5 +1,11 @@
-import SharedLoadingScreen from '@/components/shared/SharedLoadingScreen';
+import TheOneLoader from '@/components/shared/TheOneLoader';
 
 export default function AuthLoading() {
-  return <SharedLoadingScreen message="Loading authentication..." overlay={false} />;
+  return (
+    <TheOneLoader 
+      overlay={false}
+      showJoke={true}
+      className="min-h-screen"
+    />
+  );
 }
