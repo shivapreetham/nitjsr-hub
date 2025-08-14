@@ -7,12 +7,14 @@ import Form from './components/Form';
 import CallIntegration from './components/CallIntegration';
 import { MessagesProvider } from '@/context/MessagesProvider';
 import { ReplyProvider } from '@/context/ReplyProvider';
+import getCurrentUser from '@/app/(shared)/serverActions/getCurrentUser';
 
 const ConversationId = async ( {params}:{params :any}) => {
   const cparams = await params;
   const  conversationId = await cparams.conversationId;
   const conversation = await getConversationById(conversationId);
   const messages = await getMessages(conversationId);
+  const currentUser = await getCurrentUser();
 
   if (!conversation) {
     return (
@@ -28,7 +30,7 @@ const ConversationId = async ( {params}:{params :any}) => {
     <div className="lg:pl-60 h-full">
       <div className="h-full flex flex-col bg-[#efeae2] dark:bg-[#0b141a] theme-transition">
         <CallIntegration conversationId={conversationId} />
-        <MessagesProvider initialMessages={messages}>
+        <MessagesProvider initialMessages={messages} currentUserId={currentUser?.id}>
           <ReplyProvider>
             <div className="shadow-sm bg-white dark:bg-gray-900">
               <Header conversation={conversation} />

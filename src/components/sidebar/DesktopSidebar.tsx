@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { User } from '@prisma/client';
 import useRoutes from '@/app/hooks/useRoutes';
 import DesktopSidebarItem from './DesktopSidebarItem';
@@ -12,6 +12,8 @@ import Image from 'next/image';
 import GuideModal from '@/components/ui/guide-modal';
 import { Button } from '@/components/ui/button';
 import { HelpCircle } from 'lucide-react';
+import NotificationButton from '@/components/notifications/NotificationButton';
+import NotificationModal from '@/components/notifications/NotificationModal';
 
 interface DesktopSidebarProps {
   currentUser: User;
@@ -22,7 +24,6 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({ currentUser }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const { theme } = useTheme();
-  const isDark = theme === 'dark';
 
   // Removed auto-popup behavior - guide modal only opens when user clicks help button
 
@@ -48,6 +49,7 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({ currentUser }) => {
         onClose={() => setIsGuideOpen(false)}
         onComplete={handleGuideComplete}
       />
+      <NotificationModal />
       <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:w-20 lg:overflow-y-auto lg:pb-4 lg:flex lg:flex-col justify-between transition-all duration-300 ease-in-out glass-sidebar">
         
         <div className="flex items-center justify-center mt-6 mb-8">
@@ -99,8 +101,11 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({ currentUser }) => {
 
           {/* Bottom section with divider - user controls */}
           <div className="mt-auto flex flex-col pt-4 border-t border-border/30">
-            {/* Controls section - Theme toggle & bottom routes */}
+            {/* Controls section - Notifications, Theme toggle & bottom routes */}
             <div className="flex flex-col justify-center items-center mb-4">
+              {/* Notifications button */}
+              <NotificationButton />
+              
               {/* Guide/Help button */}
               <div className="glass-card p-2 rounded-xl m-2">
                 <Button

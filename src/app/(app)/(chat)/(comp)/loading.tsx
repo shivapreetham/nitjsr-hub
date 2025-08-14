@@ -1,6 +1,6 @@
-import LoadingModal from '@/components/status&sidebar/LoadingModal';
+import SharedLoadingScreen from '@/components/shared/SharedLoadingScreen';
 
 const loading = () => {
-  return <LoadingModal />;
+  return <SharedLoadingScreen message="Loading conversations..." overlay={false} />;
 };
 export default loading;

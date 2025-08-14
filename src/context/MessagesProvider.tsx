@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { FullMessageType } from '@/shared/types';
+import { useNotification } from '@/context/NotificationProvider';
+import { createMessageNotification } from '@/shared/utils/notificationHelpers';
 
 // Type for optimistic messages that have tempId instead of id
 type OptimisticMessageType = Omit<FullMessageType, 'id'> & { tempId: string };
@@ -31,13 +33,16 @@ export const useMessages = () => {
 interface MessagesProviderProps {
   children: ReactNode;
   initialMessages: FullMessageType[];
+  currentUserId?: string;
 }
 
 export const MessagesProvider: React.FC<MessagesProviderProps> = ({ 
   children, 
-  initialMessages 
+  initialMessages,
+  currentUserId 
 }) => {
   const [messages, setMessages] = useState<MessageType[]>(initialMessages);
+  const { addNotification } = useNotification();
 
   const addOptimisticMessage = (message: OptimisticMessageType) => {
     setMessages(prev => [...prev, message]);
@@ -115,6 +120,17 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({
       if (potentialDuplicate) {
         console.log('Potential duplicate detected, skipping:', message.id);
         return prev;
+      }
+
+      // Create notification for new messages from other users
+      if (message.sender?.id && currentUserId && message.sender.id !== currentUserId) {
+        const notification = createMessageNotification(
+          message.sender.username || 'Unknown User',
+          message.body || 'Sent a file',
+          message.sender.image || undefined,
+          message.conversationId
+        );
+        addNotification(notification);
       }
 
       // Add as new message
