@@ -1,5 +1,11 @@
-import SharedLoadingScreen from '@/components/shared/SharedLoadingScreen';
+import TheOneLoader from '@/components/shared/TheOneLoader';
 
 export default function VideoLoading() {
-  return <SharedLoadingScreen message="Setting up video chat..." overlay={false} />;
+  return (
+    <TheOneLoader 
+      overlay={false}
+      showJoke={true}
+      className="min-h-[50vh]"
+    />
+  );
 }

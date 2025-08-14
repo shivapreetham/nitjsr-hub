@@ -1,5 +1,12 @@
-import SharedLoadingScreen from '@/components/shared/SharedLoadingScreen';
+import TheOneLoader from '@/components/shared/TheOneLoader';
 
 export default function Loading() {
-  return <SharedLoadingScreen message="Welcome! Loading NITJSR Hub..." overlay={false} />;
+  return (
+    <TheOneLoader 
+      overlay={false}
+      size={40}
+      showJoke={true}
+      className="min-h-screen bg-background"
+    />
+  );
 }

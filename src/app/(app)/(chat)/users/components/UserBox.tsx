@@ -1,7 +1,7 @@
 'use client';
 
 import Avatar from '@/components/status&sidebar/Avatar';
-import LoadingModal from '@/components/status&sidebar/LoadingModal';
+import TheOneLoader from '@/components/shared/TheOneLoader';
 import { User } from '@prisma/client';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
@@ -25,7 +25,7 @@ const UserBox: React.FC<UserBoxProps> = ({ user }) => {
 
   return (
     <>
-      {isLoading && <LoadingModal />}
+      <TheOneLoader show={isLoading} />
       <div
         title="Start a chat"
         onClick={handleClick}

@@ -1,5 +1,11 @@
-import SharedLoadingScreen from '@/components/shared/SharedLoadingScreen';
+import TheOneLoader from '@/components/shared/TheOneLoader';
 
 export default function AnonymousLoading() {
-  return <SharedLoadingScreen message="Loading anonymous messages..." overlay={false} />;
+  return (
+    <TheOneLoader 
+      overlay={false}
+      showJoke={true}
+      className="min-h-[50vh]"
+    />
+  );
 }

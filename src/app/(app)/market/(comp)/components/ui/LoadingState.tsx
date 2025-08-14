@@ -1,6 +1,13 @@
-import SharedLoadingScreen from '@/components/shared/SharedLoadingScreen';
+import TheOneLoader from '@/components/shared/TheOneLoader';
 import { LoadingStateProps } from "../types";
 
-export default function LoadingState({ message = "Loading products..." }: LoadingStateProps) {
-  return <SharedLoadingScreen message={message} overlay={false} />;
+export default function LoadingState({ message }: LoadingStateProps) {
+  return (
+    <TheOneLoader 
+      overlay={false}
+      message={message}
+      showJoke={!message}
+      className="min-h-[50vh]"
+    />
+  );
 } 
