@@ -3,6 +3,8 @@
 import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useParams } from 'next/navigation';
+import { useNotification } from '@/context/NotificationProvider';
+import { createVideoCallNotification } from '@/shared/utils/notificationHelpers';
 
 interface CallIntegrationProps {
   conversationId: string;
@@ -12,6 +14,7 @@ const CallIntegration: React.FC<CallIntegrationProps> = ({ conversationId }) => 
   const { data: session } = useSession();
   const params = useParams();
   const meetingId = params?.id as string;
+  const { addNotification } = useNotification();
 
   useEffect(() => {
     const sendCallMessage = async () => {
@@ -46,6 +49,14 @@ const CallIntegration: React.FC<CallIntegrationProps> = ({ conversationId }) => 
 
     if (fromChat === 'true' && chatConversationId === conversationId) {
       sendCallMessage();
+      
+      // Create a video call notification
+      const notification = createVideoCallNotification(
+        session?.user?.name || 'Someone',
+        'incoming',
+        session?.user?.image || undefined
+      );
+      addNotification(notification);
     }
   }, [session?.user?.email, meetingId, conversationId]);
 

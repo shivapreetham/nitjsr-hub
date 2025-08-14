@@ -2,15 +2,15 @@ import { z } from 'zod';
 
 // Message API schemas
 export const createMessageSchema = z.object({
-  message: z.string().min(1, 'Message cannot be empty').max(2000, 'Message too long'),
+  message: z.string().max(2000, 'Message too long').optional(),
   conversationId: z.string().min(1, 'Conversation ID is required'),
   replyToId: z.string().optional(),
   type: z.enum(['TEXT', 'IMAGE', 'VIDEO', 'GIF', 'FILE', 'VIDEO_CALL', 'MARKETPLACE_INTEREST']).optional(),
-  fileUrl: z.string().url().optional(),
-  fileName: z.string().max(255).optional(),
-  fileType: z.string().max(100).optional(),
-  fileSize: z.number().min(0).max(10 * 1024 * 1024).optional(), // 10MB limit
-  image: z.string().url().optional(),
+  fileUrl: z.string().url().nullable().optional(),
+  fileName: z.string().max(255).nullable().optional(),
+  fileType: z.string().max(100).nullable().optional(),
+  fileSize: z.number().min(0).max(10 * 1024 * 1024).nullable().optional(), // 10MB limit
+  image: z.string().url().nullable().optional(),
 });
 
 // Product API schemas

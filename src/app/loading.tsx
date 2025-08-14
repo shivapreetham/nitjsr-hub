@@ -1,5 +1,5 @@
 import SharedLoadingScreen from '@/components/shared/SharedLoadingScreen';
 
 export default function Loading() {
-  return <SharedLoadingScreen message="Loading your attendance data..." />;
-} 
+  return <SharedLoadingScreen message="Welcome! Loading NITJSR Hub..." overlay={false} />;
+}
