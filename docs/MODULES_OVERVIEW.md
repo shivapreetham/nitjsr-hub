@@ -4,6 +4,21 @@
 
 The application consists of four main functional modules, each with its own dedicated section in the codebase.
 
+## Recent Updates (Latest Changes)
+
+### Enhanced User Experience
+- **Improved Loading States**: Better loading indicators across all modules for enhanced user feedback
+- **Enhanced Notifications**: Upgraded notification system with better real-time updates
+- **UI/UX Improvements**: Streamlined interfaces and better visual feedback throughout the application
+
+### Chat Module Improvements
+- **Stability Enhancements**: Resolved various chatting issues for more reliable messaging
+- **Performance Optimizations**: Better error handling and improved message delivery
+
+### Marketplace Module Upgrades
+- **Cloudflare R2 Integration**: Enhanced file upload system with better media handling
+- **Improved File Management**: Better handling of images, videos, and file uploads
+
 ## 1. Chat Module 💬
 
 ### Location: `src/app/(app)/(chat)/`
@@ -15,9 +30,11 @@ Real-time messaging system supporting both one-on-one and group conversations.
 - Real-time messaging with Pusher integration
 - Group chat creation and management
 - Typing indicators and read receipts
-- File and image sharing
+- File and image sharing with enhanced loading states
 - Message reactions
 - AI-powered message suggestions
+- Improved notification system for better user experience
+- Enhanced error handling and stability improvements
 
 #### Core Components
 - **ConversationBox**: Individual chat interface
@@ -69,9 +86,10 @@ Peer-to-peer marketplace for students to buy and sell items.
 - Product listing creation with multiple images
 - Interest expression system
 - Direct seller-buyer chat integration
-- Product search and filtering
+- Product search and filtering with enhanced UI
 - User's product management
-- Image upload via Supabase Storage
+- Enhanced image upload via Cloudflare R2 Storage with improved file handling
+- Streamlined user experience with better loading indicators
 
 #### Core Components
 - **ProductCard**: Product display card

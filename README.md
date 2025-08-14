@@ -6,6 +6,13 @@ A comprehensive, full-stack application designed to integrate essential communit
 
 <img width="1865" height="932" alt="Application Screenshot" src="https://github.com/user-attachments/assets/c6030e99-36c9-4fa0-a99b-315ad5cc75fa" />
 
+## Recent Updates 🆕
+
+- **Enhanced Chat Experience**: Improved loading states, better notifications, and resolved chatting issues for smoother real-time communication
+- **Cloudflare Integration**: Upgraded media handling with improved Cloudflare R2 integration for better file uploads and management
+- **UI/UX Improvements**: Streamlined user interface with better loading indicators and enhanced user experience across all modules
+- **Performance Optimizations**: Various performance improvements and bug fixes to ensure stable application functionality
+
 ---
 
 ## Key Features ✨
@@ -17,12 +24,15 @@ NIT-JSR-Hub is divided into four primary modules, each packed with its own set o
 - **Typing Indicators & Read Receipts:** See when users are typing and when your messages have been seen.
 - **Rich Media:** Share images, videos, GIFs and files seamlessly within chats (up to 5MB for videos).
 - **Group Management:** Easily create groups and add or remove members.
+- **Enhanced UX:** Improved loading states and notification system for better user experience.
+- **Optimized Performance:** Recent improvements to chat functionality with better error handling and stability.
 
 ### 🛒 Peer-to-Peer Marketplace
 - **Product Listings:** Users can create, update, and delete their product listings.
-- **Media Uploads:** Multiple image and video uploads for each product, handled by **Cloudflare R2**.
+- **Enhanced Media Uploads:** Multiple image and video uploads for each product, now with improved **Cloudflare R2** integration and better file handling.
 - **Show Interest:** Users can express interest in products, notifying the seller and initiating a conversation.
 - **Direct-to-Chat:** A "Contact Seller" button creates a private conversation between the buyer and seller.
+- **Improved UX:** Enhanced user interface with better loading indicators and streamlined workflows.
 
 ### 🎥 Video Conferencing
 - **Seamless Integration:** High-quality video and audio calls powered directly by the **Stream.io SDK**.

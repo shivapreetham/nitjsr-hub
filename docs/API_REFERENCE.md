@@ -7,6 +7,12 @@
 ## Authentication
 All protected endpoints require authentication via NextAuth.js session cookies.
 
+## Recent API Improvements
+- **Enhanced Error Handling**: Better error responses and validation across all endpoints
+- **Improved File Upload**: Cloudflare R2 integration with better metadata and error handling
+- **Notification Enhancements**: Real-time notification improvements for better user experience
+- **Performance Optimizations**: Various optimizations for better response times and stability
+
 ---
 
 ## Chat API
@@ -325,10 +331,16 @@ Reset password with token.
 
 ## Shared APIs
 
-### File Upload
+### File Upload (Enhanced)
 
 #### `POST /api/cloudflare/upload`
-Upload files (images, videos, GIFs) to Cloudflare R2 storage.
+Upload files (images, videos, GIFs) to Cloudflare R2 storage with improved handling.
+
+**Features:**
+- Enhanced error handling and validation
+- Better file type detection and validation
+- Improved upload progress tracking
+- Optimized file processing
 
 **Body:** FormData with `file` field and optional `type` field
 
@@ -336,12 +348,17 @@ Upload files (images, videos, GIFs) to Cloudflare R2 storage.
 ```json
 {
   "url": "https://storage_url/filename",
-  "success": true
+  "success": true,
+  "metadata": {
+    "fileSize": 1024,
+    "fileType": "image/jpeg",
+    "uploadedAt": "2024-01-01T00:00:00Z"
+  }
 }
 ```
 
 #### `POST /api/cloudflare/delete`
-Delete files from Cloudflare R2 storage.
+Delete files from Cloudflare R2 storage with enhanced error handling.
 
 **Body:**
 ```json
@@ -354,7 +371,8 @@ Delete files from Cloudflare R2 storage.
 ```json
 {
   "success": true,
-  "message": "File deleted successfully"
+  "message": "File deleted successfully",
+  "deletedAt": "2024-01-01T00:00:00Z"
 }
 ```
 
