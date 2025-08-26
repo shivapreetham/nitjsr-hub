@@ -79,6 +79,119 @@ import Loading from './(comp)/components/Loading';
 import ErrorComponent from './(comp)/components/Error';
 import SettingsModal from '@/components/sidebar/SettingsModal';
 
+function ProcessingCredentials() {
+  const [timeElapsed, setTimeElapsed] = useState(0);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeElapsed(prev => prev + 1);
+    }, 1000);
+
+    // Show helpful messages at different intervals
+    const timeouts: NodeJS.Timeout[] = [];
+    
+    // After 5 minutes, suggest they may need to wait longer
+    timeouts.push(setTimeout(() => {
+      toast({
+        title: "Still processing...",
+        description: "Your attendance data is still being processed. This can take up to 15 minutes for the first time.",
+        variant: "default",
+      });
+    }, 5 * 60 * 1000));
+
+    // After 10 minutes, suggest they check credentials
+    timeouts.push(setTimeout(() => {
+      toast({
+        title: "Taking longer than expected",
+        description: "If you're sure your credentials are correct, please wait a few more minutes. Otherwise, check if your NIT username and password are correct.",
+        variant: "default",
+      });
+    }, 10 * 60 * 1000));
+
+    // After 15 minutes, suggest contacting admins
+    timeouts.push(setTimeout(() => {
+      toast({
+        title: "Processing timeout",
+        description: "If your attendance data hasn't loaded yet, your credentials may be incorrect. Please verify them in your profile settings, or contact web admins if you're sure they're correct.",
+        variant: "destructive",
+        duration: 15000,
+      });
+    }, 15 * 60 * 1000));
+
+    return () => {
+      clearInterval(interval);
+      timeouts.forEach(clearTimeout);
+    };
+  }, [toast]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center py-8">
+      <div className="max-w-md w-full mx-auto px-4">
+        <div className="bg-card rounded-xl shadow-lg border border-border p-8 text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="bg-blue-100 dark:bg-blue-900/20 rounded-full p-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <h2 className="text-2xl font-bold text-foreground">
+              Processing Your Credentials
+            </h2>
+            <p className="text-muted-foreground">
+              We're fetching your attendance data from the NIT portal. This usually takes 5-10 minutes.
+            </p>
+            <div className="text-sm text-blue-600 dark:text-blue-400 font-mono">
+              Time elapsed: {formatTime(timeElapsed)}
+            </div>
+          </div>
+
+          <div className="space-y-4 text-left bg-muted/20 rounded-lg p-4">
+            <h3 className="font-semibold text-foreground">What's happening?</h3>
+            <ul className="text-sm text-muted-foreground space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="text-blue-500">•</span>
+                <span>Validating your NIT portal credentials</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-500">•</span>
+                <span>Extracting your attendance data</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-500">•</span>
+                <span>Processing and organizing your records</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="text-xs text-muted-foreground bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-lg p-3">
+            <p className="font-medium text-amber-800 dark:text-amber-200 mb-1">⏱️ Expected Timeline:</p>
+            <p className="text-amber-700 dark:text-amber-300">
+              <strong>5-10 minutes:</strong> Normal processing time<br/>
+              <strong>10-15 minutes:</strong> First-time setup (longer processing)<br/>
+              <strong>15+ minutes:</strong> Please check your credentials or contact admins
+            </p>
+          </div>
+          
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium py-3 px-4 rounded-lg transition-colors duration-200"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CredentialsRequired({ onAddCredentials }: { onAddCredentials: () => void }) {
   const [isStartingScraping, setIsStartingScraping] = useState(false);
   const { data: session } = useSession();
@@ -199,7 +312,31 @@ export default function AttendanceDashboard() {
   const { data: session, status } = useSession();
   const [showAddCredentials, setShowAddCredentials] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [credentialsRecentlyAdded, setCredentialsRecentlyAdded] = useState(false);
   const { toast } = useToast();
+
+  // Check if credentials were recently added (within last 20 minutes)
+  useEffect(() => {
+    if (session?.user?.hasNitCredentials) {
+      const credentialsAddedTime = localStorage.getItem('credentialsAddedTime');
+      if (credentialsAddedTime) {
+        const timeSinceAdded = Date.now() - parseInt(credentialsAddedTime);
+        if (timeSinceAdded < 20 * 60 * 1000) { // 20 minutes
+          setCredentialsRecentlyAdded(true);
+        } else {
+          localStorage.removeItem('credentialsAddedTime');
+        }
+      }
+    }
+  }, [session]);
+
+  // Clear the processing state when attendance data is successfully loaded
+  useEffect(() => {
+    if (attendanceData && !loading && !error) {
+      localStorage.removeItem('credentialsAddedTime');
+      setCredentialsRecentlyAdded(false);
+    }
+  }, [attendanceData, loading, error]);
   
   const {
     attendanceData,
@@ -243,6 +380,11 @@ export default function AttendanceDashboard() {
         />
       </>
     );
+  }
+
+  // Show processing state if credentials were recently added and no data yet
+  if (session?.user?.hasNitCredentials && credentialsRecentlyAdded && (!attendanceData || error)) {
+    return <ProcessingCredentials />;
   }
 
   if (loading) return <Loading />;
