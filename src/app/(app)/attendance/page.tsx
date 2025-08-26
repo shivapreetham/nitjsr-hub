@@ -79,6 +79,119 @@ import Loading from './(comp)/components/Loading';
 import ErrorComponent from './(comp)/components/Error';
 import SettingsModal from '@/components/sidebar/SettingsModal';
 
+function ProcessingCredentials() {
+  const [timeElapsed, setTimeElapsed] = useState(0);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeElapsed(prev => prev + 1);
+    }, 1000);
+
+    // Show helpful messages at different intervals
+    const timeouts: NodeJS.Timeout[] = [];
+    
+    // After 5 minutes, suggest they may need to wait longer
+    timeouts.push(setTimeout(() => {
+      toast({
+        title: "Still processing...",
+        description: "Your attendance data is still being processed. This can take up to 15 minutes for the first time.",
+        variant: "default",
+      });
+    }, 5 * 60 * 1000));
+
+    // After 10 minutes, suggest they check credentials
+    timeouts.push(setTimeout(() => {
+      toast({
+        title: "Taking longer than expected",
+        description: "If you're sure your credentials are correct, please wait a few more minutes. Otherwise, check if your NIT username and password are correct.",
+        variant: "default",
+      });
+    }, 10 * 60 * 1000));
+
+    // After 15 minutes, suggest contacting admins
+    timeouts.push(setTimeout(() => {
+      toast({
+        title: "Processing timeout",
+        description: "If your attendance data hasn't loaded yet, your credentials may be incorrect. Please verify them in your profile settings, or contact web admins if you're sure they're correct.",
+        variant: "destructive",
+        duration: 15000,
+      });
+    }, 15 * 60 * 1000));
+
+    return () => {
+      clearInterval(interval);
+      timeouts.forEach(clearTimeout);
+    };
+  }, [toast]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center py-8">
+      <div className="max-w-md w-full mx-auto px-4">
+        <div className="bg-card rounded-xl shadow-lg border border-border p-8 text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="bg-blue-100 dark:bg-blue-900/20 rounded-full p-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <h2 className="text-2xl font-bold text-foreground">
+              Processing Your Credentials
+            </h2>
+            <p className="text-muted-foreground">
+              We're fetching your attendance data from the NIT portal. This usually takes 5-10 minutes.
+            </p>
+            <div className="text-sm text-blue-600 dark:text-blue-400 font-mono">
+              Time elapsed: {formatTime(timeElapsed)}
+            </div>
+          </div>
+
+          <div className="space-y-4 text-left bg-muted/20 rounded-lg p-4">
+            <h3 className="font-semibold text-foreground">What's happening?</h3>
+            <ul className="text-sm text-muted-foreground space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="text-blue-500">•</span>
+                <span>Validating your NIT portal credentials</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-500">•</span>
+                <span>Extracting your attendance data</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-500">•</span>
+                <span>Processing and organizing your records</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="text-xs text-muted-foreground bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-lg p-3">
+            <p className="font-medium text-amber-800 dark:text-amber-200 mb-1">⏱️ Expected Timeline:</p>
+            <p className="text-amber-700 dark:text-amber-300">
+              <strong>5-10 minutes:</strong> Normal processing time<br/>
+              <strong>10-15 minutes:</strong> First-time setup (longer processing)<br/>
+              <strong>15+ minutes:</strong> Please check your credentials or contact admins
+            </p>
+          </div>
+          
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium py-3 px-4 rounded-lg transition-colors duration-200"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CredentialsRequired({ onAddCredentials }: { onAddCredentials: () => void }) {
   const [isStartingScraping, setIsStartingScraping] = useState(false);
   const { data: session } = useSession();
@@ -199,8 +312,9 @@ export default function AttendanceDashboard() {
   const { data: session, status } = useSession();
   const [showAddCredentials, setShowAddCredentials] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [credentialsRecentlyAdded, setCredentialsRecentlyAdded] = useState(false);
   const { toast } = useToast();
-  
+
   const {
     attendanceData,
     loading,
@@ -224,6 +338,29 @@ export default function AttendanceDashboard() {
     displayedSubjects
   } = useAttendanceDashboard();
 
+  // Check if credentials were recently added (within last 20 minutes)
+  useEffect(() => {
+    if (session?.user?.hasNitCredentials) {
+      const credentialsAddedTime = localStorage.getItem('credentialsAddedTime');
+      if (credentialsAddedTime) {
+        const timeSinceAdded = Date.now() - parseInt(credentialsAddedTime);
+        if (timeSinceAdded < 20 * 60 * 1000) { // 20 minutes
+          setCredentialsRecentlyAdded(true);
+        } else {
+          localStorage.removeItem('credentialsAddedTime');
+        }
+      }
+    }
+  }, [session]);
+
+  // Clear the processing state when attendance data is successfully loaded
+  useEffect(() => {
+    if (attendanceData && !loading && !error) {
+      localStorage.removeItem('credentialsAddedTime');
+      setCredentialsRecentlyAdded(false);
+    }
+  }, [attendanceData, loading, error]);
+
   // Check if user has NIT credentials
   if (status === "loading") return <Loading />;
   
@@ -245,32 +382,37 @@ export default function AttendanceDashboard() {
     );
   }
 
+  // Show processing state if credentials were recently added and no data yet
+  if (session?.user?.hasNitCredentials && credentialsRecentlyAdded && (!attendanceData || error)) {
+    return <ProcessingCredentials />;
+  }
+
   if (loading) return <Loading />;
   if (error) return <ErrorComponent error={error} />;
   if (!attendanceData) return <ErrorComponent error="No attendance data is available for your account. Please contact your administrator." />;
 
   return (
-    <div className="min-h-screen bg-background py-4 sm:py-8 transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4">
-        <header className="mb-6 sm:mb-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+    <div className="min-h-screen bg-background py-2 sm:py-4 lg:py-8 transition-colors duration-200">
+      <div className="max-w-7xl mx-auto px-0 sm:px-2 md:px-4">
+        <header className="mb-4 sm:mb-6 lg:mb-8 px-3 sm:px-0">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
   {/* Attendance Dashboard Info */}
   <div>
-    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
+    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
       Attendance Dashboard
     </h1>
-    <p className="text-sm sm:text-base text-muted-foreground mt-2">
+    <p className="text-xs sm:text-sm lg:text-base text-muted-foreground mt-1 sm:mt-2">
       {attendanceData.user.name} • {attendanceData.user.branch || 'No Department'} • {attendanceData.user.batch ? `Semester ${attendanceData.user.batch}` : 'No Semester'}
     </p>
   </div>
 
   {/* Button Group */}
-  <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-4">
+  <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
     {/* View Mode Buttons */}
-    <div className="flex bg-muted rounded-lg p-1">
+    <div className="flex bg-muted rounded-lg p-1 w-full sm:w-auto">
       <button 
         onClick={() => setViewMode("overview")}
-        className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
+        className={`flex-1 sm:flex-initial px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition ${
           viewMode === "overview"
             ? "bg-card text-foreground shadow"
             : "text-muted-foreground"
@@ -280,7 +422,7 @@ export default function AttendanceDashboard() {
       </button>
       <button 
         onClick={() => setViewMode("detailed")}
-        className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
+        className={`flex-1 sm:flex-initial px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition ${
           viewMode === "detailed"
             ? "bg-card text-foreground shadow"
             : "text-muted-foreground"
@@ -290,7 +432,7 @@ export default function AttendanceDashboard() {
       </button>
       <button 
         onClick={() => setViewMode("trends")}
-        className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
+        className={`flex-1 sm:flex-initial px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition ${
           viewMode === "trends"
             ? "bg-card text-foreground shadow"
             : "text-muted-foreground"
@@ -305,25 +447,26 @@ export default function AttendanceDashboard() {
 </div>
 
           {/* Last updated banner */}
-          <div className="mt-4 flex justify-between items-center bg-primary/10 rounded-lg px-4 py-2">
+          <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-primary/10 rounded-lg px-3 sm:px-4 py-2 space-y-2 sm:space-y-0">
             <div className="flex items-center">
-              <CalendarClock className="h-4 w-4 text-primary mr-2" />
-              <span className="text-sm text-primary">
+              <CalendarClock className="h-3 w-3 sm:h-4 sm:w-4 text-primary mr-2" />
+              <span className="text-xs sm:text-sm text-primary">
                 Last Updated: {formatDate(attendanceData.lastUpdated)}
               </span>
             </div>
             <button 
               onClick={() => window.location.reload()}
-              className="text-sm font-medium text-primary hover:underline"
+              className="text-xs sm:text-sm font-medium text-primary hover:underline"
             >
               Refresh
             </button>
           </div>
         </header>
-        <AttendanceStatusCards attendanceData={attendanceData} />
-        <UserStatsBanner userStats={attendanceData.userStats} />
-        {viewMode === "overview" && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="px-3 sm:px-0">
+          <AttendanceStatusCards attendanceData={attendanceData} />
+          <UserStatsBanner userStats={attendanceData.userStats} />
+          {viewMode === "overview" && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
             <div className="lg:col-span-1">
               <AttendanceCharts
                 chartType={chartType}
@@ -346,32 +489,33 @@ export default function AttendanceDashboard() {
               />
             </div>
           </div>
-        )}
-        {viewMode === "detailed" && (
-          <SubjectDetail
-            subjects={attendanceData.subjects}
-            activeSubject={activeSubject}
-            setActiveSubject={setActiveSubject}
-            activeSubjectData={activeSubjectData}
-            getAttendanceStatus={getAttendanceStatus}
-          />
-        )}
-        {viewMode === "trends" && (
-          <AttendanceTrends
-            filterPeriod={filterPeriod}
-            setFilterPeriod={setFilterPeriod}
-            filteredTrendData={filteredTrendData}
-            attendanceTrendData={attendanceTrendData}
-            isDarkTheme={isDarkTheme}
-            attendanceData={attendanceData}
-            setActiveSubject={setActiveSubject}
-            setViewMode={setViewMode}
-          />
-        )}
-        <footer className="mt-12 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} Student Attendance System. All rights reserved.</p>
-          <p className="mt-1">Last login: {new Date(attendanceData.user.lastSeen).toLocaleString()}</p>
-        </footer>
+          )}
+          {viewMode === "detailed" && (
+            <SubjectDetail
+              subjects={attendanceData.subjects}
+              activeSubject={activeSubject}
+              setActiveSubject={setActiveSubject}
+              activeSubjectData={activeSubjectData}
+              getAttendanceStatus={getAttendanceStatus}
+            />
+          )}
+          {viewMode === "trends" && (
+            <AttendanceTrends
+              filterPeriod={filterPeriod}
+              setFilterPeriod={setFilterPeriod}
+              filteredTrendData={filteredTrendData}
+              attendanceTrendData={attendanceTrendData}
+              isDarkTheme={isDarkTheme}
+              attendanceData={attendanceData}
+              setActiveSubject={setActiveSubject}
+              setViewMode={setViewMode}
+            />
+          )}
+          <footer className="mt-8 sm:mt-10 lg:mt-12 text-center text-xs sm:text-sm text-muted-foreground">
+            <p>© {new Date().getFullYear()} Student Attendance System. All rights reserved.</p>
+            <p className="mt-1">Last login: {new Date(attendanceData.user.lastSeen).toLocaleString()}</p>
+          </footer>
+        </div>
       </div>
     </div>
   );

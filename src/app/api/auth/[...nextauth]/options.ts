@@ -2,13 +2,11 @@ import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import bcrypt from 'bcryptjs';
-import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -118,6 +116,74 @@ export const authOptions: NextAuthOptions = {
               
               console.log(`Successfully linked Google account to existing user: ${user.email}`);
             }
+          } else {
+            // For new users, create them manually to ensure all required fields are present
+            const username = user.email.split('@')[0];
+            const emailRegex = /^(20\d{2})(ug|pg)([a-z]+)(\d{3})@nitjsr\.ac\.in$/;
+            const emailMatch = user.email.match(emailRegex);
+            
+            let batch = null;
+            let branch = null;
+            let course = null;
+            
+            if (emailMatch) {
+              const [, batchValue, branchCode, courseCode] = emailMatch;
+              const branchMap = { ug: 'Undergraduate', pg: 'Postgraduate' };
+              const courseMap = {
+                cs: 'Computer Science and Engineering',
+                ec: 'Electronics and Communication Engineering',
+                ee: 'Electrical Engineering',
+                ce: 'Civil Engineering',
+                me: 'Mechanical Engineering',
+                mm: 'Metallurgical and Materials Engineering',
+                pi: 'Production and Industrial Engineering',
+                csca: 'Master in Computer Applications',
+                phd: 'PhD',
+              };
+              
+              batch = batchValue;
+              branch = branchMap[branchCode.toLowerCase() as keyof typeof branchMap] || branchCode.toUpperCase();
+              course = courseMap[courseCode.toLowerCase() as keyof typeof courseMap] || courseCode.toUpperCase();
+            }
+
+            // Create the user manually with all required fields
+            const newUser = await prisma.user.create({
+              data: {
+                username,
+                email: user.email,
+                image: user.image,
+                isVerified: true,
+                isAcceptingAnonymousMessages: true,
+                batch,
+                branch,
+                course,
+              },
+            });
+
+            // Create the account record
+            await prisma.account.create({
+              data: {
+                userId: newUser.id,
+                type: account.type,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                refresh_token: account.refresh_token,
+                access_token: account.access_token,
+                expires_at: account.expires_at,
+                token_type: account.token_type,
+                scope: account.scope,
+                id_token: account.id_token,
+                session_state: account.session_state,
+              }
+            });
+
+            // Update user object with created user data
+            user.id = newUser.id;
+            user.username = newUser.username;
+            user.isVerified = newUser.isVerified;
+            user.isAcceptingAnonymousMessages = newUser.isAcceptingAnonymousMessages;
+            
+            console.log(`Successfully created new Google OAuth user: ${user.email}`);
           }
 
           // Trigger group management for Google OAuth users
@@ -130,8 +196,8 @@ export const authOptions: NextAuthOptions = {
             })
           });
         } catch (error) {
-          console.error('Error linking Google account or adding user to groups:', error);
-          // Don't block sign in for linking failures
+          console.error('Error in Google OAuth sign-in:', error);
+          return false; // Block sign in if there's an error creating the account
         }
       }
       return true;

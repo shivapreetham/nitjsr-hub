@@ -160,6 +160,26 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       // Send update to API
       await axios.post('/api/chat/profile', updateData);
       
+      // Special handling for credential updates
+      if (updateData.NITUsername || updateData.NITPassword) {
+        // Set timestamp for when credentials were added
+        localStorage.setItem('credentialsAddedTime', Date.now().toString());
+        
+        router.refresh();
+        toast({
+          title: 'Credentials Updated Successfully!',
+          description: 'Please wait 5-10 minutes for your attendance data to be processed. If no data appears after 15 minutes, your credentials may be incorrect. Please verify and try again, or contact web admins if you\'re sure your credentials are correct.',
+          duration: 10000, // Show for 10 seconds
+        });
+        onClose();
+        
+        // Redirect to attendance page to show the processing message
+        if (window.location.pathname !== '/attendance') {
+          router.push('/attendance');
+        }
+        return;
+      }
+      
       router.refresh();
       toast({
         title: 'Success',
