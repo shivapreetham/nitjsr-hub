@@ -20,13 +20,13 @@ export default function Error({ error }: { error: string }) {
   const getErrorMessage = () => {
     if (isCredentialError) {
       return {
-        title: "Unable to Load Attendance Data",
-        description: "This could be due to incorrect NIT portal credentials or the system is still processing your data.",
+        title: "Attendance Data Not Available",
+        description: "If you just added your credentials, please wait 5-10 minutes for your attendance data to be processed. If credentials are correct, attendance details will be displayed. Otherwise, your credentials may be wrong - please update them after 10-15 minutes. If you're sure your credentials work on the NIT JSR attendance portal, contact the web admins.",
         suggestions: [
-          "Wait 5-10 minutes if you recently updated your credentials",
-          "Verify your NIT username and password are correct",
-          "Check if your account works on the official NIT attendance portal",
-          "Contact web admins if you're sure your credentials are correct"
+          "Wait 5-10 minutes if you recently added credentials",
+          "Check your credentials after 10-15 minutes if no data appears", 
+          "Verify your credentials work on the official NIT portal",
+          "Contact web admins if you're certain your credentials are correct"
         ]
       };
     }
