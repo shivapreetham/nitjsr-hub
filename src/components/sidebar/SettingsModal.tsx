@@ -203,15 +203,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   }
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <Card className="relative w-full max-w-md mx-4 p-6 bg-card shadow-xl rounded-lg border border-border overflow-hidden">
+      <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto"
+          onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                  onClose();
+              }
+          }}
+      >
+          <div className="min-h-full flex items-center justify-center p-4">
+              <Card
+                  className="relative w-full max-w-md my-8 p-6 bg-card shadow-xl rounded-lg border border-border"
+                  onClick={(e) => e.stopPropagation()}
+              >
         
         {/* Close button */}
         <Button
@@ -402,6 +406,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         </div>
       </Card>
+          </div>
     </div>
   );
 };
